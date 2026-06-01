@@ -223,7 +223,7 @@ function GalleryModal({
         }}
         className="fixed bottom-6 left-1/2 z-[101] -translate-x-1/2 touch-none"
       >
-        <motion.div className="cursor-grab rounded-xl border border-[var(--gold)]/40 bg-[var(--orange)]/25 shadow-lg backdrop-blur-xl active:cursor-grabbing">
+        <motion.div className="cursor-grab rounded-xl border border-[var(--orange)]/40 bg-[var(--grey-dark)]/25 shadow-lg backdrop-blur-xl active:cursor-grabbing">
           <div className="flex items-center gap-3 px-4 py-4">
             {/* Left arrow */}
             <button
