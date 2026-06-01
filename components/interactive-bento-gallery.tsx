@@ -136,11 +136,21 @@ function GalleryModal({
 }) {
   const [dockPosition, setDockPosition] = useState({ x: 0, y: 0 });
 
-  if (!isOpen) return null;
-
   const currentIndex = mediaItems.findIndex((item) => item.id === selectedItem.id);
   const prevItem = mediaItems[currentIndex - 1] ?? null;
   const nextItem = mediaItems[currentIndex + 1] ?? null;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && prevItem) setSelectedItem(prevItem);
+      if (e.key === "ArrowRight" && nextItem) setSelectedItem(nextItem);
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [prevItem, nextItem, setSelectedItem, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div
