@@ -223,7 +223,7 @@ function GalleryModal({
         }}
         className="fixed bottom-6 left-1/2 z-[101] -translate-x-1/2 touch-none"
       >
-        <motion.div className="cursor-grab rounded-xl border border-[var(--orange)]/40 bg-[var(--grey-dark)]/25 shadow-lg backdrop-blur-xl active:cursor-grabbing">
+        <motion.div className="cursor-grab rounded-xl border border-white/[0.12] shadow-lg active:cursor-grabbing" style={{ background: "oklch(0.22 0.02 50 / 0.88)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)" }}>
           <div className="flex items-center gap-3 px-4 py-4">
             {/* Left arrow */}
             <button
@@ -253,7 +253,7 @@ function GalleryModal({
                 }}
                 className={`group relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-24 ${
                   selectedItem.id === item.id
-                    ? "shadow-lg ring-2 ring-[var(--gold)]"
+                    ? "shadow-lg ring-2 ring-[var(--orange)]"
                     : "hover:ring-2 hover:ring-white/40"
                 }`}
                 initial={{ rotate: index % 2 === 0 ? -15 : 15 }}
