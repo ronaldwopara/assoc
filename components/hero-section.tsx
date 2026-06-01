@@ -15,7 +15,7 @@ export function HeroSection() {
           playsInline
           className="hero-video h-full w-full object-cover"
         >
-          <source src="/hero-clip.mp4" type="video/mp4" />
+          <source src="/our-story.mp4" type="video/mp4" />
         </video>
         
         <div
