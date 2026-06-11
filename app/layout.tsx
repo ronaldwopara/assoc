@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SkipLink } from "@/components/skip-link";
+import { Footer } from "@/components/footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,10 +21,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" translate="no" className="notranslate">
+    <html
+      lang="en"
+      translate="no"
+      className="notranslate"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <SkipLink />
         {children}
+        <Footer />
       </body>
     </html>
   );

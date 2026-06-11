@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx skills *)"
+      "Bash(npx skills *)",
+      "Bash(curl -sL \"https://gallery.sherryannphotography.com/sitemap.xml\")",
+      "Bash(curl -sL \"https://gallery.sherryannphotography.com/africanfestival/photos\" -H \"Accept: application/json\" -H \"X-Requested-With: XMLHttpRequest\")",
+      "Bash(python3 -c \"import sys; print\\(sys.stdin.read\\(\\)[:1000]\\)\")",
+      "Bash(curl -sL \"https://cdn.pixieset.com/release/js/client.combined.min.js?b752e39ad4462efe8ca2b0db7c321ed5\")",
+      "Bash(curl -sL https://gallery.sherryannphotography.com/africanfestival/?p=1 -H 'X-Requested-With: XMLHttpRequest' -H 'Accept: application/json' -H 'X-PJAX: true')",
+      "Bash(python3 -c \"import sys; d=sys.stdin.read\\(\\); print\\(d[:500]\\)\")",
+      "Bash(curl -sv 'https://gallery.sherryannphotography.com/africanfestival/client/loadphotos/?page=1&gallery=highlights' -H 'X-Requested-With: XMLHttpRequest' -H 'Accept: */*' -H 'Referer: https://gallery.sherryannphotography.com/africanfestival/')",
+      "Bash(npx tsc *)"
     ]
   }
 }

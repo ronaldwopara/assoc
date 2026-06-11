@@ -1,29 +1,23 @@
+"use client";
+
+import { useRef } from "react";
+import { HeroCarousel } from "./hero-carousel";
 import { HeroContent } from "./hero-content";
 
 export function HeroSection() {
+  const containerRef = useRef<HTMLElement>(null);
+
   return (
     <section
+      ref={containerRef}
       id="home"
-      className="relative mt-[var(--navbar-height)] min-h-[calc(100dvh-var(--navbar-height))] overflow-hidden"
+      className="relative z-10 mt-(--navbar-height) h-[160vh]"
       aria-label="Welcome"
     >
-      <div className="absolute inset-0" aria-hidden>
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="hero-video h-full w-full object-cover"
-        >
-          <source src="/our-story.mp4" type="video/mp4" />
-        </video>
-        
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: "var(--hero-overlay)" }}
-        />
+      <div className="sticky top-(--navbar-height) h-[calc(100dvh-var(--navbar-height))] overflow-hidden">
+        <HeroCarousel />
+        <HeroContent containerRef={containerRef} />
       </div>
-      <HeroContent />
     </section>
   );
 }

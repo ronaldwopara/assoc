@@ -2,14 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MobileMenuToggle,
   MobileNavMenu,
+  type GalleryProgram,
 } from "@/components/mobile-nav-menu";
+import { JoinCommunityModal } from "@/components/join-community-modal";
 import asoscLogo from "../Asosc-Logo.png";
 
-/** Navbar background image strength (0–1). Raise toward 1 for a bolder pattern. */
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
@@ -18,84 +21,247 @@ const navbarBackgroundStyle = {
   opacity: NAVBAR_IMAGE_OPACITY,
 };
 
-const navLinkClassName = "nav-menu-trigger focus-ring cursor-pointer";
+function hashId(href: string) {
+  return href.slice(href.indexOf("#") + 1);
+}
 
-const navLinkWithIconClassName = `${navLinkClassName} gap-1`;
+const navLinkClassName = "nav-menu-trigger focus-ring cursor-pointer";
+const navLinkWithIconClassName = `${navLinkClassName} gap-1.5`;
 
 const programsDropdown = [
   {
     title: "Our Story, Our Voice",
     description: "Stories that build empathy and challenge stereotypes.",
-    href: "#our-story",
+    href: "/#our-story",
   },
   {
     title: "Youth Creative Media Lab",
     description: "Raising the next generation of African leaders.",
-    href: "#youth-lab",
+    href: "/#youth-lab",
   },
   {
     title: "African Festival",
     description: "Celebrating African culture, food, music, and identity.",
-    href: "#festival",
+    href: "/#festival",
   },
   {
     title: "Black History Month",
     description: "Honoring heritage and celebrating achievements.",
-    href: "#bhm",
+    href: "/#bhm",
   },
   {
     title: "Family Wellness Programs",
     description: "Supporting strong, healthy African families.",
-    href: "#wellness",
+    href: "/#wellness",
+  },
+];
+
+export const galleryDropdown: GalleryProgram[] = [
+  {
+    program: "African Festival",
+    years: [
+      { year: "2025", href: "/#gallery" },
+      { year: "2024", href: "/#gallery" },
+    ],
+  },
+  {
+    program: "Black History Month",
+    years: [
+      { year: "2025", href: "/#gallery" },
+      { year: "2024", href: "/#gallery" },
+    ],
+  },
+  {
+    program: "Youth Creative Media Lab",
+    years: [{ year: "2025", href: "/#gallery" }],
+  },
+  {
+    program: "Family Wellness Seminars",
+    years: [{ year: "2025", href: "/#gallery" }],
+  },
+  {
+    program: "Annual End-of-Year Celebration",
+    years: [{ year: "2025", href: "/#gallery" }],
   },
 ];
 
 const leftLinks = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
+  { label: "Home", href: "/#home" },
+  { label: "About", href: "/#about" },
 ];
 
 const rightLinks = [
-  { label: "Gallery", href: "#gallery" },
-  { label: "Get Involved", href: "#get-involved" },
-  { label: "Contact", href: "#contact" },
+  { label: "Calendar", href: "/#calendar" },
+  { label: "Contact", href: "/#contact" },
 ];
+
+const DROPDOWN_EASE = [0.65, 0.01, 0.05, 0.99] as const;
+
+const panelVariants = {
+  hidden: { opacity: 0, y: -6, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] as const } },
+  exit:   { opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.13, ease: "easeIn" as const } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8, rotate: 4 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    rotate: 0,
+    transition: { delay: 0.18 + i * 0.05, duration: 0.35, ease: DROPDOWN_EASE },
+  }),
+  exit: { opacity: 0, transition: { duration: 0.1 } },
+};
+
+function DropdownChevron({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+      className="h-3.5 w-3.5 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="2.5"
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </motion.svg>
+  );
+}
 
 function useNavbarKeyboard(
   mobileMenuOpen: boolean,
   setMobileMenuOpen: (open: boolean) => void,
-  setProgramsOpen: (open: boolean) => void
+  setProgramsOpen: (open: boolean) => void,
+  setGalleryOpen: (open: boolean) => void,
 ) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMobileMenuOpen(false);
         setProgramsOpen(false);
+        setGalleryOpen(false);
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setMobileMenuOpen, setProgramsOpen]);
+  }, [setMobileMenuOpen, setProgramsOpen, setGalleryOpen]);
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    if (!mobileMenuOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 }
 
-function NavbarBackground() {
+function NavbarBackground({ hidden }: { hidden?: boolean }) {
+  if (hidden) return null;
   return <div className="absolute inset-0" style={navbarBackgroundStyle} />;
 }
 
+const SECTION_IDS = ["home", "about", "programs", "gallery", "calendar", "contact"];
+
+function NavLamp() {
+  return (
+    <motion.div
+      layoutId="nav-lamp"
+      className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center"
+      initial={false}
+      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+    >
+      <div className="relative h-1 w-10 rounded-full bg-(--gold)">
+        <div className="absolute -left-2 -top-2 h-6 w-14 rounded-full bg-(--gold)/40 blur-md" />
+        <div className="absolute -top-1 left-1 h-6 w-8 rounded-full bg-(--gold)/40 blur-md" />
+        <div className="absolute left-3 top-0 h-4 w-4 rounded-full bg-(--gold)/40 blur-sm" />
+      </div>
+    </motion.div>
+  );
+}
+
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isHome = pathname === "/";
   const [programsOpen, setProgramsOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [togglePos, setTogglePos] = useState({ x: 28, y: 40 });
+  const [activeSection, setActiveSection] = useState("home");
+  const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [showJoinNav, setShowJoinNav] = useState(false);
+  const [bentoGalleryOpen, setBentoGalleryOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinModalAction, setJoinModalAction] = useState<string | null>(null);
+  const lampTarget = hoveredNav ?? activeSection;
+  const [togglePos, setTogglePos] = useState({ x: 0, y: 0 });
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
-  useNavbarKeyboard(mobileMenuOpen, setMobileMenuOpen, setProgramsOpen);
+  const logoLinkRef = useRef<HTMLAnchorElement>(null);
+  const programsCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const galleryCloseTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Expose the real navbar logo element so LoadingScreen can measure it exactly
+    (window as Window & { __navLogoEl?: HTMLElement }).__navLogoEl = logoLinkRef.current ?? undefined;
+  }, []);
+  useNavbarKeyboard(mobileMenuOpen, setMobileMenuOpen, setProgramsOpen, setGalleryOpen);
+
+  useEffect(() => {
+    const handleHeroCtaPastView = (event: Event) => {
+      const { past } = (event as CustomEvent<{ past: boolean }>).detail;
+      setShowJoinNav(past);
+    };
+    window.addEventListener("heroCtaPastView", handleHeroCtaPastView);
+    return () => window.removeEventListener("heroCtaPastView", handleHeroCtaPastView);
+  }, []);
+
+  useEffect(() => {
+    const handleBentoGalleryOpen = (event: Event) => {
+      const { open } = (event as CustomEvent<{ open: boolean }>).detail;
+      setBentoGalleryOpen(open);
+    };
+    window.addEventListener("bentoGalleryOpen", handleBentoGalleryOpen);
+    return () => window.removeEventListener("bentoGalleryOpen", handleBentoGalleryOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!isHome) {
+      setActiveSection(pathname === "/about" ? "about" : "home");
+      return;
+    }
+
+    const sections = SECTION_IDS.map((id) => document.getElementById(id)).filter(
+      (el): el is HTMLElement => el !== null,
+    );
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + window.innerHeight / 2;
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+
+      if (atBottom) {
+        setActiveSection(SECTION_IDS[SECTION_IDS.length - 1]);
+        return;
+      }
+
+      for (const section of sections) {
+        const top = section.getBoundingClientRect().top + window.scrollY;
+        const bottom = top + section.offsetHeight;
+        if (scrollPos >= top && scrollPos < bottom) {
+          setActiveSection(section.id);
+          break;
+        }
+      }
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [isHome, pathname]);
 
   const updateTogglePos = useCallback(() => {
     const el = toggleButtonRef.current;
@@ -104,10 +270,16 @@ export function Navbar() {
     setTogglePos({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
   }, []);
 
+  useEffect(() => {
+    updateTogglePos();
+    window.addEventListener("resize", updateTogglePos);
+    return () => window.removeEventListener("resize", updateTogglePos);
+  }, [updateTogglePos]);
+
   const toggleMobileMenu = () => {
     updateTogglePos();
     setMobileMenuOpen((open) => {
-      if (open) setProgramsOpen(false);
+      if (open) { setProgramsOpen(false); setGalleryOpen(false); }
       return !open;
     });
   };
@@ -115,121 +287,292 @@ export function Navbar() {
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
     setProgramsOpen(false);
+    setGalleryOpen(false);
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-[var(--z-navbar)]">
+    <header className="fixed inset-x-0 top-0 z-(--z-navbar)">
       <div className="relative">
         <div className="absolute inset-0 overflow-hidden" aria-hidden>
-          <NavbarBackground />
+          <NavbarBackground hidden={bentoGalleryOpen} />
         </div>
         <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-white">
-          <div className="flex h-20 items-center justify-between">
+          <div
+            className="relative flex h-20 items-center justify-between"
+            onMouseLeave={() => setHoveredNav(null)}
+          >
+            {/* Left spacer for mobile balance */}
+            <div className="lg:hidden w-11" />
+
+            {/* Left navigation */}
+            {!bentoGalleryOpen && (
+            <div className="hidden lg:flex lg:items-center lg:gap-6">
+              {leftLinks.map((link) => {
+                const id = hashId(link.href);
+                return (
+                  <div
+                    key={link.label}
+                    className="relative"
+                    onMouseEnter={() => setHoveredNav(id)}
+                  >
+                    <Link
+                      href={link.href}
+                      className={navLinkClassName}
+                      data-active={lampTarget === id ? "true" : undefined}
+                    >
+                      {link.label}
+                    </Link>
+                    {lampTarget === id && <NavLamp />}
+                  </div>
+                );
+              })}
+
+              {/* Programs dropdown */}
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  if (programsCloseTimer.current) clearTimeout(programsCloseTimer.current);
+                  if (galleryCloseTimer.current)  clearTimeout(galleryCloseTimer.current);
+                  setProgramsOpen(true);
+                  setGalleryOpen(false);
+                  setHoveredNav("programs");
+                }}
+                onMouseLeave={() => {
+                  programsCloseTimer.current = setTimeout(() => setProgramsOpen(false), 150);
+                }}
+              >
+                <button
+                  type="button"
+                  className={navLinkWithIconClassName}
+                  data-open={programsOpen ? "true" : undefined}
+                  data-active={lampTarget === "programs" ? "true" : undefined}
+                  aria-expanded={programsOpen}
+                  aria-haspopup="true"
+                  onClick={() => {
+                    if (isHome) {
+                      document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
+                    } else {
+                      router.push("/#programs");
+                    }
+                    setProgramsOpen(false);
+                  }}
+                >
+                  Programs
+                  <DropdownChevron open={programsOpen} />
+                </button>
+                {lampTarget === "programs" && <NavLamp />}
+
+                <AnimatePresence>
+                  {programsOpen && (
+                    <motion.div
+                      variants={panelVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="programs-panel absolute left-0 top-full z-[var(--z-dropdown)] mt-3"
+                      role="menu"
+                    >
+                      {/* Bridge to maintain hover state across the mt-3 gap */}
+                      <div className="absolute -top-3 left-0 right-0 h-3" />
+
+                      <ul className="grid gap-2 p-2.5 sm:grid-cols-2">
+                        {programsDropdown.map((program, i) => (
+                          <motion.li
+                            key={program.title}
+                            custom={i}
+                            variants={itemVariants}
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="program-card focus-ring-light w-full text-left"
+                              onClick={() => {
+                                if (isHome) {
+                                  window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: program.href } }));
+                                  document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
+                                } else {
+                                  router.push(program.href);
+                                }
+                                setProgramsOpen(false);
+                              }}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="program-card__title">{program.title}</div>
+                                <p className="program-card__desc">{program.description}</p>
+                              </div>
+                            </button>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+            )}
+
+            {/* Center logo */}
+            <Link
+              ref={logoLinkRef}
+              href="/#home"
+              className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
+            >
+              <Image src={asoscLogo} alt="ASOSC logo" className="h-14 w-auto" priority />
+            </Link>
+
+            {/* Right navigation */}
+            <div className="hidden lg:ml-auto lg:flex lg:items-center lg:gap-6">
+              {/* Gallery dropdown */}
+              {!bentoGalleryOpen && (
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  if (galleryCloseTimer.current)  clearTimeout(galleryCloseTimer.current);
+                  if (programsCloseTimer.current) clearTimeout(programsCloseTimer.current);
+                  setGalleryOpen(true);
+                  setProgramsOpen(false);
+                  setHoveredNav("gallery");
+                }}
+                onMouseLeave={() => {
+                  galleryCloseTimer.current = setTimeout(() => setGalleryOpen(false), 150);
+                }}
+              >
+                <button
+                  type="button"
+                  className={navLinkWithIconClassName}
+                  data-open={galleryOpen ? "true" : undefined}
+                  data-active={lampTarget === "gallery" ? "true" : undefined}
+                  aria-expanded={galleryOpen}
+                  aria-haspopup="true"
+                  onClick={() => {
+                    if (isHome) {
+                      document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
+                    } else {
+                      router.push("/#gallery");
+                    }
+                    setGalleryOpen(false);
+                  }}
+                >
+                  Gallery
+                  <DropdownChevron open={galleryOpen} />
+                </button>
+                {lampTarget === "gallery" && <NavLamp />}
+
+                <AnimatePresence>
+                  {galleryOpen && (
+                    <motion.div
+                      variants={panelVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="gallery-panel absolute right-0 top-full z-[var(--z-dropdown)] mt-3"
+                      role="menu"
+                    >
+                      {/* Bridge to maintain hover state across the mt-3 gap */}
+                      <div className="absolute -top-3 left-0 right-0 h-3" />
+
+                      <div className="grid gap-x-3 gap-y-1 p-2.5 sm:grid-cols-2">
+                        {galleryDropdown.map((item, i) => (
+                          <motion.div
+                            key={item.program}
+                            custom={i}
+                            variants={itemVariants}
+                            className="gallery-group"
+                          >
+                            <div className="gallery-group__header">{item.program}</div>
+                            <ul className="flex flex-wrap gap-1.5 px-0.5 py-1.5">
+                              {item.years.map((y) => (
+                                <li key={y.year}>
+                                  <Link
+                                    href={y.href}
+                                    role="menuitem"
+                                    className="gallery-year-pill focus-ring-light"
+                                  >
+                                    {y.year}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              )}
+
+              {rightLinks.map((link) => {
+                const id = hashId(link.href);
+
+                if (link.label === "Contact" && showJoinNav) {
+                  return (
+                    <motion.button
+                      key={link.label}
+                      type="button"
+                      onClick={() => {
+                        setJoinModalAction(null);
+                        setIsJoinModalOpen(true);
+                      }}
+                      initial={{ opacity: 0, scale: 0.8, x: 16 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 22 }}
+                      className="hero-cta-btn gold-ring focus-ring-light cursor-pointer px-5 py-2 text-sm font-semibold tracking-wide text-black transition-colors duration-200 ease-out"
+                    >
+                      Join Our Community
+                    </motion.button>
+                  );
+                }
+
+                if (link.label === "Contact") {
+                  return (
+                    <div
+                      key={link.label}
+                      className="relative"
+                      onMouseEnter={() => setHoveredNav(id)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setJoinModalAction("Contact");
+                          setIsJoinModalOpen(true);
+                        }}
+                        className={navLinkClassName}
+                        data-active={lampTarget === id ? "true" : undefined}
+                      >
+                        {link.label}
+                      </button>
+                      {lampTarget === id && <NavLamp />}
+                    </div>
+                  );
+                }
+
+                if (bentoGalleryOpen) return null;
+
+                return (
+                  <div
+                    key={link.label}
+                    className="relative"
+                    onMouseEnter={() => setHoveredNav(id)}
+                  >
+                    <Link
+                      href={link.href}
+                      className={navLinkClassName}
+                      data-active={lampTarget === id ? "true" : undefined}
+                    >
+                      {link.label}
+                    </Link>
+                    {lampTarget === id && <NavLamp />}
+                  </div>
+                );
+              })}
+            </div>
+
             <MobileMenuToggle
               isOpen={mobileMenuOpen}
               onToggle={toggleMobileMenu}
               ref={toggleButtonRef}
             />
-
-
-            {/* Left navigation */}
-            <div className="hidden lg:flex lg:items-center lg:gap-8">
-              {leftLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className={navLinkClassName}
-                >
-                  {link.label}
-                </Link>
-              ))}
-
-              {/* Programs dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => setProgramsOpen(true)}
-                onMouseLeave={() => setProgramsOpen(false)}
-              >
-                <Link
-                  href="#programs"
-                  className={navLinkWithIconClassName}
-                  data-open={programsOpen ? "true" : undefined}
-                  aria-expanded={programsOpen}
-                  aria-haspopup="true"
-                >
-                  Programs
-                  <svg
-                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${programsOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2"
-                    stroke="currentColor"
-                    aria-hidden
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </Link>
-
-                {programsOpen && (
-                  <div
-                    className="nav-menu-content absolute left-0 top-full z-[var(--z-dropdown)] mt-2 w-[min(36rem,calc(100vw-2rem))]"
-                    role="menu"
-                  >
-                    <ul className="grid gap-3 sm:grid-cols-2">
-                      {programsDropdown.map((program) => (
-                        <li key={program.title}>
-                          <Link
-                            href={program.href}
-                            role="menuitem"
-                            className="nav-menu-item focus-ring-light cursor-pointer"
-                          >
-                            <div className="nav-menu-item-title">
-                              {program.title}
-                            </div>
-                            <p className="nav-menu-item-desc">
-                              {program.description}
-                            </p>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Center logo */}
-            <Link
-              href="#home"
-              className="focus-ring shrink-0 cursor-pointer rounded-sm"
-            >
-              <Image
-                src={asoscLogo}
-                alt="ASOSC logo"
-                className="h-14 w-auto"
-                priority
-              />
-            </Link>
-
-            {/* Right navigation */}
-            <div className="hidden lg:flex lg:items-center lg:gap-8">
-              {rightLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className={navLinkClassName}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Spacer for mobile */}
-            <div className="lg:hidden w-10" />
           </div>
         </nav>
       </div>
@@ -239,11 +582,24 @@ export function Navbar() {
         onClose={closeMobileMenu}
         programsOpen={programsOpen}
         setProgramsOpen={setProgramsOpen}
+        galleryOpen={galleryOpen}
+        setGalleryOpen={setGalleryOpen}
         leftLinks={leftLinks}
         rightLinks={rightLinks}
         programs={programsDropdown}
+        gallery={galleryDropdown}
         toggleX={togglePos.x}
         toggleY={togglePos.y}
+        onJoinCommunityClick={() => {
+          setJoinModalAction(null);
+          setIsJoinModalOpen(true);
+        }}
+      />
+
+      <JoinCommunityModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        initialAction={joinModalAction}
       />
     </header>
   );

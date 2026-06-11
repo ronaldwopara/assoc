@@ -51,10 +51,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
   },
   {
     id: 2,
-    type: "image",
+    type: "video",
     title: "Youth Creative Media Lab",
     desc: "Raising the next generation of African leaders.",
-    url: "/hero-slide-2.png",
+    url: "/Youth-Creative-Media-Lab.mp4",
     area: "youth",
     href: "#youth-lab",
     details: {
@@ -89,10 +89,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
   },
   {
     id: 3,
-    type: "image",
+    type: "video",
     title: "African Festival (Annual – August)",
     desc: "Celebrating culture. Connecting community.",
-    url: "/hero-slide-1.jpg",
+    url: "/African-Festival.mp4",
     area: "festival",
     href: "#festival",
     details: {
@@ -121,10 +121,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
   },
   {
     id: 4,
-    type: "image",
+    type: "video",
     title: "Black History Month (Annual – February)",
     desc: "Honoring heritage and celebrating achievements.",
-    url: "/hero-slide-3.jpg",
+    url: "/black-history-month.mp4",
     area: "bhm",
     href: "#bhm",
     details: {
@@ -149,10 +149,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
   },
   {
     id: 5,
-    type: "image",
+    type: "video",
     title: "Family Wellness Seminars",
     desc: "Supporting strong communities and healthy African families.",
-    url: "/hero-slide-1.jpg",
+    url: "/Family-Wellness-Seminars.mp4",
     area: "wellness",
     href: "#wellness",
     details: {
@@ -184,10 +184,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
   },
   {
     id: 6,
-    type: "image",
+    type: "video",
     title: "Annual End-of-Year Celebration",
     desc: "Celebrating togetherness.",
-    url: "/hero-slide-2.png",
+    url: "/Annual-End-of-Year-Celebration.mp4",
     area: "celebration",
     href: "#celebration",
     details: {

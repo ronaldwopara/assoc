@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { MediaItemType } from "@/lib/featured-programs-data";
 
+const ctaClassName =
+  "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
 function MediaItem({
   item,
   className,
@@ -136,47 +138,18 @@ function GalleryModal({
 }) {
   const [dockPosition, setDockPosition] = useState({ x: 0, y: 0 });
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const wiggleControls = useAnimationControls();
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (drawerOpen) {
-      wiggleControls.start({ rotate: 0, transition: { duration: 0.25 } });
-      return;
-    }
-    let cancelled = false;
-    const ids: ReturnType<typeof setTimeout>[] = [];
-
-    const sleep = (ms: number) =>
-      new Promise<void>((resolve) => {
-        const id = setTimeout(() => { if (!cancelled) resolve(); }, ms);
-        ids.push(id);
-      });
-
-    const doWiggle = () => {
-      if (cancelled) return Promise.resolve();
-      return wiggleControls.start({
-        rotate: [0, -5, 5, -4, 4, -2, 2, 0],
-        transition: { duration: 0.85, ease: "easeInOut" },
-      });
-    };
-
-    (async () => {
-      await sleep(2500);
-      while (!cancelled) {
-        await doWiggle();
-        await sleep(5000);
-        if (cancelled) break;
-        await doWiggle();
-        await sleep(10000);
+    if (!drawerOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setDrawerOpen(false);
       }
-    })();
-
-    return () => {
-      cancelled = true;
-      ids.forEach(clearTimeout);
-      wiggleControls.stop();
     };
-  }, [drawerOpen, wiggleControls]);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [drawerOpen]);
 
   const currentIndex = mediaItems.findIndex((item) => item.id === selectedItem.id);
   const prevItem = mediaItems[currentIndex - 1] ?? null;
@@ -199,19 +172,22 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-0 z-100 flex flex-col"
-      style={{ backgroundImage: "url(/navbar.png)", backgroundRepeat: "repeat" }}
+      className="fixed inset-0 z-40 flex flex-col overflow-x-hidden bg-(--terracotta)"
       role="dialog"
       aria-modal="true"
       aria-label={selectedItem.title}
     >
+      <div className="programs-bg-texture" aria-hidden="true" />
+      <div className="programs-bg-grain" aria-hidden="true" />
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden pt-(--navbar-height)">
       {/* Card */}
       <motion.div
         initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden sm:m-4 sm:rounded-2xl md:m-8"
+        className="relative mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-2xl sm:my-4 sm:max-w-5xl sm:rounded-2xl md:my-8 lg:max-w-6xl"
       >
         {/* Full-bleed media */}
         <AnimatePresence mode="wait">
@@ -233,7 +209,7 @@ function GalleryModal({
         {/* Close button — top left */}
         <motion.button
           type="button"
-          className="focus-ring-light absolute left-4 top-4 z-20 text-white"
+          className="focus-ring-light absolute left-4 top-4 z-20 text-(--gold) transition-colors duration-150 hover:text-(--gold-dark)"
           onClick={onClose}
           aria-label="Close"
           whileHover={{ scale: 1.1 }}
@@ -246,31 +222,44 @@ function GalleryModal({
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedItem.id}
-            className="absolute inset-0 z-10 flex flex-col items-start justify-center px-6 pb-28 text-left text-white sm:px-12 lg:px-16"
+            className={`absolute inset-0 z-10 flex flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
+              drawerOpen
+                ? "justify-end pb-32 pr-6 sm:pr-[calc(22rem+3.5rem+1.5rem)] lg:pb-36 lg:pr-[calc(28rem+3.5rem+1.5rem)]"
+                : "justify-center pb-28 pr-20 sm:pr-24"
+            }`}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <div className="max-w-2xl">
-              <h2 className="text-[clamp(1.75rem,4vw,3.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
+            <div className={`w-full ${drawerOpen ? "max-w-none" : "max-w-2xl"}`}>
+              <h2 className="wrap-break-word text-[clamp(1.75rem,4vw,3.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
                 {selectedItem.title}
               </h2>
               <p className="mt-4 max-w-152 text-base font-normal leading-relaxed text-white/90 sm:text-lg">
                 {selectedItem.desc}
               </p>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen((v) => !v)}
+                className={`${ctaClassName} mt-6`}
+              >
+                Learn More
+              </button>
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Side sheet — outer div handles wiggle tilt, inner div handles slide */}
-        <motion.div
-          animate={wiggleControls}
-          className="absolute inset-y-0 right-0 z-30 w-full sm:w-[calc(22rem+3.5rem)] lg:w-[calc(28rem+3.5rem)]"
-          style={{ transformOrigin: "bottom right" }}
+        {/* Side sheet — outer div sizes the panel, inner div handles slide.
+            pointer-events-none on the outer so the full-width container doesn't
+            block the close button; pointer-events-auto restored on the inner
+            (translated) div so only the visible area receives touches. */}
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-30 w-full sm:w-[calc(22rem+3.5rem)] lg:w-[calc(28rem+3.5rem)]"
         >
           <motion.div
-            className="flex h-full w-full"
+            ref={drawerRef}
+            className="pointer-events-auto flex h-full w-full"
             animate={{ x: drawerOpen ? 0 : "calc(100% - 3.5rem)" }}
             transition={{ type: "spring", stiffness: 300, damping: 35 }}
           >
@@ -279,14 +268,15 @@ function GalleryModal({
             type="button"
             onClick={() => setDrawerOpen((v) => !v)}
             aria-label={drawerOpen ? "Close details" : "Program details"}
-            className="flex w-14 shrink-0 flex-col items-center justify-center overflow-hidden py-6 transition-opacity hover:opacity-90"
+            className="flex w-16 shrink-0 cursor-pointer flex-row items-center justify-center gap-2 overflow-hidden py-6 transition-opacity hover:opacity-90"
             style={{ background: "var(--orange-dark)" }}
           >
+            <div className="h-18 w-1 rounded-full bg-white/40" />
             <span
-              className="select-none text-[0.6rem] font-bold uppercase tracking-[0.22em] text-white/80"
+              className="select-none text-[0.78rem] font-bold uppercase tracking-[0.22em] text-white/80"
               style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
-              {selectedItem.title}
+              Description
             </span>
           </button>
 
@@ -299,7 +289,7 @@ function GalleryModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-1 flex-col overflow-y-auto p-8 lg:p-10"
+                className="flex flex-1 flex-col overflow-y-auto p-8 pb-4 lg:p-10 lg:pb-6"
               >
                 <h2
                   className="font-bold leading-[1.05] tracking-tight"
@@ -349,17 +339,38 @@ function GalleryModal({
                 )}
               </motion.div>
             </AnimatePresence>
+
+            <div className="shrink-0 px-8 pb-28 pt-2 lg:px-10 lg:pb-32">
+              <button
+                type="button"
+                onClick={() => {
+                  document.body.style.overflow = "";
+                  onClose();
+                  requestAnimationFrame(() => {
+                    document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
+                  });
+                }}
+                className={`${ctaClassName} self-start`}
+              >
+                Explore Our Gallery
+              </button>
+            </div>
           </div>
           </motion.div>
-        </motion.div>
+        </div>
       </motion.div>
+      </div>
 
-      {/* Draggable thumbnail dock */}
+      {/* Draggable thumbnail dock — stays centered at viewport bottom */}
       <motion.div
         drag
         dragMomentum={false}
         dragElastic={0.1}
-        animate={{ x: dockPosition.x, y: dockPosition.y }}
+        animate={{
+          x: dockPosition.x,
+          y: dockPosition.y,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 35 }}
         onDragEnd={(_, info) => {
           setDockPosition((prev) => ({
             x: prev.x + info.offset.x,
@@ -369,26 +380,30 @@ function GalleryModal({
         className="fixed bottom-6 left-1/2 z-101 -translate-x-1/2 touch-none"
       >
         <motion.div
-          className="cursor-grab rounded-xl border border-white/12 shadow-lg active:cursor-grabbing"
-          style={{
-            background: "oklch(0.22 0.02 50 / 0.88)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-          }}
+          className="relative origin-bottom scale-[0.88] cursor-grab overflow-visible active:cursor-grabbing sm:scale-[0.92]"
         >
-          <div className="flex items-center gap-3 px-4 py-4">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-xl border border-white/12 shadow-lg"
+            style={{
+              background: "oklch(0.22 0.02 50 / 0.88)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+            }}
+          />
+          <div className="relative flex max-w-[calc(100vw-2rem)] items-center gap-1.5 px-3 py-5 sm:max-w-none sm:gap-2 sm:px-4 sm:py-6">
             {/* Left arrow */}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); if (prevItem) setSelectedItem(prevItem); }}
               disabled={!prevItem}
               aria-label="Previous"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10 sm:h-8 sm:w-8"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6"/></svg>
             </button>
 
-            <div className="flex items-center -space-x-4">
+            <div className="flex items-center overflow-visible px-0.5 -space-x-3">
               {mediaItems.map((item, index) => (
                 <motion.button
                   key={item.id}
@@ -400,21 +415,17 @@ function GalleryModal({
                   style={{
                     zIndex: selectedItem.id === item.id ? 30 : mediaItems.length - index,
                   }}
-                  className={`group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-24 ${
+                  className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 sm:h-[5.25rem] sm:w-[5.25rem] ${
                     selectedItem.id === item.id
-                      ? "shadow-lg ring-2 ring-(--orange)"
-                      : "hover:ring-2 hover:ring-white/40"
+                      ? "border-(--orange) shadow-lg"
+                      : "border-transparent hover:border-white/35"
                   }`}
                   initial={{ rotate: index % 2 === 0 ? -15 : 15 }}
                   animate={{
-                    scale: selectedItem.id === item.id ? 1.2 : 1,
                     rotate: selectedItem.id === item.id ? 0 : index % 2 === 0 ? -15 : 15,
-                    y: selectedItem.id === item.id ? -8 : 0,
                   }}
                   whileHover={{
-                    scale: 1.25,
                     rotate: 0,
-                    y: -8,
                     transition: { type: "spring", stiffness: 400, damping: 25 },
                   }}
                   aria-label={`View ${item.title}`}
@@ -431,9 +442,9 @@ function GalleryModal({
               onClick={(e) => { e.stopPropagation(); if (nextItem) setSelectedItem(nextItem); }}
               disabled={!nextItem}
               aria-label="Next"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10 sm:h-8 sm:w-8"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
         </motion.div>
@@ -457,12 +468,54 @@ export function InteractiveBentoGallery({
   const [items] = useState(mediaItems);
 
   useEffect(() => {
+    const openFromHash = () => {
+      const hash = window.location.hash;
+      const match = mediaItems.find((item) => item.href === hash);
+      if (match) setSelectedItem(match);
+    };
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    return () => window.removeEventListener("hashchange", openFromHash);
+  }, [mediaItems]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { href } = (e as CustomEvent<{ href: string }>).detail;
+      const match = mediaItems.find((item) => item.href === href);
+      if (match) setSelectedItem(match);
+    };
+    window.addEventListener("openProgram", handler);
+    return () => window.removeEventListener("openProgram", handler);
+  }, [mediaItems]);
+
+  const closeModal = () => {
+    setSelectedItem(null);
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+  };
+
+  useEffect(() => {
     if (!selectedItem) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
+  }, [selectedItem]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("bentoGalleryOpen", { detail: { open: !!selectedItem } }));
+  }, [selectedItem]);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const handleNavClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a[href^='#']") as HTMLAnchorElement | null;
+      if (!anchor || anchor.closest('[role="dialog"]')) return;
+      document.body.style.overflow = "";
+      closeModal();
+    };
+    document.addEventListener("click", handleNavClick, true);
+    return () => document.removeEventListener("click", handleNavClick, true);
   }, [selectedItem]);
 
   return (
@@ -492,7 +545,7 @@ export function InteractiveBentoGallery({
           <GalleryModal
             selectedItem={selectedItem}
             isOpen
-            onClose={() => setSelectedItem(null)}
+            onClose={closeModal}
             setSelectedItem={setSelectedItem}
             mediaItems={items}
           />

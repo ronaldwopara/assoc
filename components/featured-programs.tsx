@@ -7,23 +7,28 @@ export function FeaturedPrograms() {
   return (
     <section
       id="programs"
-      className="section-shell bg-[var(--cream)] !py-12 !pb-16 sm:!py-16 sm:!pb-20 lg:!py-20 lg:!pb-24 border-b-4 border-[var(--brown-dark)]"
+      className="section-shell bg-(--terracotta) relative overflow-hidden !py-12 !pb-16 sm:!py-16 sm:!pb-20 lg:!py-20 lg:!pb-24 border-b-4 border-[var(--brown-dark)]"
       aria-labelledby="featured-programs-heading"
     >
-      <InteractiveBentoGallery
-        mediaItems={featuredProgramsMedia}
-        title="Our Programs & Initiatives"
-        description="We believe storytelling, cultural pride and community engagement are powerful tools for change."
-      />
-      {/* Scroll anchors for navbar program links */}
-      <div className="h-0 overflow-hidden" aria-hidden>
-        {featuredProgramsMedia.map((item) => (
-          <div
-            key={item.href}
-            id={item.href.replace("#", "")}
-            className="scroll-mt-28"
-          />
-        ))}
+      <div className="programs-bg-texture" aria-hidden="true" />
+      <div className="programs-bg-grain" aria-hidden="true" />
+
+      <div className="relative z-10">
+        <InteractiveBentoGallery
+          mediaItems={featuredProgramsMedia}
+          title="Our Programs & Initiatives"
+          description="We believe storytelling, cultural pride and community engagement are powerful tools for change."
+        />
+        {/* Scroll anchors for navbar program links */}
+        <div className="h-0 overflow-hidden" aria-hidden>
+          {featuredProgramsMedia.map((item) => (
+            <div
+              key={item.href}
+              id={item.href.replace("#", "")}
+              className="scroll-mt-28"
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
