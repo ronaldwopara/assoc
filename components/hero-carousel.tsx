@@ -14,6 +14,11 @@ const SLIDES = [
 
 const SLIDE_DURATION = 5550;
 
+// The indicator row stays at a fixed 3 dots regardless of how many photos
+// are in SLIDES — the active dot cycles through all 3 positions as slides
+// advance, so it moves on every transition.
+const DOT_COUNT = 3;
+
 export function HeroCarousel() {
   const [active, setActive] = useState(0);
   const [tick, setTick] = useState(0);
@@ -64,14 +69,14 @@ export function HeroCarousel() {
       <div className="hero-carousel-grain" aria-hidden />
 
       <div className="hero-carousel-dots">
-        {SLIDES.map((_, dotIndex) => (
+        {Array.from({ length: DOT_COUNT }, (_, dotIndex) => (
           <button
             key={dotIndex}
             type="button"
             className="hero-carousel-dot"
-            data-active={active === dotIndex}
+            data-active={active % DOT_COUNT === dotIndex}
             aria-label={`Show photo ${dotIndex + 1}`}
-            aria-current={active === dotIndex}
+            aria-current={active % DOT_COUNT === dotIndex}
             onClick={() => {
               setActive(dotIndex);
               setTick((t) => t + 1);
