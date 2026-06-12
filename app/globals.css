@@ -790,17 +790,34 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   align-items: center;
   gap: 4.5rem;
   padding: 4rem 1rem;
-  min-height: calc(var(--stacked-card-height) * 2.6);
 }
 
 .stacked-card-pin {
+  position: relative;
   width: 100%;
   max-width: 1100px;
   flex-shrink: 0;
 }
 
+/*
+ * Sticky pinning: the first card sticks below the navbar while the second
+ * card scrolls over it. The browser clamps a sticky element inside its
+ * container's content box, so the card releases exactly when its bottom
+ * aligns with the last card's bottom. The container must not have extra
+ * height (min-height/bottom spacing inside the content box) or the card
+ * would keep sticking past the last card.
+ */
 .stacked-card-pin--first {
+  position: sticky;
+  top: var(--navbar-height);
   padding-top: var(--stacked-card-pin-gap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stacked-card-pin--first {
+    position: relative;
+    top: auto;
+  }
 }
 
 .stacked-card {
@@ -898,7 +915,6 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 @media (max-width: 1200px) {
   .stacked-cards-container {
     padding: 2rem 1rem 0;
-    min-height: auto;
     gap: 2rem;
   }
 

@@ -1,19 +1,8 @@
 "use client";
 
 import { Children, useLayoutEffect, useRef, type ReactNode } from "react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const CARD_BACKGROUNDS = ["var(--hero-cta)", "#000000"] as const;
-
-function getNavbarHeightPx() {
-  const root = document.documentElement;
-  const nav = getComputedStyle(root).getPropertyValue("--navbar-height").trim();
-  const rem = parseFloat(getComputedStyle(root).fontSize);
-  return nav.endsWith("rem") ? parseFloat(nav) * rem : parseFloat(nav);
-}
 
 export function StackedCardBody({
   videoSrc,
@@ -66,49 +55,18 @@ export function StackedCardBody({
   );
 }
 
+/*
+ * The first card is position: sticky (see .stacked-card-pin--first): it pins
+ * below the navbar while the next card scrolls up over it, and the browser
+ * releases it once its bottom edge reaches the container's bottom edge — so
+ * it can never spill past the last card or cover content below the section,
+ * at any viewport size.
+ */
 export function StackedCards({ children }: { children: ReactNode }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pinsRef = useRef<(HTMLDivElement | null)[]>([]);
   const items = Children.toArray(children);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const pins = pinsRef.current.filter(Boolean) as HTMLDivElement[];
-    if (!container || pins.length < 2) return;
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (prefersReducedMotion) return;
-
-    const navHeight = getNavbarHeightPx();
-
-    const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: pins[0],
-        start: `top top+=${navHeight}`,
-        endTrigger: pins[1],
-        end: `bottom bottom-=${navHeight}`,
-        pin: true,
-        pinSpacing: false,
-        invalidateOnRefresh: true,
-      });
-    }, container);
-
-    const handleResize = () => ScrollTrigger.refresh();
-    window.addEventListener("resize", handleResize);
-    const refreshTimer = setTimeout(() => ScrollTrigger.refresh(), 100);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(refreshTimer);
-      ctx.revert();
-    };
-  }, [items.length]);
 
   return (
     <div
-      ref={containerRef}
       id="module-home-features-cards_container"
       className="stacked-cards-container"
     >
@@ -116,9 +74,6 @@ export function StackedCards({ children }: { children: ReactNode }) {
         <div
           key={i}
           id={`module-home-features-card_${i + 1}`}
-          ref={(el) => {
-            pinsRef.current[i] = el;
-          }}
           className={`stacked-card-pin${i === 0 ? " stacked-card-pin--first" : ""}`}
           style={{ zIndex: i + 1 }}
         >
