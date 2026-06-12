@@ -327,10 +327,11 @@ export function UpdatesSection() {
           Black History Month
         </h3>
         <p className="mt-4 text-lg leading-relaxed text-black/80">
-          For the first time, Strathcona County officially declares
-          February 2026 as Black History Month, recognizing the
-          contributions, culture, and resilience of Black communities
-          while supporting inclusive community initiatives.
+          For the first time, Strathcona County officially declared
+          Black History Month celebration in February 2026,
+          recognizing the contributions, culture, and resilience of
+          Black communities while supporting inclusive community
+          initiatives.
         </p>
       </div>
 
