@@ -172,7 +172,7 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex flex-col overflow-x-hidden bg-(--terracotta)"
+      className="fixed inset-0 z-40 flex flex-col overflow-x-hidden bg-black"
       role="dialog"
       aria-modal="true"
       aria-label={selectedItem.title}
