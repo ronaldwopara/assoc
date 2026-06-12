@@ -155,8 +155,8 @@ export function AboutContent() {
           videoSrc="/Youth-Creative-Media-Lab.mp4"
           videoLabel="Youth Creative Media Lab program"
         >
-          <h3 className="mb-4 text-(--gold)!">Our Vision</h3>
-          <p className="text-(--gold)!">
+          <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
+          <p className="text-(--orange-light)!">
             A vibrant, inclusive community where Africans contribute visibly
             to the social, economic, and cultural fabric of Strathcona County
             and Alberta.
@@ -218,7 +218,7 @@ export function PageSections() {
                 className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
               >
                 <div className="w-20 shrink-0 text-center sm:w-16">
-                  <span className="inline-block rounded-full bg-(--gold) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
+                  <span className="inline-block rounded-full bg-(--orange-light) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
                     {event.badge}
                   </span>
                 </div>
@@ -240,11 +240,11 @@ export function PageSections() {
                   </h3>
                   <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-(--cream)/80">
                     <span className="flex items-center gap-1.5 font-semibold">
-                      <MapPin className="h-4 w-4 text-(--gold)" />
+                      <MapPin className="h-4 w-4 text-(--orange-light)" />
                       {event.location}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <CalendarIcon className="h-4 w-4 text-(--gold)" />
+                      <CalendarIcon className="h-4 w-4 text-(--orange-light)" />
                       {event.when}
                     </span>
                   </div>

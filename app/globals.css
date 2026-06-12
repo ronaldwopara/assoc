@@ -186,15 +186,18 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 }
 
 /* Programs section text */
-#programs .section-heading { color: var(--gold); }
-#programs .section-lead { color: var(--gold-dark); }
+#programs .section-heading { color: var(--orange-light); }
+#programs .section-lead { color: var(--orange); }
 
 /* Calendar section text */
-#calendar .section-heading { color: var(--gold); }
-#calendar .section-lead { color: var(--gold-dark); }
+#calendar .section-heading { color: var(--orange-light); }
+#calendar .section-lead { color: var(--orange); }
 
 /* Documents section heading */
 #documents-heading { color: var(--orange); }
+
+/* Gallery section heading */
+#gallery-heading { color: var(--orange); }
 
 /* Section typography */
 .section-heading {
