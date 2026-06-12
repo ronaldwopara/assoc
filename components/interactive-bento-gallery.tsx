@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -140,16 +140,22 @@ function GalleryModal({
   const [dockPosition, setDockPosition] = useState({ x: 0, y: 0 });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const learnMoreRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [selectedItem.id]);
 
   useEffect(() => {
     if (!drawerOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
-        setDrawerOpen(false);
-      }
+      const target = e.target as Node;
+      if (learnMoreRef.current?.contains(target)) return;
+      if (drawerRef.current?.contains(target)) return;
+      setDrawerOpen(false);
     };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [drawerOpen]);
 
   const currentIndex = mediaItems.findIndex((item) => item.id === selectedItem.id);
@@ -173,12 +179,12 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-0 z-(--z-modal) flex flex-col overflow-x-hidden bg-black"
+      className="fixed inset-x-0 bottom-0 top-(--navbar-height) z-40 flex flex-col overflow-x-hidden bg-black"
       role="dialog"
       aria-modal="true"
       aria-label={selectedItem.title}
     >
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden pt-(--navbar-height)">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden">
       {/* Card */}
       <motion.div
         initial={{ scale: 0.97, opacity: 0 }}
@@ -202,12 +208,12 @@ function GalleryModal({
         </AnimatePresence>
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/35 to-black/25" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/80 via-black/35 to-black/25" />
 
         {/* Close button — top left */}
         <motion.button
           type="button"
-          className="focus-ring-light absolute left-4 top-4 z-20 text-(--gold) transition-colors duration-150 hover:text-(--gold-dark)"
+          className="focus-ring-light absolute left-4 top-4 z-50 text-(--gold) transition-colors duration-150 hover:text-(--gold-dark)"
           onClick={onClose}
           aria-label="Close"
           whileHover={{ scale: 1.1 }}
@@ -220,7 +226,7 @@ function GalleryModal({
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedItem.id}
-            className={`absolute inset-0 z-10 flex flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
+            className={`pointer-events-none absolute inset-0 z-50 flex flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
               drawerOpen
                 ? "justify-end pb-32 pr-6 sm:pr-[calc(22rem+3.5rem+1.5rem)] lg:pb-36 lg:pr-[calc(28rem+3.5rem+1.5rem)]"
                 : "justify-center pb-28 pr-20 sm:pr-24"
@@ -230,7 +236,7 @@ function GalleryModal({
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <div className={`w-full ${drawerOpen ? "max-w-none" : "max-w-2xl"}`}>
+            <div className={`pointer-events-auto w-full ${drawerOpen ? "max-w-none" : "max-w-2xl"}`}>
               <h2 className="wrap-break-word text-[clamp(1.75rem,4vw,3.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
                 {selectedItem.title}
               </h2>
@@ -238,9 +244,13 @@ function GalleryModal({
                 {selectedItem.desc}
               </p>
               <button
+                ref={learnMoreRef}
                 type="button"
-                onClick={() => setDrawerOpen((v) => !v)}
-                className={`${ctaClassName} mt-6`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDrawerOpen((v) => !v);
+                }}
+                className={`${ctaClassName} pointer-events-auto relative z-50 mt-6`}
               >
                 Learn More
               </button>
@@ -253,7 +263,7 @@ function GalleryModal({
             block the close button; pointer-events-auto restored on the inner
             (translated) div so only the visible area receives touches. */}
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-30 w-full sm:w-[calc(22rem+3.5rem)] lg:w-[calc(28rem+3.5rem)]"
+          className="pointer-events-none absolute inset-y-0 right-0 z-30 w-[calc(16rem+3.5rem)] sm:w-[calc(22rem+3.5rem)] lg:w-[calc(28rem+3.5rem)]"
         >
           <motion.div
             ref={drawerRef}
@@ -375,10 +385,10 @@ function GalleryModal({
             y: prev.y + info.offset.y,
           }));
         }}
-        className="fixed bottom-6 left-1/2 z-101 -translate-x-1/2 touch-none"
+        className="pointer-events-none fixed bottom-6 left-1/2 z-45 -translate-x-1/2"
       >
         <motion.div
-          className="relative origin-bottom scale-[0.88] cursor-grab overflow-visible active:cursor-grabbing sm:scale-[0.92]"
+          className="pointer-events-auto relative origin-bottom scale-[0.88] cursor-grab touch-none overflow-visible active:cursor-grabbing sm:scale-[0.92]"
         >
           <div
             aria-hidden
@@ -465,36 +475,58 @@ export function InteractiveBentoGallery({
   const [selectedItem, setSelectedItem] = useState<MediaItemType | null>(null);
   const [items] = useState(mediaItems);
   const [mounted, setMounted] = useState(false);
+  const scrollYRef = useRef(0);
+  const hashRef = useRef("");
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  const rememberViewport = useCallback(() => {
+    scrollYRef.current = window.scrollY;
+    hashRef.current = window.location.hash;
+  }, []);
+
+  const openItem = useCallback(
+    (item: MediaItemType) => {
+      setSelectedItem((current) => {
+        if (!current) rememberViewport();
+        return item;
+      });
+    },
+    [rememberViewport],
+  );
+
+  const closeModal = useCallback(() => {
+    const y = scrollYRef.current;
+    const hash = hashRef.current;
+    setSelectedItem(null);
+    history.replaceState(null, "", `${window.location.pathname}${window.location.search}${hash}`);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y, left: 0, behavior: "instant" });
+    });
   }, []);
 
   useEffect(() => {
     const openFromHash = () => {
       const hash = window.location.hash;
       const match = mediaItems.find((item) => item.href === hash);
-      if (match) setSelectedItem(match);
+      if (match) openItem(match);
     };
     openFromHash();
     window.addEventListener("hashchange", openFromHash);
     return () => window.removeEventListener("hashchange", openFromHash);
-  }, [mediaItems]);
+  }, [mediaItems, openItem]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const { href } = (e as CustomEvent<{ href: string }>).detail;
       const match = mediaItems.find((item) => item.href === href);
-      if (match) setSelectedItem(match);
+      if (match) openItem(match);
     };
     window.addEventListener("openProgram", handler);
     return () => window.removeEventListener("openProgram", handler);
-  }, [mediaItems]);
-
-  const closeModal = () => {
-    setSelectedItem(null);
-    history.replaceState(null, "", window.location.pathname + window.location.search);
-  };
+  }, [mediaItems, openItem]);
 
   useEffect(() => {
     if (!selectedItem) return;
@@ -519,7 +551,7 @@ export function InteractiveBentoGallery({
     };
     document.addEventListener("click", handleNavClick, true);
     return () => document.removeEventListener("click", handleNavClick, true);
-  }, [selectedItem]);
+  }, [selectedItem, closeModal]);
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -543,59 +575,57 @@ export function InteractiveBentoGallery({
         </motion.div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {!selectedItem && (
-          <div className="programs-bento-frame">
-            <motion.div
-              className="programs-bento-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-4 sm:grid-rows-5 sm:gap-5 lg:gap-6"
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
+      <div
+        className={`programs-bento-frame${selectedItem ? " invisible pointer-events-none" : ""}`}
+        aria-hidden={!!selectedItem}
+      >
+        <motion.div
+          className="programs-bento-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-4 sm:grid-rows-5 sm:gap-5 lg:gap-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.08 },
+            },
+          }}
+        >
+          {items.map((item, index) => (
+            <motion.button
+              key={item.id}
+              type="button"
+              layoutId={`media-${item.id}`}
+              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full border-0 p-0 text-left`}
+              onClick={() => openItem(item)}
               variants={{
                 hidden: { opacity: 0 },
                 visible: {
                   opacity: 1,
-                  transition: { staggerChildren: 0.08 },
+                  transition: {
+                    duration: 0.35,
+                    delay: index * 0.06,
+                  },
                 },
               }}
             >
-              {items.map((item, index) => (
-                <motion.button
-                  key={item.id}
-                  type="button"
-                  layoutId={`media-${item.id}`}
-                  className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full border-0 p-0 text-left`}
-                  onClick={() => setSelectedItem(item)}
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: {
-                      opacity: 1,
-                      transition: {
-                        duration: 0.35,
-                        delay: index * 0.06,
-                      },
-                    },
-                  }}
-                >
-                  <MediaItem
-                    item={item}
-                    className="absolute inset-0 h-full w-full"
-                  />
-                  <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6">
-                    <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" />
-                    <h3 className="relative line-clamp-2 text-lg font-semibold text-white sm:text-xl md:text-2xl">
-                      {item.title}
-                    </h3>
-                    <div className="relative mt-1.5 line-clamp-2 text-sm text-white/85 sm:text-base">
-                      {item.desc}
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              <MediaItem
+                item={item}
+                className="absolute inset-0 h-full w-full"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6">
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" />
+                <h3 className="relative line-clamp-2 text-lg font-semibold text-white sm:text-xl md:text-2xl">
+                  {item.title}
+                </h3>
+                <div className="relative mt-1.5 line-clamp-2 text-sm text-white/85 sm:text-base">
+                  {item.desc}
+                </div>
+              </div>
+            </motion.button>
+          ))}
+        </motion.div>
+      </div>
 
       {mounted &&
         selectedItem &&

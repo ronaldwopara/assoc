@@ -156,8 +156,7 @@ function useNavbarKeyboard(
   }, [mobileMenuOpen]);
 }
 
-function NavbarBackground({ hidden }: { hidden?: boolean }) {
-  if (hidden) return null;
+function NavbarBackground() {
   return <div className="absolute inset-0" style={navbarBackgroundStyle} />;
 }
 
@@ -190,7 +189,6 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState("home");
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [showJoinNav, setShowJoinNav] = useState(false);
-  const [bentoGalleryOpen, setBentoGalleryOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinModalAction, setJoinModalAction] = useState<string | null>(null);
   const lampTarget = hoveredNav ?? activeSection;
@@ -213,15 +211,6 @@ export function Navbar() {
     };
     window.addEventListener("heroCtaPastView", handleHeroCtaPastView);
     return () => window.removeEventListener("heroCtaPastView", handleHeroCtaPastView);
-  }, []);
-
-  useEffect(() => {
-    const handleBentoGalleryOpen = (event: Event) => {
-      const { open } = (event as CustomEvent<{ open: boolean }>).detail;
-      setBentoGalleryOpen(open);
-    };
-    window.addEventListener("bentoGalleryOpen", handleBentoGalleryOpen);
-    return () => window.removeEventListener("bentoGalleryOpen", handleBentoGalleryOpen);
   }, []);
 
   useEffect(() => {
@@ -294,7 +283,7 @@ export function Navbar() {
     <header className="fixed inset-x-0 top-0 z-(--z-navbar)">
       <div className="relative">
         <div className="absolute inset-0 overflow-hidden" aria-hidden>
-          <NavbarBackground hidden={bentoGalleryOpen} />
+          <NavbarBackground />
         </div>
         <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-white">
           <div
@@ -305,7 +294,6 @@ export function Navbar() {
             <div className="lg:hidden w-11" />
 
             {/* Left navigation */}
-            {!bentoGalleryOpen && (
             <div className="hidden lg:flex lg:items-center lg:gap-6">
               {leftLinks.map((link) => {
                 const id = hashId(link.href);
@@ -409,7 +397,6 @@ export function Navbar() {
                 </AnimatePresence>
               </div>
             </div>
-            )}
 
             {/* Center logo */}
             <Link
@@ -423,7 +410,6 @@ export function Navbar() {
             {/* Right navigation */}
             <div className="hidden lg:ml-auto lg:flex lg:items-center lg:gap-6">
               {/* Gallery dropdown */}
-              {!bentoGalleryOpen && (
               <div
                 className="relative"
                 onMouseEnter={() => {
@@ -500,7 +486,6 @@ export function Navbar() {
                   )}
                 </AnimatePresence>
               </div>
-              )}
 
               {rightLinks.map((link) => {
                 const id = hashId(link.href);
@@ -546,8 +531,6 @@ export function Navbar() {
                     </div>
                   );
                 }
-
-                if (bentoGalleryOpen) return null;
 
                 return (
                   <div

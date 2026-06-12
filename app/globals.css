@@ -187,11 +187,11 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
 /* Programs section text */
 #programs .section-heading { color: var(--orange-light); }
-#programs .section-lead { color: var(--orange); }
+#programs .section-lead { color: var(--orange-light); }
 
 /* Calendar section text */
 #calendar .section-heading { color: var(--orange-light); }
-#calendar .section-lead { color: var(--orange); }
+#calendar .section-lead { color: var(--orange-light); }
 
 /* Documents section heading */
 #documents-heading { color: var(--orange); }
