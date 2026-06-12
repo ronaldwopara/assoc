@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { MediaItemType } from "@/lib/featured-programs-data";
@@ -172,7 +173,7 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex flex-col overflow-x-hidden bg-black"
+      className="fixed inset-0 z-(--z-modal) flex flex-col overflow-x-hidden bg-black"
       role="dialog"
       aria-modal="true"
       aria-label={selectedItem.title}
@@ -463,6 +464,11 @@ export function InteractiveBentoGallery({
 }: InteractiveBentoGalleryProps) {
   const [selectedItem, setSelectedItem] = useState<MediaItemType | null>(null);
   const [items] = useState(mediaItems);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const openFromHash = () => {
@@ -538,15 +544,7 @@ export function InteractiveBentoGallery({
       </div>
 
       <AnimatePresence mode="wait">
-        {selectedItem ? (
-          <GalleryModal
-            selectedItem={selectedItem}
-            isOpen
-            onClose={closeModal}
-            setSelectedItem={setSelectedItem}
-            mediaItems={items}
-          />
-        ) : (
+        {!selectedItem && (
           <div className="programs-bento-frame">
             <motion.div
               className="programs-bento-grid grid w-full grid-cols-1 gap-4 sm:grid-cols-4 sm:grid-rows-5 sm:gap-5 lg:gap-6"
@@ -598,6 +596,19 @@ export function InteractiveBentoGallery({
           </div>
         )}
       </AnimatePresence>
+
+      {mounted &&
+        selectedItem &&
+        createPortal(
+          <GalleryModal
+            selectedItem={selectedItem}
+            isOpen
+            onClose={closeModal}
+            setSelectedItem={setSelectedItem}
+            mediaItems={items}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

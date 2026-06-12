@@ -32,6 +32,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preload" href="/navbar.webp" as="image" type="image/webp" fetchPriority="high" />
+      </head>
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <SkipLink />
         {children}

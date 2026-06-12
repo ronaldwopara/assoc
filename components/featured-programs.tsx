@@ -7,7 +7,7 @@ export function FeaturedPrograms() {
   return (
     <section
       id="programs"
-      className="section-shell bg-black relative overflow-hidden !py-12 !pb-16 sm:!py-16 sm:!pb-20 lg:!py-20 lg:!pb-24 border-b-4 border-black"
+      className="section-shell bg-black relative !py-12 !pb-16 sm:!py-16 sm:!pb-20 lg:!py-20 lg:!pb-24 border-b-4 border-black"
       aria-labelledby="featured-programs-heading"
     >
       <div className="relative z-10">

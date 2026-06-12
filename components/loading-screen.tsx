@@ -40,6 +40,15 @@ export function LoadingScreen() {
   const logoRef                       = useRef<HTMLDivElement>(null);
   const dismissedRef                  = useRef(false);
   const mountTimeRef                  = useRef(Date.now());
+  const [navbarTextureReady, setNavbarTextureReady] = useState(false);
+
+  useEffect(() => {
+    const img = document.createElement("img");
+    img.fetchPriority = "high";
+    img.src = "/navbar.webp";
+    if (img.complete) setNavbarTextureReady(true);
+    else img.onload = () => setNavbarTextureReady(true);
+  }, []);
 
   // Skip loading screen only if the hero is already ready in *this JS context*
   // (i.e. SPA navigation, not a page reload — window properties reset on reload).
@@ -151,7 +160,12 @@ export function LoadingScreen() {
         }
       }}
     >
-      <div className="loading-screen__bg" aria-hidden />
+      <div className="loading-screen__bg" aria-hidden>
+        <div
+          className="loading-screen__bg-texture"
+          data-ready={navbarTextureReady ? "true" : undefined}
+        />
+      </div>
       <div className="loading-screen__progress-bar" aria-hidden>
         <div className="loading-screen__progress-fill" />
       </div>
