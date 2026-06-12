@@ -53,6 +53,7 @@ export function HeroCarousel() {
             alt={slide.alt}
             fill
             priority={index === 0}
+            unoptimized
             sizes="100vw"
             className="hero-carousel-image"
             onLoad={() => {
