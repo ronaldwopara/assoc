@@ -169,10 +169,10 @@ export function CircularTestimonials({
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-              <h3 className="mb-8 text-2xl font-bold text-(--brown-dark)">
+              <h3 className="mb-8 text-2xl font-bold text-(--orange)">
                 {activeTestimonial.name}
               </h3>
-              <p className="text-lg leading-relaxed text-(--brown-dark)/80">
+              <p className="text-lg leading-relaxed text-black/80">
                 {activeTestimonial.quote.split(" ").map((word, i) => (
                   <motion.span
                     key={i}
@@ -193,7 +193,7 @@ export function CircularTestimonials({
               type="button"
               onClick={handlePrev}
               aria-label="Previous board member"
-              className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--brown-dark) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
+              className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--orange) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
             >
               <ArrowLeft size={22} />
             </button>
@@ -201,7 +201,7 @@ export function CircularTestimonials({
               type="button"
               onClick={handleNext}
               aria-label="Next board member"
-              className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--brown-dark) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
+              className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--orange) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
             >
               <ArrowRight size={22} />
             </button>

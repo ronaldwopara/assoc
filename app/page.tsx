@@ -12,9 +12,9 @@ export default function Home() {
       <main id="main-content" className="site-main">
         <HeroSection />
         <AboutSection />
-        <UpdatesSection />
         <FeaturedPrograms />
         <PageSections />
+        <UpdatesSection />
       </main>
     </>
   );

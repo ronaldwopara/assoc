@@ -6,7 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const CARD_BACKGROUNDS = ["var(--orange)", "var(--brown-dark)"] as const;
+const CARD_BACKGROUNDS = ["var(--hero-cta)", "#000000"] as const;
 
 function getNavbarHeightPx() {
   const root = document.documentElement;

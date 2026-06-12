@@ -177,9 +177,6 @@ function GalleryModal({
       aria-modal="true"
       aria-label={selectedItem.title}
     >
-      <div className="programs-bg-texture" aria-hidden="true" />
-      <div className="programs-bg-grain" aria-hidden="true" />
-
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden pt-(--navbar-height)">
       {/* Card */}
       <motion.div

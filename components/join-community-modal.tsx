@@ -22,11 +22,11 @@ const actionTabs = [
   { title: "Contact", icon: MessageCircle },
 ];
 
-const fieldLabelClassName = "mb-1.5 block text-sm font-semibold text-(--brown-dark)";
+const fieldLabelClassName = "mb-1.5 block text-sm font-semibold text-black";
 const fieldInputClassName =
-  "focus-ring-light w-full rounded-xl border border-(--brown-dark)/15 bg-white px-4 py-3 text-(--brown-dark) placeholder:text-(--brown-dark)/40 focus:outline-none";
+  "focus-ring-light w-full rounded-xl border border-(--brown-dark)/15 bg-white px-4 py-3 text-black placeholder:text-black/40 focus:outline-none";
 const fieldTextareaClassName = `${fieldInputClassName} resize-none`;
-const checkboxLabelClassName = "flex items-center gap-2 text-(--brown-dark)";
+const checkboxLabelClassName = "flex items-center gap-2 text-black";
 
 const volunteerInterests = [
   "Event and Programs Planning",
@@ -201,7 +201,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
               <div className="join-modal__grain" aria-hidden="true" />
               {actionTabs[activeActionIndex ?? -1]?.title === "Newsletter" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-(--brown-dark) sm:text-xl">
+                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
                     Join our newsletter
                   </h2>
                   <form className="space-y-4">
@@ -249,7 +249,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                         Do you reside or own a business in Strathcona County?
                       </span>
                       <div className="flex gap-6">
-                        <label className="flex items-center gap-2 text-(--brown-dark)">
+                        <label className="flex items-center gap-2 text-black">
                           <input
                             type="radio"
                             name="strathconaResident"
@@ -258,7 +258,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                           />
                           Yes
                         </label>
-                        <label className="flex items-center gap-2 text-(--brown-dark)">
+                        <label className="flex items-center gap-2 text-black">
                           <input
                             type="radio"
                             name="strathconaResident"
@@ -281,7 +281,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
               )}
               {actionTabs[activeActionIndex ?? -1]?.title === "Volunteer" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-(--brown-dark) sm:text-xl">
+                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
                     Volunteer Form
                   </h2>
                   <form className="space-y-4">
@@ -387,10 +387,10 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
               )}
               {actionTabs[activeActionIndex ?? -1]?.title === "Donate" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-2 text-lg font-bold text-(--brown-dark) sm:text-xl">
+                  <h2 className="mb-2 text-lg font-bold text-black sm:text-xl">
                     Donate Now!
                   </h2>
-                  <p className="mb-6 text-sm text-(--brown-dark)/70">
+                  <p className="mb-6 text-sm text-black/70">
                     Your generosity helps us build programs that uplift and empower the African
                     community in Strathcona County.
                   </p>
@@ -403,7 +403,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                         className={`px-4 py-3 text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${
                           donationFrequency === "once"
                             ? "bg-(--hero-cta) text-black"
-                            : "bg-white text-(--brown-dark)/75 hover:bg-(--brown-dark)/5"
+                            : "bg-white text-black/75 hover:bg-(--brown-dark)/5"
                         }`}
                       >
                         One Time
@@ -414,7 +414,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                         className={`px-4 py-3 text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${
                           donationFrequency === "monthly"
                             ? "bg-(--hero-cta) text-black"
-                            : "bg-white text-(--brown-dark)/75 hover:bg-(--brown-dark)/5"
+                            : "bg-white text-black/75 hover:bg-(--brown-dark)/5"
                         }`}
                       >
                         Monthly
@@ -429,8 +429,8 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                           onClick={() => setDonationAmount(amount)}
                           className={`rounded-xl border px-4 py-3 text-center font-semibold transition-colors duration-200 ${
                             donationAmount === amount
-                              ? "border-(--hero-cta) bg-(--hero-cta)/10 text-(--brown-dark)"
-                              : "border-(--brown-dark)/15 bg-white text-(--brown-dark) hover:bg-(--brown-dark)/5"
+                              ? "border-(--hero-cta) bg-(--hero-cta)/10 text-black"
+                              : "border-(--brown-dark)/15 bg-white text-black hover:bg-(--brown-dark)/5"
                           }`}
                         >
                           ${amount}
@@ -445,7 +445,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                           : "border-(--brown-dark)/15 bg-white"
                       }`}
                     >
-                      <span className="mr-1 font-semibold text-(--brown-dark)">$</span>
+                      <span className="mr-1 font-semibold text-black">$</span>
                       <input
                         type="number"
                         name="customAmount"
@@ -457,7 +457,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                           setDonationAmount("custom");
                         }}
                         onFocus={() => setDonationAmount("custom")}
-                        className="w-full bg-transparent text-(--brown-dark) placeholder:text-(--brown-dark)/40 focus:outline-none"
+                        className="w-full bg-transparent text-black placeholder:text-black/40 focus:outline-none"
                       />
                     </div>
 
@@ -472,7 +472,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
               )}
               {actionTabs[activeActionIndex ?? -1]?.title === "Membership" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-(--brown-dark) sm:text-xl">
+                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
                     Membership Form
                   </h2>
                   <form className="space-y-4">
@@ -758,7 +758,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                       <label htmlFor="membership-comments" className={fieldLabelClassName}>
                         Comments
                       </label>
-                      <p className="mb-1.5 text-xs text-(--brown-dark)/60">
+                      <p className="mb-1.5 text-xs text-black/60">
                         Any concerns you desire our feedback on?
                       </p>
                       <textarea
@@ -769,15 +769,15 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                       />
                     </div>
 
-                    <p className="text-xs text-(--brown-dark)/60">
+                    <p className="text-xs text-black/60">
                       The personal information collected is for ASOSC membership administration
                       and communication and ASOSC may use automated tools for this purpose.
                     </p>
-                    <p className="text-xs text-(--brown-dark)/60">
+                    <p className="text-xs text-black/60">
                       Information is collected under the requirement&apos;s of the Society&apos;s
                       Act of Alberta.
                     </p>
-                    <p className="text-xs text-(--brown-dark)/60">
+                    <p className="text-xs text-black/60">
                       Questions about this collection may be directed to: info@asosc.ca
                     </p>
 
@@ -792,7 +792,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
               )}
               {actionTabs[activeActionIndex ?? -1]?.title === "Contact" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-(--brown-dark) sm:text-xl">
+                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
                     We would love to hear from you!
                   </h2>
                   <form className="space-y-4">

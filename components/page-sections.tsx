@@ -4,7 +4,6 @@ import Link from "next/link";
 import { FileText, Download, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
-import { WavyMarquee } from "@/components/wavy-marquee";
 
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|avif|gif)$/i;
 
@@ -125,12 +124,9 @@ function CardBullet({ children }: { children: React.ReactNode }) {
 export function AboutContent() {
   return (
     <>
-      <WavyMarquee
-        text="ABOUT US"
-        headingId="about-heading"
-        speed={0.5}
-        waveIntensity={60}
-      />
+      <h2 id="about-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+        About Us
+      </h2>
 
       <StackedCards>
         <StackedCardBody
@@ -159,13 +155,12 @@ export function AboutContent() {
           videoSrc="/Youth-Creative-Media-Lab.mp4"
           videoLabel="Youth Creative Media Lab program"
         >
-          <h3 className="mb-4">What We Do</h3>
-          <p className="mb-4">We design and deliver programs that:</p>
-          <ul className="stacked-card__list">
-            <CardBullet>Celebrate and showcase African culture</CardBullet>
-            <CardBullet>Share African and immigrant stories.</CardBullet>
-            <CardBullet>Empower African youth and families.</CardBullet>
-          </ul>
+          <h3 className="mb-4 text-(--gold)!">Our Vision</h3>
+          <p className="text-(--gold)!">
+            A vibrant, inclusive community where Africans contribute visibly
+            to the social, economic, and cultural fabric of Strathcona County
+            and Alberta.
+          </p>
         </StackedCardBody>
       </StackedCards>
     </>
@@ -202,11 +197,9 @@ export function PageSections() {
 
       <section
         id="calendar"
-        className="section-shell bg-(--terracotta) relative overflow-hidden"
+        className="section-shell bg-black relative overflow-hidden"
         aria-labelledby="calendar-heading"
       >
-        <div className="programs-bg-texture" aria-hidden="true" />
-        <div className="programs-bg-grain" aria-hidden="true" />
 
         <div className="relative z-10">
           <div className="supplemental mx-auto max-w-3xl text-center">
@@ -225,7 +218,7 @@ export function PageSections() {
                 className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
               >
                 <div className="w-20 shrink-0 text-center sm:w-16">
-                  <span className="inline-block rounded-full bg-(--gold) px-3 py-1 text-xs font-bold uppercase tracking-wide text-(--brown-dark)">
+                  <span className="inline-block rounded-full bg-(--gold) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
                     {event.badge}
                   </span>
                 </div>
@@ -284,7 +277,7 @@ export function DocumentsSection() {
       <div className="mx-auto mt-12 grid max-w-3xl gap-10 md:grid-cols-2">
         {documentGroups.map((group) => (
           <div key={group.title}>
-            <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-(--brown-dark)">
+            <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-(--orange)">
               {group.title}
             </h3>
             <div className="flex flex-col gap-3">
@@ -296,12 +289,12 @@ export function DocumentsSection() {
                   className="focus-ring-light group flex items-center justify-between gap-4 rounded-2xl border border-(--brown-dark)/10 bg-(--cream)/60 px-5 py-4 transition-colors duration-200 hover:bg-(--hero-cta)/15"
                 >
                   <span className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 shrink-0 text-(--brown-dark)/60" />
-                    <span className="font-medium text-(--brown-dark)">
+                    <FileText className="h-5 w-5 shrink-0 text-black/60" />
+                    <span className="font-medium text-black">
                       {item.label}
                     </span>
                   </span>
-                  <Download className="h-5 w-5 shrink-0 text-(--brown-dark)/60 transition-colors duration-200 group-hover:text-(--brown-dark)" />
+                  <Download className="h-5 w-5 shrink-0 text-black/60 transition-colors duration-200 group-hover:text-black" />
                 </a>
               ))}
             </div>
@@ -322,25 +315,22 @@ export function UpdatesSection() {
       className="section-shell bg-(--cream-light)"
       aria-labelledby="updates-heading"
     >
-      <WavyMarquee
-        text="UPDATES"
-        headingId="updates-heading"
-        speed={0.5}
-        waveIntensity={60}
-      />
+      <h2 id="updates-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+        Updates
+      </h2>
 
       <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-(--brown-dark)">
+        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
           February 2026
         </span>
-        <h3 className="mt-4 text-2xl font-bold text-(--brown-dark) sm:text-3xl">
+        <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
           Black History Month
         </h3>
-        <p className="mt-4 text-lg leading-relaxed text-(--brown-dark)/80">
-          Strathcona County officially declares February 2026 as Black
-          History Month, recognizing and celebrating the contributions,
-          culture, and resilience of Black communities while supporting
-          inclusive community initiatives.
+        <p className="mt-4 text-lg leading-relaxed text-black/80">
+          For the first time, Strathcona County officially declares
+          February 2026 as Black History Month, recognizing the
+          contributions, culture, and resilience of Black communities
+          while supporting inclusive community initiatives.
         </p>
       </div>
 

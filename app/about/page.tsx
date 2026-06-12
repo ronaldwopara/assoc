@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/navbar";
 import { AboutContent, DocumentsSection } from "@/components/page-sections";
-import { WavyMarquee } from "@/components/wavy-marquee";
 import { CircularTestimonials } from "@/components/circular-testimonials";
 
 const boardMembers = [
@@ -51,13 +50,9 @@ export default function AboutPage() {
           className="section-shell bg-(--cream-light)"
           aria-labelledby="board-heading"
         >
-          <WavyMarquee
-            text="MEET THE BOARD"
-            headingId="board-heading"
-            speed={0.5}
-            waveIntensity={60}
-            direction="right"
-          />
+          <h2 id="board-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+            Meet the Board
+          </h2>
 
           <div className="flex justify-center">
             <CircularTestimonials testimonials={boardMembers} />

@@ -51,7 +51,7 @@ const transition = { delay: 0.1, type: "spring", bounce: 0, duration: 0.6 } as c
 export function ExpandableTabs({
   tabs,
   className,
-  activeColor = "text-(--brown-dark)",
+  activeColor = "text-black",
   selected = null,
   onChange,
 }: ExpandableTabsProps) {
@@ -89,7 +89,7 @@ export function ExpandableTabs({
               "relative flex cursor-pointer items-center rounded-xl py-2 text-[10px] font-bold uppercase tracking-wide transition-colors duration-300 focus-ring-light sm:py-5 sm:text-base",
               selected === index
                 ? cn("bg-(--hero-cta)/15", activeColor)
-                : "text-(--brown-dark)/75 hover:bg-(--brown-dark)/5 hover:text-(--brown-dark)",
+                : "text-black/75 hover:bg-(--brown-dark)/5 hover:text-black",
             )}
           >
             <Icon className="h-4 w-4 sm:h-[26px] sm:w-[26px]" />
