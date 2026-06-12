@@ -9,7 +9,7 @@ import { ExpandableTabs } from "@/components/expandable-tabs";
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(/navbar.png)",
+  backgroundImage: "url(/navbar.webp)",
   backgroundRepeat: "repeat" as const,
   opacity: NAVBAR_IMAGE_OPACITY,
 };

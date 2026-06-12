@@ -11,12 +11,12 @@ import {
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { JoinCommunityModal } from "@/components/join-community-modal";
-import asoscLogo from "../Asosc-Logo.png";
+import asoscLogo from "../Asosc-Logo.webp";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(/navbar.png)",
+  backgroundImage: "url(/navbar.webp)",
   backgroundRepeat: "repeat" as const,
   opacity: NAVBAR_IMAGE_OPACITY,
 };

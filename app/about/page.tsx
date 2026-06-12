@@ -8,28 +8,28 @@ const boardMembers = [
     designation: "Chairperson",
     quote:
       "ASOSC exists to celebrate African heritage while building bridges with the wider Strathcona County community. Every program we run is rooted in that mission.",
-    src: "/caurosel/1-c.jpeg",
+    src: "/caurosel/1-c.webp",
   },
   {
     name: "Vice Chair",
     designation: "Vice Chairperson",
     quote:
       "We are proud to create spaces where African families feel seen, supported, and connected — and where neighbours can learn from one another.",
-    src: "/caurosel/2-c.jpeg",
+    src: "/caurosel/2-c.webp",
   },
   {
     name: "Treasurer",
     designation: "Treasurer",
     quote:
       "Sound stewardship of our resources lets us invest directly in youth programs, cultural events, and community outreach across the county.",
-    src: "/caurosel/3-c.jpeg",
+    src: "/caurosel/3-c.webp",
   },
   {
     name: "Secretary",
     designation: "Secretary",
     quote:
       "From volunteers to partners, our community shows up time and again — and we're committed to keeping that momentum going for years to come.",
-    src: "/caurosel/4-c.jpeg",
+    src: "/caurosel/4-c.webp",
   },
 ];
 

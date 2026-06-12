@@ -5,7 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import { type Ref, useEffect, useState } from "react";
-import asoscLogo from "../Asosc-Logo.png";
+import asoscLogo from "../Asosc-Logo.webp";
 type NavLink = { label: string; href: string };
 
 export type GalleryYear = { year: string; href: string };

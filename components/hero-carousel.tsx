@@ -4,12 +4,12 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const SLIDES = [
-  { src: "/caurosel/1-c.jpeg", alt: "Community members gathered together at an ASOSC event" },
-  { src: "/caurosel/2-c.jpeg", alt: "Group portrait celebrating in vibrant traditional attire" },
-  { src: "/caurosel/3-c.jpeg", alt: "Friends posing together in colourful festival dress" },
-  { src: "/caurosel/4-c.jpeg", alt: "A large community gathering in the park" },
-  { src: "/caurosel/5-c.jpg", alt: "Friends posing together on the grass at a summer event" },
-  { src: "/caurosel/6-c.JPEG", alt: "Children with painted faces enjoying a community picnic" },
+  { src: "/caurosel/1-c.webp", alt: "Community members gathered together at an ASOSC event" },
+  { src: "/caurosel/2-c.webp", alt: "Group portrait celebrating in vibrant traditional attire" },
+  { src: "/caurosel/3-c.webp", alt: "Friends posing together in colourful festival dress" },
+  { src: "/caurosel/4-c.webp", alt: "A large community gathering in the park" },
+  { src: "/caurosel/5-c.webp", alt: "Friends posing together on the grass at a summer event" },
+  { src: "/caurosel/6-c.webp", alt: "Children with painted faces enjoying a community picnic" },
 ];
 
 const SLIDE_DURATION = 5550;

@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description:
     "Empowering Africans to enrich the social, economic, and cultural fabric of Strathcona County and beyond.",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/logo.webp",
+    apple: "/logo.webp",
   },
   openGraph: {
     type: "website",

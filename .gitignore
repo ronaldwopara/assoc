@@ -12,3 +12,5 @@ pnpm-debug.log*
 next-env.d.ts
 .video-backup/
 .video-compressed/
+.originals/
+public/.originals/

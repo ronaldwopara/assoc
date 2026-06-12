@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import asoscLogo from "@/Asosc-Logo.png";
+import asoscLogo from "@/Asosc-Logo.webp";
 
 const MAX_WAIT = 6000;
 const BAR_DURATION = 1500; // ms — must match loading-progress animation in globals.css
