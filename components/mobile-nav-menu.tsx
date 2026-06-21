@@ -133,12 +133,9 @@ export function MobileNavMenu({
   onClose,
   programsOpen,
   setProgramsOpen,
-  galleryOpen,
-  setGalleryOpen,
   leftLinks,
   rightLinks,
   programs,
-  gallery,
   toggleX,
   toggleY,
   onJoinCommunityClick,
@@ -223,7 +220,7 @@ export function MobileNavMenu({
               <button
                 type="button"
                 className="mobile-nav-programs focus-ring-light"
-                onClick={() => { setProgramsOpen(!programsOpen); setGalleryOpen(false); }}
+                onClick={() => { setProgramsOpen(!programsOpen); }}
                 aria-expanded={programsOpen}
               >
                 Programs
@@ -256,10 +253,11 @@ export function MobileNavMenu({
                               type="button"
                               className="program-card focus-ring-light w-full text-left"
                               onClick={() => {
-                                const anchorId = program.href.replace(/^\/#/, "");
+                                // strip leading "/" so href matches bento gallery items (e.g. "#festival")
+                                const bentoHref = program.href.replace(/^\//, "");
                                 if (isHome) {
-                                  window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: program.href } }));
-                                  document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth" });
+                                  window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: bentoHref } }));
+                                  document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
                                 } else {
                                   window.location.href = program.href;
                                 }
@@ -280,61 +278,11 @@ export function MobileNavMenu({
               </AnimatePresence>
             </motion.li>
 
-            {/* Gallery accordion */}
+            {/* Gallery link */}
             <motion.li variants={navItemVariants}>
-              <button
-                type="button"
-                className="mobile-nav-programs focus-ring-light"
-                onClick={() => { setGalleryOpen(!galleryOpen); setProgramsOpen(false); }}
-                aria-expanded={galleryOpen}
-              >
+              <Link href="/#gallery" className="mobile-nav-link focus-ring-light block" onClick={onClose}>
                 Gallery
-                <svg
-                  className={`mobile-nav-programs__chevron${galleryOpen ? " mobile-nav-programs__chevron--open" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="3"
-                  stroke="currentColor"
-                  aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              <AnimatePresence>
-                {galleryOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="gallery-panel mx-0 mt-3" style={{ width: '100%' }}>
-                      <div className="grid gap-3 p-2.5 sm:grid-cols-2">
-                        {gallery.map((item) => (
-                          <div key={item.program} className="gallery-group">
-                            <div className="gallery-group__header">{item.program}</div>
-                            <ul className="flex flex-wrap gap-1.5 px-0.5 py-1.5">
-                              {item.years.map((y) => (
-                                <li key={y.year}>
-                                  <Link
-                                    href={y.href}
-                                    className="gallery-year-pill focus-ring-light"
-                                    onClick={onClose}
-                                  >
-                                    {y.year}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              </Link>
             </motion.li>
 
             {rightLinks

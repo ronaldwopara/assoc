@@ -391,8 +391,9 @@ export function Navbar() {
                               role="menuitem"
                               className="program-card focus-ring-light w-full text-left"
                               onClick={() => {
+                                const bentoHref = program.href.replace(/^\//, "");
                                 if (isHome) {
-                                  window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: program.href } }));
+                                  window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: bentoHref } }));
                                   document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
                                 } else {
                                   router.push(program.href);
@@ -425,82 +426,21 @@ export function Navbar() {
 
             {/* Right navigation */}
             <div className="hidden lg:ml-auto lg:flex lg:items-center lg:gap-6">
-              {/* Gallery dropdown */}
-              <div
-                className="relative"
-                onMouseEnter={() => {
-                  if (galleryCloseTimer.current)  clearTimeout(galleryCloseTimer.current);
-                  if (programsCloseTimer.current) clearTimeout(programsCloseTimer.current);
-                  setGalleryOpen(true);
-                  setProgramsOpen(false);
-                  setHoveredNav("gallery");
-                }}
-                onMouseLeave={() => {
-                  galleryCloseTimer.current = setTimeout(() => setGalleryOpen(false), 150);
-                }}
-              >
-                <button
-                  type="button"
-                  className={navLinkWithIconClassName}
-                  data-open={galleryOpen ? "true" : undefined}
+              {/* Gallery link */}
+              <div className="relative">
+                <Link
+                  href="/#gallery"
+                  className={navLinkClassName}
                   data-active={lampTarget === "gallery" ? "true" : undefined}
-                  aria-expanded={galleryOpen}
-                  aria-haspopup="true"
                   onClick={() => {
                     if (isHome) {
                       document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
-                    } else {
-                      router.push("/#gallery");
                     }
-                    setGalleryOpen(false);
                   }}
                 >
                   Gallery
-                  <DropdownChevron open={galleryOpen} />
-                </button>
+                </Link>
                 {lampTarget === "gallery" && <NavLamp />}
-
-                <AnimatePresence>
-                  {galleryOpen && (
-                    <motion.div
-                      variants={panelVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      className="gallery-panel absolute right-0 top-full z-(--z-dropdown) mt-3"
-                      role="menu"
-                    >
-                      {/* Bridge to maintain hover state across the mt-3 gap */}
-                      <div className="absolute -top-3 left-0 right-0 h-3" />
-
-                      <div className="grid gap-x-3 gap-y-1 p-2.5 sm:grid-cols-2">
-                        {galleryDropdown.map((item, i) => (
-                          <motion.div
-                            key={item.program}
-                            custom={i}
-                            variants={itemVariants}
-                            className="gallery-group"
-                          >
-                            <div className="gallery-group__header">{item.program}</div>
-                            <ul className="flex flex-wrap gap-1.5 px-0.5 py-1.5">
-                              {item.years.map((y) => (
-                                <li key={y.year}>
-                                  <Link
-                                    href={y.href}
-                                    role="menuitem"
-                                    className="gallery-year-pill focus-ring-light"
-                                  >
-                                    {y.year}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {rightLinks.map((link) => {
