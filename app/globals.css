@@ -49,6 +49,7 @@ html {
   padding: 0;
   scroll-behavior: smooth;
   scroll-padding-top: var(--navbar-height);
+  scrollbar-width: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -63,6 +64,11 @@ body {
   background: var(--ink);
   color: var(--ink);
   font-family: var(--font-root-directory, "Avenir Next"), "Segoe UI", sans-serif;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 @layer base {
@@ -923,6 +929,11 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   flex-shrink: 0;
   border-radius: 9999px;
   background: var(--yellow);
+}
+
+#module-home-features-card_1 .stacked-card h3,
+#module-home-features-card_1 .stacked-card__bullet {
+  color: var(--ink);
 }
 
 .about-section__cta {
