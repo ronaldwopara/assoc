@@ -84,11 +84,12 @@ export function ArcGalleryHero({
   return (
     <section
       id="gallery"
-      className="section-shell relative overflow-hidden bg-(--cream-light)"
+      className="section-shell relative overflow-hidden bg-black"
       aria-labelledby="gallery-heading"
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(240,143,59,0.16),transparent_38%)]" />
       <div
-        className="relative mx-auto w-full"
+        className="relative z-10 mx-auto w-full"
         style={{ height: dimensions.radius + dimensions.cardSize }}
       >
         <div className="arc-gallery__pivot absolute bottom-0 left-1/2 -translate-x-1/2">
@@ -126,7 +127,7 @@ export function ArcGalleryHero({
                 }}
               >
                 <div
-                  className="h-full w-full overflow-hidden rounded-2xl bg-(--cream) shadow-xl ring-1 ring-(--brown-dark)/10"
+                  className="h-full w-full overflow-hidden rounded-2xl bg-black shadow-xl shadow-black/35 ring-1 ring-(--cream-light)/20"
                   style={{ transform: `rotate(${round(angle / 4)}deg)` }}
                 >
                   <img
@@ -142,14 +143,21 @@ export function ArcGalleryHero({
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto -mt-32 max-w-2xl px-6 text-center sm:-mt-40 lg:-mt-48">
-        <h2 id="gallery-heading" className="section-heading">
+      <div className="relative z-20 mx-auto -mt-32 max-w-2xl px-6 text-center sm:-mt-40 lg:-mt-48">
+        <h2
+          id="gallery-heading"
+          className="section-heading"
+          style={{ fontSize: "clamp(2.75rem, 6vw, 4.25rem)" }}
+        >
           Gallery
         </h2>
-        <div className="section-lead mx-auto">
+        <p
+          className="mx-auto mt-6 max-w-2xl text-lg font-semibold leading-relaxed"
+          style={{ color: "var(--orange)" }}
+        >
           Event photos and community highlights from our festivals, workshops,
           and gatherings.
-        </div>
+        </p>
         <div className="mt-8 flex justify-center">
           <button
             type="button"

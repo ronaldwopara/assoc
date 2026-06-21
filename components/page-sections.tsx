@@ -1,35 +1,37 @@
-import fs from "node:fs";
-import path from "node:path";
 import Link from "next/link";
 import { FileText, Download, Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
 
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|webp|avif|gif)$/i;
+const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
+
+const UPDATE_IMAGES: string[] = [
+  `${CLOUDINARY_BASE}/v1782010331/asosc/updates/updates-1.webp`,
+  `${CLOUDINARY_BASE}/v1782010333/asosc/updates/updates-2.webp`,
+  `${CLOUDINARY_BASE}/v1782010333/asosc/updates/updates-3.webp`,
+  `${CLOUDINARY_BASE}/v1782010334/asosc/updates/updates-4.webp`,
+];
+
+const GALLERY_IMAGES: string[] = [
+  `${CLOUDINARY_BASE}/v1782010322/asosc/gallery-prev/afc-1.webp`,
+  `${CLOUDINARY_BASE}/v1782010323/asosc/gallery-prev/afc-2.webp`,
+  `${CLOUDINARY_BASE}/v1782010324/asosc/gallery-prev/afc-3.webp`,
+  `${CLOUDINARY_BASE}/v1782010325/asosc/gallery-prev/afc-4.webp`,
+  `${CLOUDINARY_BASE}/v1782010326/asosc/gallery-prev/afc-5.webp`,
+  `${CLOUDINARY_BASE}/v1782010326/asosc/gallery-prev/afc-6.webp`,
+  `${CLOUDINARY_BASE}/v1782010327/asosc/gallery-prev/eoyp-1.webp`,
+  `${CLOUDINARY_BASE}/v1782010328/asosc/gallery-prev/eoyp-2.webp`,
+  `${CLOUDINARY_BASE}/v1782010330/asosc/gallery-prev/eoyp-3.webp`,
+  `${CLOUDINARY_BASE}/v1782010330/asosc/gallery-prev/eoyp-4.webp`,
+  `${CLOUDINARY_BASE}/v1782010331/asosc/gallery-prev/eoyp-5.webp`,
+];
 
 function getUpdateImages(): string[] {
-  const updatesDir = path.join(process.cwd(), "public", "updates");
-  try {
-    return fs
-      .readdirSync(updatesDir)
-      .filter((file) => IMAGE_EXTENSIONS.test(file))
-      .sort();
-  } catch {
-    return [];
-  }
+  return UPDATE_IMAGES;
 }
 
 function getGalleryImages(): string[] {
-  const galleryDir = path.join(process.cwd(), "public", "gallery-prev");
-  try {
-    return fs
-      .readdirSync(galleryDir)
-      .filter((file) => IMAGE_EXTENSIONS.test(file))
-      .sort()
-      .map((file) => `/gallery-prev/${encodeURIComponent(file)}`);
-  } catch {
-    return [];
-  }
+  return GALLERY_IMAGES;
 }
 
 interface DocumentItem {
@@ -171,7 +173,7 @@ export function AboutSection() {
   return (
     <section
       id="about"
-      className="section-shell bg-[var(--cream-light)]"
+      className="section-shell bg-(--cream-light)"
       aria-labelledby="about-heading"
     >
       <AboutContent />
@@ -188,72 +190,81 @@ export function AboutSection() {
   );
 }
 
-export function PageSections() {
+export function GallerySection() {
   const galleryImages = getGalleryImages();
 
+  return <ArcGalleryHero images={galleryImages} />;
+}
+
+export function CalendarSection() {
   return (
-    <>
-      <ArcGalleryHero images={galleryImages} />
+    <section
+      id="calendar"
+      className="section-shell bg-black relative overflow-hidden"
+      aria-labelledby="calendar-heading"
+    >
 
-      <section
-        id="calendar"
-        className="section-shell bg-black relative overflow-hidden"
-        aria-labelledby="calendar-heading"
-      >
-
-        <div className="relative z-10">
-          <div className="supplemental mx-auto max-w-3xl text-center">
-            <h2 id="calendar-heading" className="section-heading">
-              Calendar
-            </h2>
-            <div className="section-lead mx-auto">
-              Upcoming Events
-            </div>
-          </div>
-
-          <div className="mx-auto mt-12 max-w-4xl">
-            {upcomingEvents.map((event) => (
-              <div
-                key={event.title}
-                className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
-              >
-                <div className="w-20 shrink-0 text-center sm:w-16">
-                  <span className="inline-block rounded-full bg-(--orange-light) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
-                    {event.badge}
-                  </span>
-                </div>
-
-                <video
-                  className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
-                  src={event.videoSrc}
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                  aria-hidden="true"
-                />
-
-                <div className="flex-1 text-left">
-                  <h3 className="text-xl font-bold text-(--cream-light) sm:text-2xl">
-                    {event.title}
-                  </h3>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-(--cream)/80">
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      <MapPin className="h-4 w-4 text-(--orange-light)" />
-                      {event.location}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <CalendarIcon className="h-4 w-4 text-(--orange-light)" />
-                      {event.when}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="relative z-10">
+        <div className="supplemental mx-auto max-w-3xl text-center">
+          <h2 id="calendar-heading" className="section-heading">
+            Calendar
+          </h2>
+          <div className="section-lead mx-auto">
+            Upcoming Events
           </div>
         </div>
-      </section>
+
+        <div className="mx-auto mt-12 max-w-4xl">
+          {upcomingEvents.map((event) => (
+            <div
+              key={event.title}
+              className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
+            >
+              <div className="w-20 shrink-0 text-center sm:w-16">
+                <span className="inline-block rounded-full bg-(--orange-light) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
+                  {event.badge}
+                </span>
+              </div>
+
+              <video
+                className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
+                src={event.videoSrc}
+                muted
+                loop
+                autoPlay
+                playsInline
+                preload="metadata"
+                aria-hidden="true"
+              />
+
+              <div className="flex-1 text-left">
+                <h3 className="text-xl font-bold text-(--cream-light) sm:text-2xl">
+                  {event.title}
+                </h3>
+                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-(--cream)/80">
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    <MapPin className="h-4 w-4 text-(--orange-light)" />
+                    {event.location}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CalendarIcon className="h-4 w-4 text-(--orange-light)" />
+                    {event.when}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function PageSections() {
+  return (
+    <>
+      <GallerySection />
+      <CalendarSection />
     </>
   );
 }
@@ -312,21 +323,21 @@ export function UpdatesSection() {
   return (
     <section
       id="updates"
-      className="section-shell bg-(--cream-light)"
+      className="section-shell bg-black"
       aria-labelledby="updates-heading"
     >
       <h2 id="updates-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
         Updates
       </h2>
 
-      <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-(--cream-light)/15 bg-(--cream-light)/8 px-6 py-8 text-center sm:px-10 sm:py-10">
+        <span className="inline-block rounded-full bg-(--hero-cta) px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
           February 2026
         </span>
-        <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
+        <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">
           Black History Month
         </h3>
-        <p className="mt-4 text-lg leading-relaxed text-black/80">
+        <p className="mt-4 text-lg leading-relaxed text-(--cream)/85">
           For the first time, Strathcona County officially declared
           Black History Month celebration in February 2026,
           recognizing the contributions, culture, and resilience of
@@ -341,10 +352,10 @@ export function UpdatesSection() {
             {galleryImages.map((file, index) => (
               <div
                 key={`${file}-${index}`}
-                className="updates-marquee__item h-48 w-48 shrink-0 overflow-hidden rounded-xl shadow-lg transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
+                className="updates-marquee__item h-48 w-48 shrink-0 overflow-hidden rounded-xl border border-(--cream-light)/15 shadow-lg shadow-black/30 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
               >
                 <img
-                  src={`/updates/${encodeURIComponent(file)}`}
+                  src={file}
                   alt=""
                   className="h-full w-full object-cover"
                   loading="lazy"

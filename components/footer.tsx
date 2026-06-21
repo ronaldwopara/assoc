@@ -35,8 +35,8 @@ const companyLinks = [
 const connectLinks = [
   { label: "info@asosc.ca", href: "mailto:info@asosc.ca", icon: Mail },
   { label: "(587) 566-3212", href: "tel:+15875663212", icon: Phone },
-  { label: "Facebook", href: "https://facebook.com", icon: FacebookIcon },
-  { label: "Instagram", href: "https://instagram.com", icon: InstagramIcon },
+  { label: "Facebook", href: "https://www.facebook.com/people/Africans-Society-of-Strathcona-County/61550552301286/?mibextid=wwXIfr&rdid=JKQw6RpiLSmQFyry&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F156xwBzZdx%2F%3Fmibextid%3DwwXIfr%26ref%3D1", icon: FacebookIcon },
+  { label: "Instagram", href: "https://www.instagram.com/africansocietystrathconacounty?igsh=MmdwOTJrYWE3N2Jv&utm_source=qr", icon: InstagramIcon },
 ];
 
 const FOOTER_MASK_SVG =

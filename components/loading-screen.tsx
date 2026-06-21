@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import asoscLogo from "@/Asosc-Logo.webp";
 
 const MAX_WAIT = 6000;
 const BAR_DURATION = 1500; // ms — must match loading-progress animation in globals.css
@@ -45,7 +44,7 @@ export function LoadingScreen() {
   useEffect(() => {
     const img = document.createElement("img");
     img.fetchPriority = "high";
-    img.src = "/navbar.webp";
+    img.src = "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png";
     if (img.complete) setNavbarTextureReady(true);
     else img.onload = () => setNavbarTextureReady(true);
   }, []);
@@ -186,8 +185,10 @@ export function LoadingScreen() {
           }}
         >
           <Image
-            src={asoscLogo}
+            src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp"
             alt="ASOSC"
+            width={160}
+            height={160}
             className="loading-screen__logo"
             priority
           />

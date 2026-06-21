@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description:
     "Empowering Africans to enrich the social, economic, and cultural fabric of Strathcona County and beyond.",
   icons: {
-    icon: "/logo.webp",
-    apple: "/logo.webp",
+    icon: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp",
+    apple: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp",
   },
   openGraph: {
     type: "website",
@@ -33,7 +33,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preload" href="/navbar.webp" as="image" type="image/webp" fetchPriority="high" />
+        <link rel="preload" href="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png" as="image" type="image/png" fetchPriority="high" />
       </head>
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <SkipLink />

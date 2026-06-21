@@ -1,7 +1,8 @@
 import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { FeaturedPrograms } from "@/components/featured-programs";
-import { AboutSection, PageSections, UpdatesSection } from "@/components/page-sections";
+import { CommunityActionSection } from "@/components/volunteer-section";
+import { AboutSection, CalendarSection, GallerySection, UpdatesSection } from "@/components/page-sections";
 import { LoadingScreen } from "@/components/loading-screen";
 
 export default function Home() {
@@ -13,8 +14,13 @@ export default function Home() {
         <HeroSection />
         <AboutSection />
         <FeaturedPrograms />
-        <PageSections />
+        <CommunityActionSection actionId="volunteer" />
+        <GallerySection />
+        <CommunityActionSection actionId="donate" />
+        <CalendarSection />
+        <CommunityActionSection actionId="membership" />
         <UpdatesSection />
+        <CommunityActionSection actionId="contact" />
       </main>
     </>
   );

@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, HandHeart, Heart, IdCard, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(/navbar.webp)",
+  backgroundImage: "url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png)",
   backgroundRepeat: "repeat" as const,
   opacity: NAVBAR_IMAGE_OPACITY,
 };
@@ -100,6 +100,20 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
 
   const [spouseConsent, setSpouseConsent] = useState<"Yes" | "No" | null>(null);
   const [registerChildren, setRegisterChildren] = useState<"Yes" | "No" | null>(null);
+
+  const goToPreviousAction = () => {
+    setActiveActionIndex((current) => {
+      const activeIndex = current ?? 0;
+      return (activeIndex - 1 + actionTabs.length) % actionTabs.length;
+    });
+  };
+
+  const goToNextAction = () => {
+    setActiveActionIndex((current) => {
+      const activeIndex = current ?? 0;
+      return (activeIndex + 1) % actionTabs.length;
+    });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -875,14 +889,34 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
 
             {/* Actions */}
             <div className="flex justify-center border-t border-(--brown-dark)/10 px-6 py-10 sm:px-10 sm:py-12">
-              <ExpandableTabs
-                tabs={actionTabs}
-                selected={activeActionIndex}
-                onChange={(index) => {
-                  if (index !== null) setActiveActionIndex(index);
-                }}
-                className="max-w-full"
-              />
+              <div className="grid w-full max-w-full grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 sm:grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] sm:gap-3">
+                <button
+                  type="button"
+                  onClick={goToPreviousAction}
+                  aria-label="Previous community action"
+                  className="focus-ring-light flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+
+                <ExpandableTabs
+                  tabs={actionTabs}
+                  selected={activeActionIndex}
+                  onChange={(index) => {
+                    if (index !== null) setActiveActionIndex(index);
+                  }}
+                  className="w-full"
+                />
+
+                <button
+                  type="button"
+                  onClick={goToNextAction}
+                  aria-label="Next community action"
+                  className="focus-ring-light flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                >
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

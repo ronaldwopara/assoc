@@ -11,14 +11,12 @@ import {
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { JoinCommunityModal } from "@/components/join-community-modal";
-import asoscLogo from "../Asosc-Logo.webp";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(/navbar.webp)",
+  backgroundImage: "url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png)",
   backgroundRepeat: "repeat" as const,
-  opacity: NAVBAR_IMAGE_OPACITY,
 };
 
 function hashId(href: string) {
@@ -157,7 +155,25 @@ function useNavbarKeyboard(
 }
 
 function NavbarBackground() {
-  return <div className="absolute inset-0" style={navbarBackgroundStyle} />;
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const img = document.createElement("img");
+    img.fetchPriority = "high";
+    img.src = "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png";
+    if (img.complete) setReady(true);
+    else img.onload = () => setReady(true);
+  }, []);
+
+  return (
+    <div
+      className="absolute inset-0 transition-opacity duration-200"
+      style={{
+        ...navbarBackgroundStyle,
+        opacity: ready ? NAVBAR_IMAGE_OPACITY : 0,
+      }}
+    />
+  );
 }
 
 const SECTION_IDS = ["home", "about", "programs", "gallery", "calendar", "contact"];
@@ -166,14 +182,14 @@ function NavLamp() {
   return (
     <motion.div
       layoutId="nav-lamp"
-      className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center"
+      className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center text-(--yellow)"
       initial={false}
       transition={{ type: "spring", stiffness: 350, damping: 30 }}
     >
-      <div className="relative h-1 w-10 rounded-full bg-(--gold)">
-        <div className="absolute -left-2 -top-2 h-6 w-14 rounded-full bg-(--gold)/40 blur-md" />
-        <div className="absolute -top-1 left-1 h-6 w-8 rounded-full bg-(--gold)/40 blur-md" />
-        <div className="absolute left-3 top-0 h-4 w-4 rounded-full bg-(--gold)/40 blur-sm" />
+      <div className="relative h-1 w-10 rounded-full bg-current">
+        <div className="absolute -left-2 -top-2 h-6 w-14 rounded-full bg-current/40 blur-md" />
+        <div className="absolute -top-1 left-1 h-6 w-8 rounded-full bg-current/40 blur-md" />
+        <div className="absolute left-3 top-0 h-4 w-4 rounded-full bg-current/40 blur-sm" />
       </div>
     </motion.div>
   );
@@ -357,7 +373,7 @@ export function Navbar() {
                       initial="hidden"
                       animate="visible"
                       exit="exit"
-                      className="programs-panel absolute left-0 top-full z-[var(--z-dropdown)] mt-3"
+                      className="programs-panel absolute left-0 top-full z-(--z-dropdown) mt-3"
                       role="menu"
                     >
                       {/* Bridge to maintain hover state across the mt-3 gap */}
@@ -404,7 +420,7 @@ export function Navbar() {
               href="/#home"
               className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
             >
-              <Image src={asoscLogo} alt="ASOSC logo" className="h-14 w-auto" priority />
+              <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC logo" width={112} height={112} className="h-14 w-auto" priority />
             </Link>
 
             {/* Right navigation */}
@@ -451,7 +467,7 @@ export function Navbar() {
                       initial="hidden"
                       animate="visible"
                       exit="exit"
-                      className="gallery-panel absolute right-0 top-full z-[var(--z-dropdown)] mt-3"
+                      className="gallery-panel absolute right-0 top-full z-(--z-dropdown) mt-3"
                       role="menu"
                     >
                       {/* Bridge to maintain hover state across the mt-3 gap */}

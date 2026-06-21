@@ -1,14 +1,22 @@
 @import "tailwindcss";
 
+@theme {
+  --color-black: #2f2b28;
+}
+
 :root {
   color-scheme: light;
   --font-root-directory: "Avenir Next";
+  --ink: #2f2b28;
+  --ink-rgb: 47, 43, 40;
 
-  --orange: #f97316;
-  --orange-dark: #ea580c;
-  --orange-light: #fb923c;
-  --gold: #fbbf24;
-  --gold-dark: #f59e0b;
+  --orange: #f08f3b;
+  --orange-dark: #c66518;
+  --orange-light: #f08f3b;
+  --gold: #f08f3b;
+  --gold-dark: #c66518;
+  --yellow: #facc15;
+  --yellow-dark: #eab308;
   --brown: #92400e;
   --brown-dark: #78350f;
   --terracotta: #823513;
@@ -16,9 +24,9 @@
   --cream-light: #faf5eb;
 
   /* Hero & CTA — edit these; buttons use .hero-cta-btn → var(--hero-cta) */
-  --hero-cta: #ff6a1a;
-  --hero-cta-hover: #ff6a1a;
-  --hero-overlay: rgba(0, 0, 0, 0.5);
+  --hero-cta: #f08f3b;
+  --hero-cta-hover: #f08f3b;
+  --hero-overlay: rgba(var(--ink-rgb), 0.5);
 
   /* Layout */
   --navbar-height: 5rem;
@@ -52,8 +60,8 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: #000000;
-  color: #000000;
+  background: var(--ink);
+  color: var(--ink);
   font-family: var(--font-root-directory, "Avenir Next"), "Segoe UI", sans-serif;
 }
 
@@ -76,7 +84,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(var(--ink-rgb), 0.35);
   color: var(--gold);
 }
 
@@ -93,7 +101,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 }
 
 .focus-ring:focus-visible {
-  box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px rgba(var(--ink-rgb), 0.4);
 }
 
 .focus-ring-light:focus-visible {
@@ -178,7 +186,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   white-space: normal;
   border-radius: 0.375rem;
   background: var(--cream-light);
-  color: #000000;
+  color: var(--ink);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
@@ -197,13 +205,17 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 #documents-heading { color: var(--orange); }
 
 /* Gallery section heading */
-#gallery-heading { color: var(--orange); }
+#gallery-heading {
+  color: var(--orange);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+}
+#gallery .section-lead { color: var(--orange); }
 
 /* Section typography */
 .section-heading {
   font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
-  color: #000000;
+  color: var(--ink);
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
@@ -213,7 +225,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   max-width: 42rem;
   font-size: 1.125rem;
   line-height: 1.65;
-  color: #000000;
+  color: var(--ink);
 }
 
 .section-shell {
@@ -240,9 +252,10 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   position: relative;
   min-height: 12rem;
   overflow: hidden;
+  border: 1.5px solid var(--orange);
   border-radius: 0.875rem;
   cursor: pointer;
-  background-color: #000000;
+  background-color: var(--ink);
   box-shadow: 0 8px 24px rgba(120, 53, 15, 0.12);
   transition:
     filter 200ms ease,
@@ -250,6 +263,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 }
 
 .programs-bento-tile:hover {
+  border-color: var(--orange-light);
   filter: brightness(1.06);
   box-shadow: 0 12px 32px rgba(120, 53, 15, 0.18);
 }
@@ -351,7 +365,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .nav-menu-trigger:hover,
 .nav-menu-trigger[data-open="true"],
 .nav-menu-trigger[data-active="true"] {
-  color: var(--gold);
+  color: var(--yellow);
 }
 
 /* ── Shared dropdown panel base ─────────────────────────────────────── */
@@ -362,7 +376,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   background: oklch(0.22 0.02 50 / 0.88);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 40px rgba(var(--ink-rgb), 0.28);
 }
 
 .nav-menu-item {
@@ -405,7 +419,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 24px 64px rgba(var(--ink-rgb), 0.55),
     0 0 0 1px rgba(251, 191, 36, 0.08) inset;
   overflow: hidden;
 }
@@ -465,7 +479,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 24px 64px rgba(var(--ink-rgb), 0.55),
     0 0 0 1px rgba(251, 191, 36, 0.08) inset;
   overflow: hidden;
 }
@@ -520,9 +534,11 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   transition: opacity 150ms ease;
 }
 
-.mobile-nav-link:hover,
-.mobile-nav-link:active {
-  color: var(--gold);
+@media (hover: hover) and (pointer: fine) {
+  .mobile-nav-link:hover,
+  .mobile-nav-programs:hover {
+    color: var(--gold);
+  }
 }
 
 /* Programs trigger — same text style but flex row so chevron is inline */
@@ -543,11 +559,6 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   border: none;
   cursor: pointer;
   text-align: left;
-}
-
-.mobile-nav-programs:hover,
-.mobile-nav-programs:active {
-  color: var(--gold);
 }
 
 .mobile-nav-org-name {
@@ -583,7 +594,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
 .mobile-nav-panel {
   background-color: rgba(10, 8, 6, 0.97);
-  background-image: url(/navbar.webp);
+  background-image: url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png);
   background-repeat: repeat;
   background-size: auto;
 }
@@ -607,7 +618,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #000;
+  background: var(--ink);
   /* Keeps dot position where it was when the bottom wave was present */
   --hero-dots-offset: clamp(2.75rem, calc(4.5vw + 1.25rem), 4.25rem);
 }
@@ -659,8 +670,8 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   z-index: 2;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.25) 45%, rgba(0, 0, 0, 0.65) 100%),
-    rgba(0, 0, 0, 0.25);
+    linear-gradient(180deg, rgba(var(--ink-rgb), 0.35) 0%, rgba(var(--ink-rgb), 0.25) 45%, rgba(var(--ink-rgb), 0.65) 100%),
+    rgba(var(--ink-rgb), 0.25);
 }
 
 .hero-carousel-grain {
@@ -668,9 +679,11 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   inset: -10%;
   z-index: 2;
   pointer-events: none;
-  background-image: url("/grain.avif");
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px);
   background-repeat: repeat;
-  background-size: 300px 300px;
+  background-size: 42px 42px, 57px 57px;
   opacity: 0.06;
   mix-blend-mode: overlay;
   animation: hero-grain-shift 9s steps(8) infinite;
@@ -863,7 +876,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(var(--ink-rgb), 0.18);
   clip-path: polygon(14% 0, 100% 0, 100% 86%, 86% 100%, 0 100%, 0 14%);
 }
 
@@ -909,7 +922,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   width: 0.5rem;
   flex-shrink: 0;
   border-radius: 9999px;
-  background: var(--gold);
+  background: var(--yellow);
 }
 
 .about-section__cta {
@@ -988,19 +1001,21 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   inset: -10%;
   z-index: 0;
   pointer-events: none;
-  background-image: url("/grain.avif");
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px);
   background-repeat: repeat;
-  background-size: 300px 300px;
+  background-size: 42px 42px, 57px 57px;
   opacity: 0.05;
   mix-blend-mode: multiply;
 }
 
 .join-modal__close {
-  color: var(--gold);
+  color: var(--yellow);
 }
 
 .join-modal__close:hover {
-  color: var(--gold-dark);
+  color: var(--yellow-dark);
 }
 
 /* ── Loading / splash screen ─────────────────────────────────────────── */
@@ -1024,7 +1039,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .loading-screen__bg-texture {
   position: absolute;
   inset: 0;
-  background-image: url(/navbar.webp);
+  background-image: url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png);
   background-repeat: repeat;
   background-size: auto;
   opacity: 0;
@@ -1106,7 +1121,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .footer__mask {
   width: 100%;
   aspect-ratio: 1000 / 260;
-  background: #000000;
+  background: var(--ink);
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
@@ -1126,7 +1141,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #000000;
+  color: var(--ink);
   margin-bottom: 1rem;
 }
 
@@ -1144,7 +1159,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #000000;
+  color: var(--ink);
 }
 
 .footer__connect {
@@ -1163,7 +1178,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   font-size: 0.9rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #000000;
+  color: var(--ink);
 }
 
 .footer__connect-icon {
@@ -1185,7 +1200,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
 .footer__copyright {
   font-size: 0.8rem;
-  color: #000000;
+  color: var(--ink);
 }
 
 @media (max-width: 640px) {

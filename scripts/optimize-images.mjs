@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Converts PNG/JPEG assets to WebP with size-aware quality presets.
- * Originals are backed up under public/.originals/ (and root .originals/ for Asosc-Logo).
+ * Originals are backed up under public/.originals/ (and root .originals/ for root-level source assets).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,7 +16,6 @@ const IMAGE_RE = /\.(png|jpe?g)$/i;
 /** @type {Record<string, { quality: number; maxWidth?: number }>} */
 const PRESETS = {
   texture: { quality: 50, maxWidth: 1200 },
-  navbar: { quality: 92 },
   logo: { quality: 85, maxWidth: 512 },
   hero: { quality: 80, maxWidth: 1920 },
   photo: { quality: 75, maxWidth: 1600 },
@@ -26,7 +25,6 @@ function presetFor(relPath) {
   const base = path.basename(relPath).toLowerCase();
   const norm = relPath.replace(/\\/g, "/").toLowerCase();
 
-  if (base === "navbar.png") return PRESETS.navbar;
   if (base === "about-pattern.png") return PRESETS.texture;
   if (base === "logo.png" || base === "asosc-logo.png") return PRESETS.logo;
   if (norm.includes("/caurosel/")) return PRESETS.hero;

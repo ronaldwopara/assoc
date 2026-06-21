@@ -2,7 +2,7 @@
 
 import { Children, useLayoutEffect, useRef, type ReactNode } from "react";
 
-const CARD_BACKGROUNDS = ["var(--hero-cta)", "#000000"] as const;
+const CARD_BACKGROUNDS = ["var(--hero-cta)", "var(--ink)"] as const;
 
 export function StackedCardBody({
   videoSrc,

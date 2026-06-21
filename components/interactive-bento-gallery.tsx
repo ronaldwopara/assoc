@@ -133,7 +133,7 @@ function GalleryModal({
 }: {
   selectedItem: MediaItemType;
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (options?: { restoreScroll?: boolean }) => void;
   setSelectedItem: (item: MediaItemType | null) => void;
   mediaItems: MediaItemType[];
 }) {
@@ -213,8 +213,8 @@ function GalleryModal({
         {/* Close button — top left */}
         <motion.button
           type="button"
-          className="focus-ring-light absolute left-4 top-4 z-50 text-(--gold) transition-colors duration-150 hover:text-(--gold-dark)"
-          onClick={onClose}
+          className={`focus-ring-light absolute left-4 top-4 z-50 text-(--yellow) transition-colors duration-150 hover:text-(--yellow-dark) ${drawerOpen ? "hidden lg:block" : ""}`}
+          onClick={() => onClose()}
           aria-label="Close"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -226,9 +226,9 @@ function GalleryModal({
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedItem.id}
-            className={`pointer-events-none absolute inset-0 z-50 flex flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
+            className={`pointer-events-none absolute inset-0 z-50 ${drawerOpen ? "hidden lg:flex" : "flex"} flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
               drawerOpen
-                ? "justify-end pb-32 pr-6 sm:pr-[calc(22rem+3.5rem+1.5rem)] lg:pb-36 lg:pr-[calc(28rem+3.5rem+1.5rem)]"
+                ? "justify-end pb-32 pr-6 lg:pb-36 lg:pr-[calc(28rem+3.5rem+1.5rem)]"
                 : "justify-center pb-28 pr-20 sm:pr-24"
             }`}
             initial={{ opacity: 0, y: 16 }}
@@ -263,7 +263,7 @@ function GalleryModal({
             block the close button; pointer-events-auto restored on the inner
             (translated) div so only the visible area receives touches. */}
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-30 w-[calc(16rem+3.5rem)] sm:w-[calc(22rem+3.5rem)] lg:w-[calc(28rem+3.5rem)]"
+          className="pointer-events-none absolute inset-0 z-30 lg:inset-y-0 lg:inset-x-auto lg:right-0 lg:w-126"
         >
           <motion.div
             ref={drawerRef}
@@ -289,7 +289,15 @@ function GalleryModal({
           </button>
 
           {/* Content panel */}
-          <div className="flex flex-1 flex-col overflow-hidden" style={{ background: "#fff7ed" }}>
+          <div className="relative flex flex-1 flex-col overflow-hidden" style={{ background: "#fff7ed" }}>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close details"
+              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-(--yellow) transition-colors hover:bg-black/5 hover:text-(--yellow-dark) lg:hidden"
+            >
+              <X size={20} />
+            </button>
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedItem.id}
@@ -353,7 +361,7 @@ function GalleryModal({
                 type="button"
                 onClick={() => {
                   document.body.style.overflow = "";
-                  onClose();
+                  onClose({ restoreScroll: false });
                   requestAnimationFrame(() => {
                     document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
                   });
@@ -423,7 +431,7 @@ function GalleryModal({
                   style={{
                     zIndex: selectedItem.id === item.id ? 30 : mediaItems.length - index,
                   }}
-                  className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 sm:h-[5.25rem] sm:w-[5.25rem] ${
+                  className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 sm:h-21 sm:w-21 ${
                     selectedItem.id === item.id
                       ? "border-(--orange) shadow-lg"
                       : "border-transparent hover:border-white/35"
@@ -497,14 +505,17 @@ export function InteractiveBentoGallery({
     [rememberViewport],
   );
 
-  const closeModal = useCallback(() => {
+  const closeModal = useCallback((options: { restoreScroll?: boolean } = {}) => {
+    const { restoreScroll = true } = options;
     const y = scrollYRef.current;
     const hash = hashRef.current;
     setSelectedItem(null);
     history.replaceState(null, "", `${window.location.pathname}${window.location.search}${hash}`);
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: y, left: 0, behavior: "instant" });
-    });
+    if (restoreScroll) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: y, left: 0, behavior: "instant" });
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -544,10 +555,13 @@ export function InteractiveBentoGallery({
   useEffect(() => {
     if (!selectedItem) return;
     const handleNavClick = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement).closest("a[href^='#']") as HTMLAnchorElement | null;
-      if (!anchor || anchor.closest('[role="dialog"]')) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('[role="dialog"]')) return;
+      const anchor = target.closest("a[href^='#'], a[href^='/#']") as HTMLAnchorElement | null;
+      const navbarButton = target.closest("header button") as HTMLButtonElement | null;
+      if (!anchor && !navbarButton) return;
       document.body.style.overflow = "";
-      closeModal();
+      closeModal({ restoreScroll: false });
     };
     document.addEventListener("click", handleNavClick, true);
     return () => document.removeEventListener("click", handleNavClick, true);
@@ -596,7 +610,7 @@ export function InteractiveBentoGallery({
               key={item.id}
               type="button"
               layoutId={`media-${item.id}`}
-              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full border-0 p-0 text-left`}
+              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full p-0 text-left`}
               onClick={() => openItem(item)}
               variants={{
                 hidden: { opacity: 0 },

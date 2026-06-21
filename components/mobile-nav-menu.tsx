@@ -5,7 +5,6 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import { type Ref, useEffect, useState } from "react";
-import asoscLogo from "../Asosc-Logo.webp";
 type NavLink = { label: string; href: string };
 
 export type GalleryYear = { year: string; href: string };
@@ -198,7 +197,7 @@ export function MobileNavMenu({
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="absolute right-4 top-6 flex h-11 w-11 items-center justify-center text-(--gold) focus-ring-light"
+          className="absolute right-4 top-6 flex h-11 w-11 items-center justify-center text-(--yellow) focus-ring-light"
         >
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
             <path d="M4 4l18 18M22 4L4 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -366,7 +365,7 @@ export function MobileNavMenu({
             className="flex flex-col items-center gap-2 pb-2 pt-6"
             variants={navItemVariants}
           >
-            <Image src={asoscLogo} alt="ASOSC" className="h-20 w-auto" />
+            <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC" width={160} height={160} className="h-20 w-auto" />
             <span className="mobile-nav-org-name">Africans Society of Strathcona County</span>
           </motion.div>
         </div>
