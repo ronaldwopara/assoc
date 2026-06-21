@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { FileText, Download, Calendar as CalendarIcon, MapPin } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
+
+export { CalendarSection } from "@/components/calendar-section";
 
 const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
 
@@ -59,58 +61,6 @@ const documentGroups: DocumentGroup[] = [
       { label: "Bylaws (2025)", href: "/docs/governance/Bylaws-2025.docx" },
       { label: "Strategic Plan", href: "/docs/governance/ASOSC-Strategic-Plan.pptx" },
     ],
-  },
-];
-
-interface UpcomingEvent {
-  title: string;
-  badge: string;
-  location: string;
-  when: string;
-  videoSrc: string;
-  href: string;
-}
-
-const upcomingEvents: UpcomingEvent[] = [
-  {
-    title: "African Festival",
-    badge: "AUG",
-    location: "Strathcona County, AB",
-    when: "Annual — August",
-    videoSrc: "/African-festival.mp4",
-    href: "#festival",
-  },
-  {
-    title: "Black History Month Gala",
-    badge: "FEB",
-    location: "Strathcona County, AB",
-    when: "Annual — February",
-    videoSrc: "/black-history-month.mp4",
-    href: "#bhm",
-  },
-  {
-    title: "Annual End-of-Year Celebration",
-    badge: "DEC",
-    location: "Strathcona County, AB",
-    when: "Annual — December",
-    videoSrc: "/Annual-End-of-Year-Celebration.mp4",
-    href: "#celebration",
-  },
-  {
-    title: "Family Wellness Seminars",
-    badge: "ALL YEAR",
-    location: "Strathcona County, AB",
-    when: "Seasonal sessions",
-    videoSrc: "/Family-Wellness-Seminars.mp4",
-    href: "#wellness",
-  },
-  {
-    title: "Youth Creative Media Lab",
-    badge: "ALL YEAR",
-    location: "Strathcona County, AB",
-    when: "Ongoing program",
-    videoSrc: "/Youth-Creative-Media-Lab.mp4",
-    href: "#youth-lab",
   },
 ];
 
@@ -196,75 +146,10 @@ export function GallerySection() {
   return <ArcGalleryHero images={galleryImages} />;
 }
 
-export function CalendarSection() {
-  return (
-    <section
-      id="calendar"
-      className="section-shell bg-black relative overflow-hidden"
-      aria-labelledby="calendar-heading"
-    >
-
-      <div className="relative z-10">
-        <div className="supplemental mx-auto max-w-3xl text-center">
-          <h2 id="calendar-heading" className="section-heading">
-            Calendar
-          </h2>
-          <div className="section-lead mx-auto">
-            Upcoming Events
-          </div>
-        </div>
-
-        <div className="mx-auto mt-12 max-w-4xl">
-          {upcomingEvents.map((event) => (
-            <div
-              key={event.title}
-              className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
-            >
-              <div className="w-20 shrink-0 text-center sm:w-16">
-                <span className="inline-block rounded-full bg-(--orange-light) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
-                  {event.badge}
-                </span>
-              </div>
-
-              <video
-                className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
-                src={event.videoSrc}
-                muted
-                loop
-                autoPlay
-                playsInline
-                preload="metadata"
-                aria-hidden="true"
-              />
-
-              <div className="flex-1 text-left">
-                <h3 className="text-xl font-bold text-(--cream-light) sm:text-2xl">
-                  {event.title}
-                </h3>
-                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-(--cream)/80">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <MapPin className="h-4 w-4 text-(--orange-light)" />
-                    {event.location}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CalendarIcon className="h-4 w-4 text-(--orange-light)" />
-                    {event.when}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function PageSections() {
   return (
     <>
       <GallerySection />
-      <CalendarSection />
     </>
   );
 }
@@ -318,7 +203,8 @@ export function DocumentsSection() {
 
 export function UpdatesSection() {
   const images = getUpdateImages();
-  const galleryImages = images.length > 0 ? [...images, ...images] : [];
+  // Triple so the seamless loop never visibly resets
+  const galleryImages = images.length > 0 ? [...images, ...images, ...images] : [];
 
   return (
     <section
@@ -358,7 +244,7 @@ export function UpdatesSection() {
                   src={file}
                   alt=""
                   className="h-full w-full object-cover"
-                  loading="lazy"
+                  loading="eager"
                 />
               </div>
             ))}

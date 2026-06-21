@@ -256,11 +256,12 @@ export function MobileNavMenu({
                               type="button"
                               className="program-card focus-ring-light w-full text-left"
                               onClick={() => {
+                                const anchorId = program.href.replace(/^\/#/, "");
                                 if (isHome) {
                                   window.dispatchEvent(new CustomEvent("openProgram", { detail: { href: program.href } }));
-                                  document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
+                                  document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth" });
                                 } else {
-                                  router.push(program.href);
+                                  window.location.href = program.href;
                                 }
                                 onClose();
                               }}

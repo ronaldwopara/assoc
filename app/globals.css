@@ -784,6 +784,8 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   width: max-content;
   gap: 1.5rem;
   animation: updates-scroll 80s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .updates-marquee:hover .updates-marquee__track {

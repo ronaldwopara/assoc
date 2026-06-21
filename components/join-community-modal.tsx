@@ -94,9 +94,15 @@ interface JoinCommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialAction?: string | null;
+  initialContactMessage?: string | null;
 }
 
-export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: JoinCommunityModalProps) {
+export function JoinCommunityModal({
+  isOpen,
+  onClose,
+  initialAction = null,
+  initialContactMessage = null,
+}: JoinCommunityModalProps) {
   const [mounted, setMounted] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -110,6 +116,7 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
 
   const [spouseConsent, setSpouseConsent] = useState<"Yes" | "No" | null>(null);
   const [registerChildren, setRegisterChildren] = useState<"Yes" | "No" | null>(null);
+  const [contactMessage, setContactMessage] = useState("");
 
   const goToPreviousAction = () => {
     setActiveActionIndex((current) => {
@@ -130,8 +137,11 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
   }, []);
 
   useEffect(() => {
-    if (isOpen) setActiveActionIndex(defaultActionIndex);
-  }, [isOpen, defaultActionIndex]);
+    if (isOpen) {
+      setActiveActionIndex(defaultActionIndex);
+      setContactMessage(initialContactMessage ?? "");
+    }
+  }, [isOpen, defaultActionIndex, initialContactMessage]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1028,6 +1038,8 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                         name="message"
                         rows={4}
                         required
+                        value={contactMessage}
+                        onChange={(event) => setContactMessage(event.target.value)}
                         className={fieldTextareaClassName}
                       />
                     </div>
