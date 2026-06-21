@@ -19,6 +19,7 @@ export default function Home() {
         <CommunityActionSection actionId="donate" />
         <CalendarSection />
         <CommunityActionSection actionId="membership" />
+        <CommunityActionSection actionId="vendor" />
         <UpdatesSection />
         <CommunityActionSection actionId="contact" />
       </main>

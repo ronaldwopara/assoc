@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle, Store } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
@@ -19,6 +19,7 @@ const actionTabs = [
   { title: "Volunteer", icon: Heart },
   { title: "Donate", icon: HandHeart },
   { title: "Membership", icon: IdCard },
+  { title: "Vendor", icon: Store },
   { title: "Contact", icon: MessageCircle },
 ];
 
@@ -52,6 +53,15 @@ const membershipParticipationOptions = [
   "Community outreach and/or Advocacy",
   "Partnership/Collaborations",
   "Youth Group",
+];
+
+const vendorEventOptions = [
+  "African Festival",
+  "Black History Month Gala",
+  "Annual End-of-Year Celebration",
+  "Family Wellness Seminars",
+  "Youth Creative Media Lab",
+  "Other Community Events",
 ];
 
 function RadioGroup({ name, options }: { name: string; options: string[] }) {
@@ -800,6 +810,152 @@ export function JoinCommunityModal({ isOpen, onClose, initialAction = null }: Jo
                       className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
                     >
                       Submit
+                    </button>
+                  </form>
+                </div>
+              )}
+              {actionTabs[activeActionIndex ?? -1]?.title === "Vendor" && (
+                <div className="relative z-10 mx-auto max-w-md text-left">
+                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
+                    Vendor Registration Form
+                  </h2>
+                  <form className="space-y-4">
+                    <div>
+                      <label htmlFor="vendor-business-name" className={fieldLabelClassName}>
+                        Business / Vendor Name <span className="text-(--orange)">*</span>
+                      </label>
+                      <input
+                        id="vendor-business-name"
+                        type="text"
+                        name="businessName"
+                        required
+                        className={fieldInputClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={fieldLabelClassName}>
+                        Contact Person <span className="text-(--orange)">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          name="firstName"
+                          placeholder="First"
+                          autoComplete="given-name"
+                          required
+                          className={fieldInputClassName}
+                        />
+                        <input
+                          type="text"
+                          name="lastName"
+                          placeholder="Last"
+                          autoComplete="family-name"
+                          required
+                          className={fieldInputClassName}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-email" className={fieldLabelClassName}>
+                        Email <span className="text-(--orange)">*</span>
+                      </label>
+                      <input
+                        id="vendor-email"
+                        type="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        required
+                        className={fieldInputClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-phone" className={fieldLabelClassName}>
+                        Phone Number <span className="text-(--orange)">*</span>
+                      </label>
+                      <input
+                        id="vendor-phone"
+                        type="tel"
+                        name="phone"
+                        placeholder="123-456-7890"
+                        autoComplete="tel"
+                        required
+                        className={fieldInputClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-address" className={fieldLabelClassName}>
+                        Business Address
+                      </label>
+                      <input
+                        id="vendor-address"
+                        type="text"
+                        name="address"
+                        autoComplete="street-address"
+                        className={fieldInputClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-website" className={fieldLabelClassName}>
+                        Website or Social Media
+                      </label>
+                      <input
+                        id="vendor-website"
+                        type="url"
+                        name="website"
+                        placeholder="https://"
+                        className={fieldInputClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-products" className={fieldLabelClassName}>
+                        Products or Services Offered <span className="text-(--orange)">*</span>
+                      </label>
+                      <textarea
+                        id="vendor-products"
+                        name="productsServices"
+                        rows={3}
+                        required
+                        placeholder="Describe what you plan to sell or showcase"
+                        className={fieldTextareaClassName}
+                      />
+                    </div>
+
+                    <div>
+                      <span className={fieldLabelClassName}>
+                        Events You Are Interested In <span className="text-(--orange)">*</span>
+                      </span>
+                      <CheckboxGroup name="vendorEvents" options={vendorEventOptions} />
+                    </div>
+
+                    <div>
+                      <label htmlFor="vendor-comments" className={fieldLabelClassName}>
+                        Additional Comments
+                      </label>
+                      <textarea
+                        id="vendor-comments"
+                        name="comments"
+                        rows={4}
+                        className={fieldTextareaClassName}
+                      />
+                    </div>
+
+                    <p className="text-xs text-black/60">
+                      The personal information collected is for ASOSC vendor coordination and
+                      communication. Questions about this collection may be directed to: info@asosc.ca
+                    </p>
+
+                    <button
+                      type="submit"
+                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
+                    >
+                      Submit Registration
                     </button>
                   </form>
                 </div>

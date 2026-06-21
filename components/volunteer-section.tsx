@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { JoinCommunityModal } from "@/components/join-community-modal";
+import { cn } from "@/lib/utils";
 
 const communityActions = [
   {
@@ -32,6 +33,16 @@ const communityActions = [
     action: "Membership",
   },
   {
+    id: "vendor",
+    heading: "Vendor",
+    eyebrow: "Partner With Us",
+    title: "Register As A Vendor",
+    body: "Showcase your business, food, crafts, or services at ASOSC festivals, galas, and community celebrations across Strathcona County.",
+    button: "Register As A Vendor",
+    action: "Vendor",
+    theme: "dark",
+  },
+  {
     id: "contact",
     heading: "Contact",
     eyebrow: "Reach Out",
@@ -39,6 +50,7 @@ const communityActions = [
     body: "Have a question, partnership idea, or community opportunity? Send us a message and we will connect with you.",
     button: "Contact Us",
     action: "Contact",
+    theme: "dark",
   },
 ] as const;
 
@@ -52,12 +64,13 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const item = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
+  const isDark = "theme" in item && item.theme === "dark";
 
   return (
     <>
       <section
         id={item.id}
-        className="section-shell bg-(--cream-light)"
+        className={cn("section-shell", isDark ? "bg-black" : "bg-(--cream-light)")}
         aria-labelledby={`${item.id}-heading`}
       >
         <h2
@@ -67,14 +80,36 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
           {item.heading}
         </h2>
 
-        <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-          <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
+        <div
+          className={cn(
+            "mx-auto max-w-3xl rounded-3xl px-6 py-8 text-center sm:px-10 sm:py-10",
+            isDark
+              ? "border border-(--cream-light)/15 bg-(--cream-light)/8"
+              : "border border-(--brown-dark)/10 bg-(--cream)/60",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block rounded-full px-4 py-1 text-sm font-bold uppercase tracking-wide",
+              isDark ? "bg-(--hero-cta) text-black" : "bg-(--hero-cta)/20 text-black",
+            )}
+          >
             {item.eyebrow}
           </span>
-          <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
+          <h3
+            className={cn(
+              "mt-4 text-2xl font-bold sm:text-3xl",
+              isDark ? "text-(--cream-light)" : "text-black",
+            )}
+          >
             {item.title}
           </h3>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-black/80">
+          <p
+            className={cn(
+              "mx-auto mt-4 max-w-2xl text-lg leading-relaxed",
+              isDark ? "text-(--cream)/85" : "text-black/80",
+            )}
+          >
             {item.body}
           </p>
 

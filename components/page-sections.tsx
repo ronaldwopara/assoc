@@ -323,21 +323,21 @@ export function UpdatesSection() {
   return (
     <section
       id="updates"
-      className="section-shell bg-black"
+      className="section-shell bg-(--cream-light)"
       aria-labelledby="updates-heading"
     >
       <h2 id="updates-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
         Updates
       </h2>
 
-      <div className="mx-auto max-w-3xl rounded-2xl border border-(--cream-light)/15 bg-(--cream-light)/8 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <span className="inline-block rounded-full bg-(--hero-cta) px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
+      <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
+        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
           February 2026
         </span>
-        <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">
+        <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
           Black History Month
         </h3>
-        <p className="mt-4 text-lg leading-relaxed text-(--cream)/85">
+        <p className="mt-4 text-lg leading-relaxed text-black/80">
           For the first time, Strathcona County officially declared
           Black History Month celebration in February 2026,
           recognizing the contributions, culture, and resilience of
@@ -352,7 +352,7 @@ export function UpdatesSection() {
             {galleryImages.map((file, index) => (
               <div
                 key={`${file}-${index}`}
-                className="updates-marquee__item h-48 w-48 shrink-0 overflow-hidden rounded-xl border border-(--cream-light)/15 shadow-lg shadow-black/30 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
+                className="updates-marquee__item h-48 w-48 shrink-0 overflow-hidden rounded-xl border border-(--brown-dark)/10 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
               >
                 <img
                   src={file}
