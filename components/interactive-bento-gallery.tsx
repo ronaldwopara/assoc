@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { JoinCommunityModal } from "@/components/join-community-modal";
 import type { MediaItemType } from "@/lib/featured-programs-data";
 
 const ctaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
+const drawerCtaClassName =
+  "hero-cta-btn focus-ring-light inline-flex min-h-12 min-w-0 flex-1 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out sm:min-h-14 sm:flex-none sm:px-10 sm:py-4 sm:text-base";
 function MediaItem({
   item,
   className,
@@ -130,14 +133,17 @@ function GalleryModal({
   onClose,
   setSelectedItem,
   mediaItems,
+  onRegister,
+  onVolunteer,
 }: {
   selectedItem: MediaItemType;
   isOpen: boolean;
   onClose: (options?: { restoreScroll?: boolean }) => void;
   setSelectedItem: (item: MediaItemType | null) => void;
   mediaItems: MediaItemType[];
+  onRegister: (programTitle: string) => void;
+  onVolunteer: () => void;
 }) {
-  const [dockPosition, setDockPosition] = useState({ x: 0, y: 0 });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const learnMoreRef = useRef<HTMLButtonElement>(null);
@@ -356,19 +362,20 @@ function GalleryModal({
               </motion.div>
             </AnimatePresence>
 
-            <div className="shrink-0 px-8 pb-28 pt-2 lg:px-10 lg:pb-32">
+            <div className="flex shrink-0 flex-row flex-nowrap gap-2 px-8 pb-8 pt-2 sm:gap-3 lg:px-10 lg:pb-10">
               <button
                 type="button"
-                onClick={() => {
-                  document.body.style.overflow = "";
-                  onClose({ restoreScroll: false });
-                  requestAnimationFrame(() => {
-                    document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
-                  });
-                }}
-                className={`${ctaClassName} self-start`}
+                onClick={() => onRegister(selectedItem.title)}
+                className={drawerCtaClassName}
               >
-                Explore Our Gallery
+                Register
+              </button>
+              <button
+                type="button"
+                onClick={onVolunteer}
+                className={drawerCtaClassName}
+              >
+                Volunteer
               </button>
             </div>
           </div>
@@ -376,95 +383,6 @@ function GalleryModal({
         </div>
       </motion.div>
       </div>
-
-      {/* Draggable thumbnail dock — stays centered at viewport bottom */}
-      <motion.div
-        drag
-        dragMomentum={false}
-        dragElastic={0.1}
-        animate={{
-          x: dockPosition.x,
-          y: dockPosition.y,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 35 }}
-        onDragEnd={(_, info) => {
-          setDockPosition((prev) => ({
-            x: prev.x + info.offset.x,
-            y: prev.y + info.offset.y,
-          }));
-        }}
-        className="pointer-events-none fixed bottom-6 left-1/2 z-45 -translate-x-1/2"
-      >
-        <motion.div
-          className="pointer-events-auto relative origin-bottom scale-[0.88] cursor-grab touch-none overflow-visible active:cursor-grabbing sm:scale-[0.92]"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-xl border border-white/12 shadow-lg"
-            style={{
-              background: "oklch(0.22 0.02 50 / 0.88)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-            }}
-          />
-          <div className="relative flex max-w-[calc(100vw-2rem)] items-center gap-1.5 px-3 py-5 sm:max-w-none sm:gap-2 sm:px-4 sm:py-6">
-            {/* Left arrow */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); if (prevItem) setSelectedItem(prevItem); }}
-              disabled={!prevItem}
-              aria-label="Previous"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10 sm:h-8 sm:w-8"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-
-            <div className="flex items-center overflow-visible px-0.5 -space-x-3">
-              {mediaItems.map((item, index) => (
-                <motion.button
-                  key={item.id}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedItem(item);
-                  }}
-                  style={{
-                    zIndex: selectedItem.id === item.id ? 30 : mediaItems.length - index,
-                  }}
-                  className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 sm:h-21 sm:w-21 ${
-                    selectedItem.id === item.id
-                      ? "border-(--orange) shadow-lg"
-                      : "border-transparent hover:border-white/35"
-                  }`}
-                  initial={{ rotate: index % 2 === 0 ? -15 : 15 }}
-                  animate={{
-                    rotate: selectedItem.id === item.id ? 0 : index % 2 === 0 ? -15 : 15,
-                  }}
-                  whileHover={{
-                    rotate: 0,
-                    transition: { type: "spring", stiffness: 400, damping: 25 },
-                  }}
-                  aria-label={`View ${item.title}`}
-                >
-                  <MediaItem item={item} className="h-full w-full" />
-                  <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-white/15" />
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Right arrow */}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); if (nextItem) setSelectedItem(nextItem); }}
-              disabled={!nextItem}
-              aria-label="Next"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white transition disabled:opacity-25 hover:bg-white/10 sm:h-8 sm:w-8"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
     </div>
   );
 }
@@ -483,6 +401,9 @@ export function InteractiveBentoGallery({
   const [selectedItem, setSelectedItem] = useState<MediaItemType | null>(null);
   const [items] = useState(mediaItems);
   const [mounted, setMounted] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [joinAction, setJoinAction] = useState<string | null>(null);
+  const [contactMessage, setContactMessage] = useState<string | null>(null);
   const scrollYRef = useRef(0);
   const hashRef = useRef("");
 
@@ -567,6 +488,18 @@ export function InteractiveBentoGallery({
     return () => document.removeEventListener("click", handleNavClick, true);
   }, [selectedItem, closeModal]);
 
+  const openRegister = useCallback((programTitle: string) => {
+    setJoinAction("Contact");
+    setContactMessage(`I would like to register for ${programTitle}.`);
+    setIsJoinModalOpen(true);
+  }, []);
+
+  const openVolunteer = useCallback(() => {
+    setJoinAction("Volunteer");
+    setContactMessage(null);
+    setIsJoinModalOpen(true);
+  }, []);
+
   return (
     <div className="mx-auto w-full max-w-7xl">
       <div className="mb-8 text-center sm:mb-10">
@@ -650,9 +583,18 @@ export function InteractiveBentoGallery({
             onClose={closeModal}
             setSelectedItem={setSelectedItem}
             mediaItems={items}
+            onRegister={openRegister}
+            onVolunteer={openVolunteer}
           />,
           document.body,
         )}
+
+      <JoinCommunityModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        initialAction={joinAction}
+        initialContactMessage={contactMessage}
+      />
     </div>
   );
 }

@@ -52,7 +52,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
   {
     id: 2,
     type: "video",
-    title: "Youth Creative Media Lab",
+    title: "Youth Creative Lab",
     desc: "Raising the next generation of African leaders.",
     url: "/Youth-Creative-Media-Lab.mp4",
     area: "youth",
@@ -90,7 +90,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
   {
     id: 3,
     type: "video",
-    title: "African Festival (Annual – August)",
+    title: "African Festival",
     desc: "Celebrating culture. Connecting community.",
     url: "/African-Festival.mp4",
     area: "festival",
@@ -122,7 +122,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
   {
     id: 4,
     type: "video",
-    title: "Black History Month (Annual – February)",
+    title: "Black History Month",
     desc: "Honoring heritage and celebrating achievements.",
     url: "/black-history-month.mp4",
     area: "bhm",
@@ -185,7 +185,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
   {
     id: 6,
     type: "video",
-    title: "Annual End-of-Year Celebration",
+    title: "End-of-Year/Volunteer Appreciation Party",
     desc: "Celebrating togetherness.",
     url: "/Annual-End-of-Year-Celebration.mp4",
     area: "celebration",

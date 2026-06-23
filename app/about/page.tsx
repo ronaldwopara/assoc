@@ -47,15 +47,15 @@ export default function AboutPage() {
 
         <section
           id="board"
-          className="section-shell bg-(--cream-light)"
+          className="section-shell bg-black"
           aria-labelledby="board-heading"
         >
-          <h2 id="board-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+          <h2 id="board-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange-light)">
             Meet the Board
           </h2>
 
           <div className="flex justify-center">
-            <CircularTestimonials testimonials={boardMembers} />
+            <CircularTestimonials testimonials={boardMembers} theme="dark" />
           </div>
         </section>
 

@@ -28,7 +28,7 @@ const communityActions = [
     heading: "Membership",
     eyebrow: "Join ASOSC",
     title: "Become Part Of The Society",
-    body: "Membership helps strengthen our voice, grow our programs, and connect African families, allies, and partners across Strathcona County.",
+    body: "Membership helps strengthen our voice, grow our programs, and connect African families, allies, and partners.",
     button: "Become A Member",
     action: "Membership",
   },

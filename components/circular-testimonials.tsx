@@ -21,6 +21,7 @@ interface Testimonial {
 interface CircularTestimonialsProps {
   testimonials: Testimonial[];
   autoplay?: boolean;
+  theme?: "light" | "dark";
 }
 
 function calculateGap(width: number) {
@@ -43,6 +44,7 @@ const quoteVariants = {
 export function CircularTestimonials({
   testimonials,
   autoplay = true,
+  theme = "light",
 }: CircularTestimonialsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [containerWidth, setContainerWidth] = useState(1200);
@@ -69,33 +71,45 @@ export function CircularTestimonials({
 
   const handleNext = useCallback(() => {
     setActiveIndex((prev) => (prev + 1) % testimonialsLength);
-    if (autoplayIntervalRef.current) clearInterval(autoplayIntervalRef.current);
   }, [testimonialsLength]);
 
   const handlePrev = useCallback(() => {
     setActiveIndex((prev) => (prev - 1 + testimonialsLength) % testimonialsLength);
-    if (autoplayIntervalRef.current) clearInterval(autoplayIntervalRef.current);
   }, [testimonialsLength]);
 
+  const restartAutoplay = useCallback(() => {
+    if (!autoplay) return;
+    if (autoplayIntervalRef.current) clearInterval(autoplayIntervalRef.current);
+    autoplayIntervalRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % testimonialsLength);
+    }, 5000);
+  }, [autoplay, testimonialsLength]);
+
+  const handleNextClick = useCallback(() => {
+    handleNext();
+    restartAutoplay();
+  }, [handleNext, restartAutoplay]);
+
+  const handlePrevClick = useCallback(() => {
+    handlePrev();
+    restartAutoplay();
+  }, [handlePrev, restartAutoplay]);
+
   useEffect(() => {
-    if (autoplay) {
-      autoplayIntervalRef.current = setInterval(() => {
-        setActiveIndex((prev) => (prev + 1) % testimonialsLength);
-      }, 5000);
-    }
+    restartAutoplay();
     return () => {
       if (autoplayIntervalRef.current) clearInterval(autoplayIntervalRef.current);
     };
-  }, [autoplay, testimonialsLength]);
+  }, [restartAutoplay]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") handlePrev();
-      if (e.key === "ArrowRight") handleNext();
+      if (e.key === "ArrowLeft") handlePrevClick();
+      if (e.key === "ArrowRight") handleNextClick();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [handlePrev, handleNext]);
+  }, [handlePrevClick, handleNextClick]);
 
   function getImageStyle(index: number): CSSProperties {
     const gap = calculateGap(containerWidth);
@@ -169,10 +183,22 @@ export function CircularTestimonials({
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-              <h3 className="mb-8 text-2xl font-bold text-(--orange)">
+              <h3
+                className={
+                  theme === "dark"
+                    ? "mb-8 text-2xl font-bold text-(--orange-light)"
+                    : "mb-8 text-2xl font-bold text-(--orange)"
+                }
+              >
                 {activeTestimonial.name}
               </h3>
-              <p className="text-lg leading-relaxed text-black/80">
+              <p
+                className={
+                  theme === "dark"
+                    ? "text-lg leading-relaxed text-(--cream)/85"
+                    : "text-lg leading-relaxed text-black/80"
+                }
+              >
                 {activeTestimonial.quote.split(" ").map((word, i) => (
                   <motion.span
                     key={i}
@@ -191,7 +217,7 @@ export function CircularTestimonials({
           <div className="flex gap-6 pt-12 md:pt-0">
             <button
               type="button"
-              onClick={handlePrev}
+              onClick={handlePrevClick}
               aria-label="Previous board member"
               className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--orange) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
             >
@@ -199,7 +225,7 @@ export function CircularTestimonials({
             </button>
             <button
               type="button"
-              onClick={handleNext}
+              onClick={handleNextClick}
               aria-label="Next board member"
               className="focus-ring-light flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-none bg-(--orange) text-(--cream-light) transition-colors duration-300 hover:bg-(--hero-cta) hover:text-black"
             >

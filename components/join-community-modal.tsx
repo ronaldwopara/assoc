@@ -58,9 +58,9 @@ const membershipParticipationOptions = [
 const vendorEventOptions = [
   "African Festival",
   "Black History Month Gala",
-  "Annual End-of-Year Celebration",
+  "End-of-Year/Volunteer Appreciation Party",
   "Family Wellness Seminars",
-  "Youth Creative Media Lab",
+  "Youth Creative Lab",
   "Other Community Events",
 ];
 
@@ -236,7 +236,7 @@ export function JoinCommunityModal({
               {actionTabs[activeActionIndex ?? -1]?.title === "Newsletter" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
                   <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Join our newsletter
+                    Stay Connected!
                   </h2>
                   <form className="space-y-4">
                     <div>
@@ -422,7 +422,7 @@ export function JoinCommunityModal({
               {actionTabs[activeActionIndex ?? -1]?.title === "Donate" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
                   <h2 className="mb-2 text-lg font-bold text-black sm:text-xl">
-                    Donate Now!
+                    Send a Donation
                   </h2>
                   <p className="mb-6 text-sm text-black/70">
                     Your generosity helps us build programs that uplift and empower the African
@@ -499,7 +499,7 @@ export function JoinCommunityModal({
                       type="submit"
                       className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
                     >
-                      Donate Now
+                      Donate
                     </button>
                   </form>
                 </div>
@@ -973,7 +973,7 @@ export function JoinCommunityModal({
               {actionTabs[activeActionIndex ?? -1]?.title === "Contact" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
                   <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    We would love to hear from you!
+                    Contact Us
                   </h2>
                   <form className="space-y-4">
                     <div>
@@ -1057,12 +1057,12 @@ export function JoinCommunityModal({
 
             {/* Actions */}
             <div className="flex justify-center border-t border-(--brown-dark)/10 px-6 py-10 sm:px-10 sm:py-12">
-              <div className="grid w-full max-w-full grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2 sm:grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] sm:gap-3">
+              <div className="flex w-full max-w-full items-center gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={goToPreviousAction}
                   aria-label="Previous community action"
-                  className="focus-ring-light flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                  className="focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
                 >
                   <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
@@ -1073,14 +1073,14 @@ export function JoinCommunityModal({
                   onChange={(index) => {
                     if (index !== null) setActiveActionIndex(index);
                   }}
-                  className="w-full"
+                  className="min-w-0 flex-1"
                 />
 
                 <button
                   type="button"
                   onClick={goToNextAction}
                   aria-label="Next community action"
-                  className="focus-ring-light flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                  className="focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
                 >
                   <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>

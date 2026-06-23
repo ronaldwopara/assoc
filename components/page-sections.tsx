@@ -105,7 +105,7 @@ export function AboutContent() {
 
         <StackedCardBody
           videoSrc="/Youth-Creative-Media-Lab.mp4"
-          videoLabel="Youth Creative Media Lab program"
+          videoLabel="Youth Creative Lab program"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
           <p className="text-(--orange-light)!">
@@ -161,7 +161,7 @@ export function DocumentsSection() {
       aria-labelledby="documents-heading"
     >
       <div className="supplemental mx-auto max-w-3xl text-center">
-        <h2 id="documents-heading" className="section-heading">
+        <h2 id="documents-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
           Documents &amp; Reports
         </h2>
         <div className="section-lead mx-auto">

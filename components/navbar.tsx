@@ -33,7 +33,7 @@ const programsDropdown = [
     href: "/#our-story",
   },
   {
-    title: "Youth Creative Media Lab",
+    title: "Youth Creative Lab",
     description: "Raising the next generation of African leaders.",
     href: "/#youth-lab",
   },
@@ -70,7 +70,7 @@ export const galleryDropdown: GalleryProgram[] = [
     ],
   },
   {
-    program: "Youth Creative Media Lab",
+    program: "Youth Creative Lab",
     years: [{ year: "2025", href: "/#gallery" }],
   },
   {
@@ -78,7 +78,7 @@ export const galleryDropdown: GalleryProgram[] = [
     years: [{ year: "2025", href: "/#gallery" }],
   },
   {
-    program: "Annual End-of-Year Celebration",
+    program: "End-of-Year/Volunteer Appreciation Party",
     years: [{ year: "2025", href: "/#gallery" }],
   },
 ];

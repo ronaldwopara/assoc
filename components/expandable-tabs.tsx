@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useLayoutEffect, useRef } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,26 +26,20 @@ interface ExpandableTabsProps {
   onChange?: (index: number | null) => void;
 }
 
-const buttonVariants = {
-  initial: {
-    gap: 0,
-    paddingLeft: ".5rem",
-    paddingRight: ".5rem",
-  },
-  animate: (isSelected: boolean) => ({
-    gap: isSelected ? ".5rem" : 0,
-    paddingLeft: isSelected ? "1rem" : ".5rem",
-    paddingRight: isSelected ? "1rem" : ".5rem",
-  }),
-};
+function scrollActiveTabIntoView(
+  container: HTMLDivElement,
+  tab: HTMLButtonElement,
+) {
+  const tabOffsetLeft = tab.offsetLeft;
+  const tabWidth = tab.offsetWidth;
+  const containerWidth = container.clientWidth;
+  const maxScroll = container.scrollWidth - containerWidth;
 
-const spanVariants = {
-  initial: { width: 0, opacity: 0 },
-  animate: { width: "auto", opacity: 1 },
-  exit: { width: 0, opacity: 0 },
-};
+  if (maxScroll <= 0) return;
 
-const transition = { delay: 0.1, type: "spring", bounce: 0, duration: 0.6 } as const;
+  const targetScroll = tabOffsetLeft - (containerWidth - tabWidth) / 2;
+  container.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
+}
 
 export function ExpandableTabs({
   tabs,
@@ -55,61 +48,70 @@ export function ExpandableTabs({
   selected = null,
   onChange,
 }: ExpandableTabsProps) {
-  const handleSelect = (index: number) => {
-    onChange?.(index);
-  };
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useLayoutEffect(() => {
+    if (selected === null || selected === undefined) return;
+
+    const container = scrollRef.current;
+    const tab = tabRefs.current[selected];
+    if (!container || !tab) return;
+
+    const scroll = () => scrollActiveTabIntoView(container, tab);
+
+    scroll();
+    const raf = requestAnimationFrame(scroll);
+
+    return () => cancelAnimationFrame(raf);
+  }, [selected]);
 
   const Separator = () => (
-    <div className="mx-1 h-[24px] w-[1.2px] bg-(--brown-dark)/15" aria-hidden="true" />
+    <div className="mx-1 h-[24px] w-[1.2px] shrink-0 bg-(--brown-dark)/15" aria-hidden="true" />
   );
 
   return (
     <div
       className={cn(
-        "flex max-w-full flex-nowrap items-center justify-center gap-1 overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-[#2a2a2a] p-1.5 backdrop-blur-sm sm:gap-2 sm:p-3",
+        "max-w-full overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-[#2a2a2a] p-1.5 backdrop-blur-sm sm:p-3",
         className,
       )}
     >
-      {tabs.map((tab, index) => {
-        if (tab.type === "separator") {
-          return <Separator key={`separator-${index}`} />;
-        }
+      <div
+        ref={scrollRef}
+        className="flex flex-nowrap items-center gap-1 overflow-x-auto scrollbar-none sm:gap-2"
+      >
+        {tabs.map((tab, index) => {
+          if (tab.type === "separator") {
+            return <Separator key={`separator-${index}`} />;
+          }
 
-        const Icon = tab.icon;
-        return (
-          <motion.button
-            key={tab.title}
-            variants={buttonVariants}
-            initial={false}
-            animate="animate"
-            custom={selected === index}
-            onClick={() => handleSelect(index)}
-            transition={transition}
-            className={cn(
-              "relative flex cursor-pointer items-center rounded-xl py-2 text-[10px] font-bold uppercase tracking-wide transition-colors duration-300 focus-ring-light sm:py-5 sm:text-base",
-              selected === index
-                ? cn("bg-(--hero-cta)/15", activeColor)
-                : "text-(--orange)/75 hover:bg-white/5 hover:text-(--orange)",
-            )}
-          >
-            <Icon className="h-4 w-4 sm:h-[26px] sm:w-[26px]" />
-            <AnimatePresence initial={false}>
-              {selected === index && (
-                <motion.span
-                  variants={spanVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={transition}
-                  className="overflow-hidden"
-                >
-                  {tab.title}
-                </motion.span>
+          const Icon = tab.icon;
+          const isSelected = selected === index;
+
+          return (
+            <button
+              key={tab.title}
+              ref={(el) => {
+                tabRefs.current[index] = el;
+              }}
+              type="button"
+              onClick={() => onChange?.(index)}
+              className={cn(
+                "relative flex cursor-pointer items-center rounded-xl py-2 text-[10px] font-bold uppercase tracking-wide transition-colors duration-200 focus-ring-light sm:py-5 sm:text-base",
+                isSelected
+                  ? cn("shrink-0 gap-2 px-4 sm:gap-2.5 sm:px-4", activeColor, "bg-(--hero-cta)/15")
+                  : "shrink gap-0 px-2 text-(--orange)/75 hover:bg-white/5 hover:text-(--orange) sm:px-2",
               )}
-            </AnimatePresence>
-          </motion.button>
-        );
-      })}
+            >
+              <Icon className="h-4 w-4 shrink-0 sm:h-[26px] sm:w-[26px]" />
+              {isSelected && (
+                <span className="whitespace-nowrap">{tab.title}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
