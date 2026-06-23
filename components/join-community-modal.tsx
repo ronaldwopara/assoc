@@ -5,15 +5,11 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle, Store } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
-import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
+import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
-const navbarBackgroundStyle = {
-  backgroundImage: `url(${NAV_TEXTURE_URL})`,
-  backgroundRepeat: "repeat" as const,
-  opacity: NAVBAR_IMAGE_OPACITY,
-};
+const navbarBackgroundStyle = navTextureBackgroundStyleFromCssVar(NAVBAR_IMAGE_OPACITY);
 
 const actionTabs = [
   { title: "Newsletter", icon: Mail },

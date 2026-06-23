@@ -11,15 +11,11 @@ import {
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { JoinCommunityModal } from "@/components/join-community-modal";
-import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
+import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
-const navbarBackgroundStyle = {
-  backgroundImage: `url(${NAV_TEXTURE_URL})`,
-  backgroundRepeat: "repeat" as const,
-  opacity: NAVBAR_IMAGE_OPACITY,
-};
+const navbarBackgroundStyle = navTextureBackgroundStyleFromCssVar(NAVBAR_IMAGE_OPACITY);
 
 function hashId(href: string) {
   return href.slice(href.indexOf("#") + 1);
@@ -60,28 +56,28 @@ export const galleryDropdown: GalleryProgram[] = [
   {
     program: "African Festival",
     years: [
-      { year: "2025", href: "/#gallery" },
-      { year: "2024", href: "/#gallery" },
+      { year: "2025", href: "/gallery" },
+      { year: "2024", href: "/gallery" },
     ],
   },
   {
     program: "Black History Month",
     years: [
-      { year: "2025", href: "/#gallery" },
-      { year: "2024", href: "/#gallery" },
+      { year: "2025", href: "/gallery" },
+      { year: "2024", href: "/gallery" },
     ],
   },
   {
     program: "Youth Creative Lab",
-    years: [{ year: "2025", href: "/#gallery" }],
+    years: [{ year: "2025", href: "/gallery" }],
   },
   {
     program: "Family Wellness Seminars",
-    years: [{ year: "2025", href: "/#gallery" }],
+    years: [{ year: "2025", href: "/gallery" }],
   },
   {
     program: "End-of-Year/Volunteer Appreciation Party",
-    years: [{ year: "2025", href: "/#gallery" }],
+    years: [{ year: "2025", href: "/gallery" }],
   },
 ];
 

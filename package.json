@@ -10,6 +10,7 @@
     "optimize-images": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-aspect-ratio": "^1.1.10",
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",

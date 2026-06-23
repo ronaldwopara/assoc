@@ -280,7 +280,16 @@ export function MobileNavMenu({
 
             {/* Gallery link */}
             <motion.li variants={navItemVariants}>
-              <Link href="/#gallery" className="mobile-nav-link focus-ring-light block" onClick={onClose}>
+              <Link
+                href="/#gallery"
+                className="mobile-nav-link focus-ring-light block"
+                onClick={() => {
+                  if (isHome) {
+                    document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
+                  }
+                  onClose();
+                }}
+              >
                 Gallery
               </Link>
             </motion.li>

@@ -1,16 +1,19 @@
 /** Self-hosted navbar / loading-screen repeat texture (see public/nav.webp). */
 export const NAV_TEXTURE_URL = "/nav.webp";
 
-export const NAV_TEXTURE_OPACITY = 0.95;
+export const NAV_TEXTURE_TILE_SIZE = 1254;
 
-export const navTextureBackgroundStyle = {
-  backgroundImage: `url(${NAV_TEXTURE_URL})`,
-  backgroundRepeat: "repeat" as const,
-  opacity: NAV_TEXTURE_OPACITY,
-} as const;
+export const NAV_TEXTURE_OPACITY = 1;
 
-/** Loading screen: brown underlay + repeating nav texture (inline — not CSS-gated). */
-export const loadingScreenBackgroundStyle = {
-  ...navTextureBackgroundStyle,
-  backgroundColor: "rgb(10, 8, 6)",
-} as const;
+export const navTextureCssVar = "var(--nav-texture-url)";
+
+const navTextureTileBackgroundSize = `${NAV_TEXTURE_TILE_SIZE}px ${NAV_TEXTURE_TILE_SIZE}px` as const;
+
+export function navTextureBackgroundStyleFromCssVar(opacity = NAV_TEXTURE_OPACITY) {
+  return {
+    backgroundImage: navTextureCssVar,
+    backgroundRepeat: "repeat" as const,
+    backgroundSize: navTextureTileBackgroundSize,
+    opacity,
+  } as const;
+}

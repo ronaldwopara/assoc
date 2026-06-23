@@ -23,7 +23,7 @@ const exploreLinks = [
   { label: "Home", href: "/#home" },
   { label: "About", href: "/about" },
   { label: "Programs", href: "/#programs" },
-  { label: "Gallery", href: "/#gallery" },
+  { label: "Gallery", href: "/gallery" },
   { label: "Calendar", href: "/#calendar" },
 ];
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
+import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
 export { CalendarSection } from "@/components/calendar-section";
 
@@ -14,26 +15,8 @@ const UPDATE_IMAGES: string[] = [
   `${CLOUDINARY_BASE}/v1782010334/asosc/updates/updates-4.webp`,
 ];
 
-const GALLERY_IMAGES: string[] = [
-  `${CLOUDINARY_BASE}/v1782010322/asosc/gallery-prev/afc-1.webp`,
-  `${CLOUDINARY_BASE}/v1782010323/asosc/gallery-prev/afc-2.webp`,
-  `${CLOUDINARY_BASE}/v1782010324/asosc/gallery-prev/afc-3.webp`,
-  `${CLOUDINARY_BASE}/v1782010325/asosc/gallery-prev/afc-4.webp`,
-  `${CLOUDINARY_BASE}/v1782010326/asosc/gallery-prev/afc-5.webp`,
-  `${CLOUDINARY_BASE}/v1782010326/asosc/gallery-prev/afc-6.webp`,
-  `${CLOUDINARY_BASE}/v1782010327/asosc/gallery-prev/eoyp-1.webp`,
-  `${CLOUDINARY_BASE}/v1782010328/asosc/gallery-prev/eoyp-2.webp`,
-  `${CLOUDINARY_BASE}/v1782010330/asosc/gallery-prev/eoyp-3.webp`,
-  `${CLOUDINARY_BASE}/v1782010330/asosc/gallery-prev/eoyp-4.webp`,
-  `${CLOUDINARY_BASE}/v1782010331/asosc/gallery-prev/eoyp-5.webp`,
-];
-
 function getUpdateImages(): string[] {
   return UPDATE_IMAGES;
-}
-
-function getGalleryImages(): string[] {
-  return GALLERY_IMAGES;
 }
 
 interface DocumentItem {
@@ -141,7 +124,7 @@ export function AboutSection() {
 }
 
 export function GallerySection() {
-  const galleryImages = getGalleryImages();
+  const galleryImages = getGalleryPreviewUrls();
 
   return <ArcGalleryHero images={galleryImages} />;
 }

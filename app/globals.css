@@ -38,6 +38,9 @@
   --z-navbar: 50;
   --z-modal: 100;
   --z-loading: 200;
+
+  --nav-texture-url: url(/nav.webp);
+  --nav-texture-size: 1254px;
 }
 
 * {
@@ -211,7 +214,8 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 #documents-heading { color: var(--orange); }
 
 /* Gallery section heading */
-#gallery-heading {
+#gallery-heading,
+#gallery-page-heading {
   color: var(--orange);
   font-size: clamp(2.25rem, 5vw, 3.5rem);
 }
@@ -600,9 +604,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
 .mobile-nav-panel {
   background-color: rgba(10, 8, 6, 0.97);
-  background-image: url(/nav.webp);
+  background-image: var(--nav-texture-url);
   background-repeat: repeat;
-  background-size: auto;
+  background-size: var(--nav-texture-size) var(--nav-texture-size);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1046,6 +1050,10 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .loading-screen__bg {
   position: absolute;
   inset: 0;
+  background-color: rgb(10, 8, 6);
+  background-image: var(--nav-texture-url);
+  background-repeat: repeat;
+  background-size: var(--nav-texture-size) var(--nav-texture-size);
 }
 
 .loading-screen__center {

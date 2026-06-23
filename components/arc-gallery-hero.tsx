@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { JoinCommunityModal } from "@/components/join-community-modal";
 
 interface ArcGalleryHeroProps {
   images: string[];
@@ -42,7 +42,6 @@ export function ArcGalleryHero({
     cardSize: cardSizeLg,
   });
   const [rotation, setRotation] = useState(0);
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -159,20 +158,14 @@ export function ArcGalleryHero({
           and gatherings.
         </p>
         <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setIsJoinModalOpen(true)}
+          <Link
+            href="/gallery"
             className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
           >
             View Gallery
-          </button>
+          </Link>
         </div>
       </div>
-
-      <JoinCommunityModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-      />
     </section>
   );
 }

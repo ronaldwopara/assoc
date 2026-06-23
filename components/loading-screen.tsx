@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { loadingScreenBackgroundStyle } from "@/lib/nav-texture";
 
 const MAX_WAIT = 6000;
 const BAR_DURATION = 1500; // ms — must match loading-progress animation in globals.css
@@ -151,11 +150,7 @@ export function LoadingScreen() {
         }
       }}
     >
-      <div
-        className="loading-screen__bg"
-        style={loadingScreenBackgroundStyle}
-        aria-hidden
-      />
+      <div className="loading-screen__bg" aria-hidden />
       <div className="loading-screen__progress-bar" aria-hidden>
         <div className="loading-screen__progress-fill" />
       </div>
