@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
+import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preload" href="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png" as="image" type="image/png" fetchPriority="high" />
+        <link rel="preload" href={NAV_TEXTURE_URL} as="image" type="image/webp" fetchPriority="high" />
       </head>
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <SkipLink />

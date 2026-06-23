@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { loadingScreenBackgroundStyle } from "@/lib/nav-texture";
 
 const MAX_WAIT = 6000;
 const BAR_DURATION = 1500; // ms — must match loading-progress animation in globals.css
@@ -39,15 +40,6 @@ export function LoadingScreen() {
   const logoRef                       = useRef<HTMLDivElement>(null);
   const dismissedRef                  = useRef(false);
   const mountTimeRef                  = useRef(Date.now());
-  const [navbarTextureReady, setNavbarTextureReady] = useState(false);
-
-  useEffect(() => {
-    const img = document.createElement("img");
-    img.fetchPriority = "high";
-    img.src = "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png";
-    if (img.complete) setNavbarTextureReady(true);
-    else img.onload = () => setNavbarTextureReady(true);
-  }, []);
 
   // Skip loading screen only if the hero is already ready in *this JS context*
   // (i.e. SPA navigation, not a page reload — window properties reset on reload).
@@ -159,12 +151,11 @@ export function LoadingScreen() {
         }
       }}
     >
-      <div className="loading-screen__bg" aria-hidden>
-        <div
-          className="loading-screen__bg-texture"
-          data-ready={navbarTextureReady ? "true" : undefined}
-        />
-      </div>
+      <div
+        className="loading-screen__bg"
+        style={loadingScreenBackgroundStyle}
+        aria-hidden
+      />
       <div className="loading-screen__progress-bar" aria-hidden>
         <div className="loading-screen__progress-fill" />
       </div>
@@ -208,7 +199,7 @@ export function LoadingScreen() {
           {LOADING_PHRASES[phraseIndex]}
         </span>
         <span
-          className="loading-screen__org-name"
+          className="mobile-nav-org-name"
           style={{
             opacity: phase === "loading" ? 1 : 0,
             transition: "opacity 0.2s ease",

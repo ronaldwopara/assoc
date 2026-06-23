@@ -600,7 +600,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
 .mobile-nav-panel {
   background-color: rgba(10, 8, 6, 0.97);
-  background-image: url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png);
+  background-image: url(/nav.webp);
   background-repeat: repeat;
   background-size: auto;
 }
@@ -1046,21 +1046,6 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .loading-screen__bg {
   position: absolute;
   inset: 0;
-  background-color: rgb(10, 8, 6);
-}
-
-.loading-screen__bg-texture {
-  position: absolute;
-  inset: 0;
-  background-image: url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png);
-  background-repeat: repeat;
-  background-size: auto;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.loading-screen__bg-texture[data-ready="true"] {
-  opacity: 0.95;
 }
 
 .loading-screen__center {
@@ -1091,9 +1076,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .loading-screen__progress-fill {
   height: 100%;
   width: 0%;
-  background: var(--gold);
+  background: var(--yellow);
   animation: loading-progress 1.5s linear forwards;
-  box-shadow: 0 0 8px var(--gold);
+  box-shadow: 0 0 8px var(--yellow);
 }
 
 @keyframes loading-progress {
@@ -1106,19 +1091,12 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--yellow);
   text-align: center;
   transition: opacity 0.3s ease;
 }
 
-.loading-screen__org-name {
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  text-align: center;
-}
+/* org name uses .mobile-nav-org-name (same as hamburger menu) */
 
 /* ── Footer ───────────────────────────────────────────────────────────── */
 .footer {

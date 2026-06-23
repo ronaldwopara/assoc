@@ -5,11 +5,12 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle, Store } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
+import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png)",
+  backgroundImage: `url(${NAV_TEXTURE_URL})`,
   backgroundRepeat: "repeat" as const,
   opacity: NAVBAR_IMAGE_OPACITY,
 };

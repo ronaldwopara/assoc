@@ -11,12 +11,14 @@ import {
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { JoinCommunityModal } from "@/components/join-community-modal";
+import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 
 const navbarBackgroundStyle = {
-  backgroundImage: "url(https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png)",
+  backgroundImage: `url(${NAV_TEXTURE_URL})`,
   backgroundRepeat: "repeat" as const,
+  opacity: NAVBAR_IMAGE_OPACITY,
 };
 
 function hashId(href: string) {
@@ -155,23 +157,11 @@ function useNavbarKeyboard(
 }
 
 function NavbarBackground() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const img = document.createElement("img");
-    img.fetchPriority = "high";
-    img.src = "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/nav.png";
-    if (img.complete) setReady(true);
-    else img.onload = () => setReady(true);
-  }, []);
-
   return (
     <div
-      className="absolute inset-0 transition-opacity duration-200"
-      style={{
-        ...navbarBackgroundStyle,
-        opacity: ready ? NAVBAR_IMAGE_OPACITY : 0,
-      }}
+      className="absolute inset-0"
+      style={navbarBackgroundStyle}
+      aria-hidden="true"
     />
   );
 }
