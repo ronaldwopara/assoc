@@ -6,6 +6,8 @@ import { GALLERY_CATEGORIES } from "@/lib/gallery-categories";
 import { getGalleryImagesForSelection } from "@/lib/gallery-images";
 import { cn } from "@/lib/utils";
 
+const AFRICAN_FESTIVAL_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipOaBC6eQJKD5QwabSndsk2rRqCPcTcy60-8y4N8CP4g_PoddgYvciUBdmcurYxdEg?key=TTdyUllMTm9qNW9ObWYxMGUzbDhuWFFucVdIZC1B";
 const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
 const PLACEHOLDER_RATIOS = [
@@ -131,13 +133,24 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
       {!isExpanded && (
         <div className="gallery-bento__cta-wrap">
-          <button
-            type="button"
-            className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
-            onClick={() => setIsExpanded(true)}
-          >
-            View More
-          </button>
+          {program === "african-festival" ? (
+            <a
+              href={AFRICAN_FESTIVAL_ALBUM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+            >
+              View More
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+              onClick={() => setIsExpanded(true)}
+            >
+              View More
+            </button>
+          )}
         </div>
       )}
     </div>
