@@ -2,42 +2,144 @@
 
 import React from "react";
 import { useInView } from "framer-motion";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { getGalleryImages, type GalleryImage } from "@/lib/gallery-images";
+import { GALLERY_CATEGORIES } from "@/lib/gallery-categories";
+import { getGalleryImagesForSelection } from "@/lib/gallery-images";
 import { cn } from "@/lib/utils";
 
-const COLUMN_COUNT = 3;
+const LANDSCAPE_RATIO = 16 / 9;
+const PORTRAIT_RATIO = 9 / 16;
+const PLACEHOLDER_RATIOS = [
+  LANDSCAPE_RATIO,
+  PORTRAIT_RATIO,
+  LANDSCAPE_RATIO,
+  PORTRAIT_RATIO,
+  LANDSCAPE_RATIO,
+  PORTRAIT_RATIO,
+];
 
-function distributeIntoColumns(images: GalleryImage[], columnCount: number) {
-  const columns: GalleryImage[][] = Array.from({ length: columnCount }, () => []);
+function useColumnCount() {
+  const [count, setCount] = React.useState(2);
 
-  images.forEach((image, index) => {
-    columns[index % columnCount].push(image);
-  });
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const update = () => setCount(mq.matches ? 3 : 2);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  return count;
+}
+
+/** Greedy shortest-column-first placement so every program gets the same balanced bento feel. */
+function distributeIntoColumns<T extends { ratio: number }>(
+  items: T[],
+  columnCount: number,
+): T[][] {
+  const columns: T[][] = Array.from({ length: columnCount }, () => []);
+  const heights = new Array(columnCount).fill(0);
+
+  for (const item of items) {
+    let shortest = 0;
+    for (let i = 1; i < columnCount; i++) {
+      if (heights[i] < heights[shortest]) shortest = i;
+    }
+    columns[shortest].push(item);
+    heights[shortest] += 1 / item.ratio;
+  }
 
   return columns;
 }
 
-export function ImageGallery() {
-  const images = getGalleryImages();
-  const columns = distributeIntoColumns(images, COLUMN_COUNT);
+interface ImageGalleryProps {
+  program: string;
+  year: string;
+}
+
+export function ImageGallery({ program, year }: ImageGalleryProps) {
+  const images = getGalleryImagesForSelection(program, year);
+  const columnCount = useColumnCount();
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const categoryLabel =
+    GALLERY_CATEGORIES.find((item) => item.slug === program)?.program ?? "Gallery";
+
+  React.useEffect(() => {
+    setIsExpanded(false);
+  }, [program, year]);
+
+  const columns = React.useMemo(
+    () => distributeIntoColumns(images, columnCount),
+    [images, columnCount],
+  );
+
+  if (images.length === 0) {
+    const placeholderColumns = distributeIntoColumns(
+      PLACEHOLDER_RATIOS.map((ratio, index) => ({ ratio, key: index })),
+      columnCount,
+    );
+
+    return (
+      <div className="gallery-bento-frame pb-8 pt-4 sm:pb-10">
+        <div className="gallery-bento">
+          {placeholderColumns.map((column, columnIndex) => (
+            <div key={columnIndex} className="gallery-bento__column">
+              {column.map((item) => (
+                <div
+                  key={item.key}
+                  className="gallery-bento__item"
+                  style={{ aspectRatio: item.ratio }}
+                >
+                  <div className="gallery-bento__placeholder" aria-hidden />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <div className="gallery-bento__empty-overlay">
+          <p className="gallery-bento__empty-title font-semibold text-(--orange)">
+            No photos for {categoryLabel} ({year}) yet.
+          </p>
+          <p className="gallery-bento__empty-subtitle text-(--ink)/70">
+            Check back soon — new galleries are added after each event.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-10">
-      <div className="mx-auto grid w-full max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {columns.map((column, col) => (
-          <div key={col} className="grid gap-6">
-            {column.map((image) => (
-              <AnimatedImage
-                key={`${col}-${image.src}`}
-                alt={image.alt}
-                src={image.src}
-                ratio={image.ratio}
-              />
-            ))}
-          </div>
-        ))}
+    <div className="pb-8 pt-4 sm:pb-10">
+      <div className="gallery-bento-frame">
+        <div
+          className={cn("gallery-bento", !isExpanded && "gallery-bento--collapsed")}
+        >
+          {columns.map((column, columnIndex) => (
+            <div key={columnIndex} className="gallery-bento__column">
+              {column.map((image) => (
+                <AnimatedImage
+                  key={`${program}-${year}-${image.src}`}
+                  alt={image.alt}
+                  src={image.src}
+                  ratio={image.ratio}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {!isExpanded && (
+        <div className="gallery-bento__cta-wrap">
+          <button
+            type="button"
+            className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+            onClick={() => setIsExpanded(true)}
+          >
+            View More
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -45,43 +147,35 @@ export function ImageGallery() {
 interface AnimatedImageProps {
   alt: string;
   src: string;
-  className?: string;
   ratio: number;
 }
 
-function AnimatedImage({ alt, src, ratio, className }: AnimatedImageProps) {
+function AnimatedImage({ alt, src, ratio }: AnimatedImageProps) {
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true });
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [imgSrc, setImgSrc] = React.useState(src);
-
-  const handleError = () => {
-    setImgSrc(src);
-    setIsLoading(false);
-  };
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
 
   return (
-    <AspectRatio
-      ref={ref}
-      ratio={ratio}
-      className={cn(
-        "relative size-full rounded-lg border border-(--gold)/20 bg-black/5",
-        className,
-      )}
-    >
-      <img
-        alt={alt}
-        src={imgSrc}
-        className={cn(
-          "size-full rounded-lg object-cover opacity-0 transition-all duration-1000 ease-in-out",
-          {
-            "opacity-100": isInView && !isLoading,
-          },
-        )}
-        onLoad={() => setIsLoading(false)}
-        loading="lazy"
-        onError={handleError}
+    <div ref={ref} className="gallery-bento__item" style={{ aspectRatio: ratio }}>
+      <div
+        className={cn("gallery-bento__placeholder", {
+          "opacity-0": isLoaded && !hasError,
+        })}
+        aria-hidden
       />
-    </AspectRatio>
+      {!hasError && (
+        <img
+          alt={alt}
+          src={src}
+          className={cn("gallery-bento__image opacity-0 transition-opacity duration-300 ease-out", {
+            "opacity-100": isInView && isLoaded,
+          })}
+          onLoad={() => setIsLoaded(true)}
+          loading="lazy"
+          onError={() => setHasError(true)}
+        />
+      )}
+    </div>
   );
 }

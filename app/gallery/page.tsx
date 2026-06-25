@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
-import { ImageGallery } from "@/components/image-gallery";
+import { GalleryPageContent } from "@/components/gallery-page-content";
 
 export const metadata: Metadata = {
   title: "Gallery",
@@ -17,26 +18,28 @@ export default function GalleryPage() {
           className="section-shell bg-(--cream-light)"
           aria-labelledby="gallery-page-heading"
         >
-          <div className="mx-auto max-w-5xl px-6 text-center">
+          <div className="mx-auto max-w-5xl px-5 pt-2 text-center sm:px-6 sm:pt-0">
             <h1
               id="gallery-page-heading"
               className="section-heading"
               style={{
-                fontSize: "clamp(2.75rem, 6vw, 4.25rem)",
+                fontSize: "clamp(2.25rem, 6vw, 4.25rem)",
                 color: "var(--orange)",
               }}
             >
               Gallery
             </h1>
             <p
-              className="mx-auto mt-6 max-w-2xl text-lg font-semibold leading-relaxed"
+              className="mx-auto mt-3 max-w-md text-base font-semibold leading-relaxed sm:mt-6 sm:max-w-2xl sm:text-lg"
               style={{ color: "var(--orange)" }}
             >
               Event photos and community highlights from our festivals,
               workshops, and gatherings.
             </p>
           </div>
-          <ImageGallery />
+          <Suspense fallback={null}>
+            <GalleryPageContent />
+          </Suspense>
         </section>
       </main>
     </>

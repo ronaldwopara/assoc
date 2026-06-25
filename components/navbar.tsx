@@ -4,13 +4,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   MobileMenuToggle,
   MobileNavMenu,
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { JoinCommunityModal } from "@/components/join-community-modal";
+import { getGalleryDropdown } from "@/lib/gallery-categories";
+import {
+  GALLERY_BOTTOM_HASH,
+  GALLERY_BOTTOM_HREF,
+  scrollGalleryToBottom,
+} from "@/lib/gallery-scroll";
+import { handleSectionLinkClick } from "@/lib/section-link";
 import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
@@ -52,34 +59,7 @@ const programsDropdown = [
   },
 ];
 
-export const galleryDropdown: GalleryProgram[] = [
-  {
-    program: "African Festival",
-    years: [
-      { year: "2025", href: "/gallery" },
-      { year: "2024", href: "/gallery" },
-    ],
-  },
-  {
-    program: "Black History Month",
-    years: [
-      { year: "2025", href: "/gallery" },
-      { year: "2024", href: "/gallery" },
-    ],
-  },
-  {
-    program: "Youth Creative Lab",
-    years: [{ year: "2025", href: "/gallery" }],
-  },
-  {
-    program: "Family Wellness Seminars",
-    years: [{ year: "2025", href: "/gallery" }],
-  },
-  {
-    program: "End-of-Year/Volunteer Appreciation Party",
-    years: [{ year: "2025", href: "/gallery" }],
-  },
-];
+export const galleryDropdown: GalleryProgram[] = getGalleryDropdown();
 
 const leftLinks = [
   { label: "Home", href: "/#home" },
@@ -164,13 +144,22 @@ function NavbarBackground() {
 
 const SECTION_IDS = ["home", "about", "programs", "gallery", "calendar", "contact"];
 
-function NavLamp() {
+function routeActiveSection(pathname: string) {
+  if (pathname === "/about") return "about";
+  return "home";
+}
+
+function NavLamp({ instant = false }: { instant?: boolean }) {
   return (
     <motion.div
       layoutId="nav-lamp"
       className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center text-(--yellow)"
       initial={false}
-      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+      transition={
+        instant
+          ? { duration: 0 }
+          : { type: "spring", stiffness: 350, damping: 30 }
+      }
     >
       <div className="relative h-1 w-10 rounded-full bg-current">
         <div className="absolute -left-2 -top-2 h-6 w-14 rounded-full bg-current/40 blur-md" />
@@ -188,12 +177,14 @@ export function Navbar() {
   const [programsOpen, setProgramsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("home");
+  const [activeSection, setActiveSection] = useState(() => routeActiveSection(pathname));
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [lampInstant, setLampInstant] = useState(true);
   const [showJoinNav, setShowJoinNav] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinModalAction, setJoinModalAction] = useState<string | null>(null);
-  const lampTarget = hoveredNav ?? activeSection;
+  const navActiveSection = isHome ? activeSection : routeActiveSection(pathname);
+  const lampTarget = hoveredNav ?? navActiveSection;
   const [togglePos, setTogglePos] = useState({ x: 0, y: 0 });
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const logoLinkRef = useRef<HTMLAnchorElement>(null);
@@ -216,11 +207,26 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (!isHome) {
-      setActiveSection(pathname === "/about" ? "about" : "home");
-      return;
-    }
+    setLampInstant(true);
+    const raf = requestAnimationFrame(() => setLampInstant(false));
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
 
+  useEffect(() => {
+    if (!isHome) return;
+
+    const handleGalleryBottomHash = () => {
+      if (window.location.hash !== GALLERY_BOTTOM_HASH) return;
+      requestAnimationFrame(() => scrollGalleryToBottom());
+    };
+
+    handleGalleryBottomHash();
+    window.addEventListener("hashchange", handleGalleryBottomHash);
+    return () => window.removeEventListener("hashchange", handleGalleryBottomHash);
+  }, [isHome]);
+
+  useEffect(() => {
+    if (!isHome) return;
     const sections = SECTION_IDS.map((id) => document.getElementById(id)).filter(
       (el): el is HTMLElement => el !== null,
     );
@@ -288,6 +294,7 @@ export function Navbar() {
           <NavbarBackground />
         </div>
         <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-white">
+          <LayoutGroup id={pathname}>
           <div
             className="relative flex h-20 items-center justify-between"
             onMouseLeave={() => setHoveredNav(null)}
@@ -309,10 +316,11 @@ export function Navbar() {
                       href={link.href}
                       className={navLinkClassName}
                       data-active={lampTarget === id ? "true" : undefined}
+                      onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
                     >
                       {link.label}
                     </Link>
-                    {lampTarget === id && <NavLamp />}
+                    {lampTarget === id && <NavLamp instant={lampInstant} />}
                   </div>
                 );
               })}
@@ -350,7 +358,7 @@ export function Navbar() {
                   Programs
                   <DropdownChevron open={programsOpen} />
                 </button>
-                {lampTarget === "programs" && <NavLamp />}
+                {lampTarget === "programs" && <NavLamp instant={lampInstant} />}
 
                 <AnimatePresence>
                   {programsOpen && (
@@ -406,6 +414,7 @@ export function Navbar() {
               ref={logoLinkRef}
               href="/#home"
               className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
+              onClick={(event) => handleSectionLinkClick(event, "/#home", isHome)}
             >
               <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC logo" width={112} height={112} className="h-14 w-auto" priority />
             </Link>
@@ -415,18 +424,14 @@ export function Navbar() {
               {/* Gallery link */}
               <div className="relative">
                 <Link
-                  href="/#gallery"
+                  href={GALLERY_BOTTOM_HREF}
                   className={navLinkClassName}
                   data-active={lampTarget === "gallery" ? "true" : undefined}
-                  onClick={() => {
-                    if (isHome) {
-                      document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }}
+                  onClick={(event) => handleSectionLinkClick(event, GALLERY_BOTTOM_HREF, isHome)}
                 >
                   Gallery
                 </Link>
-                {lampTarget === "gallery" && <NavLamp />}
+                {lampTarget === "gallery" && <NavLamp instant={lampInstant} />}
               </div>
 
               {rightLinks.map((link) => {
@@ -469,7 +474,7 @@ export function Navbar() {
                       >
                         {link.label}
                       </button>
-                      {lampTarget === id && <NavLamp />}
+                      {lampTarget === id && <NavLamp instant={lampInstant} />}
                     </div>
                   );
                 }
@@ -484,10 +489,11 @@ export function Navbar() {
                       href={link.href}
                       className={navLinkClassName}
                       data-active={lampTarget === id ? "true" : undefined}
+                      onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
                     >
                       {link.label}
                     </Link>
-                    {lampTarget === id && <NavLamp />}
+                    {lampTarget === id && <NavLamp instant={lampInstant} />}
                   </div>
                 );
               })}
@@ -499,6 +505,7 @@ export function Navbar() {
               ref={toggleButtonRef}
             />
           </div>
+          </LayoutGroup>
         </nav>
       </div>
 

@@ -9,9 +9,9 @@ export { CalendarSection } from "@/components/calendar-section";
 const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
 
 const UPDATE_IMAGES: string[] = [
-  `${CLOUDINARY_BASE}/v1782010331/asosc/updates/updates-1.webp`,
-  `${CLOUDINARY_BASE}/v1782010333/asosc/updates/updates-2.webp`,
-  `${CLOUDINARY_BASE}/v1782010333/asosc/updates/updates-3.webp`,
+  `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-1.webp`,
+  `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-2.webp`,
+  `${CLOUDINARY_BASE}/v1782010331/asosc/updates/updates-3.webp`,
   `${CLOUDINARY_BASE}/v1782010334/asosc/updates/updates-4.webp`,
 ];
 
@@ -144,7 +144,7 @@ export function DocumentsSection() {
       aria-labelledby="documents-heading"
     >
       <div className="supplemental mx-auto max-w-3xl text-center">
-        <h2 id="documents-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+        <h2 id="documents-heading" className="mb-6 whitespace-nowrap text-center text-[clamp(1.5rem,8vw,4rem)] font-bold tracking-wide text-(--orange)">
           Documents &amp; Reports
         </h2>
         <div className="section-lead mx-auto">

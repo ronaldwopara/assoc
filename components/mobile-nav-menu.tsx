@@ -5,6 +5,8 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import { type Ref, useEffect, useState } from "react";
+import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
+import { handleSectionLinkClick } from "@/lib/section-link";
 type NavLink = { label: string; href: string };
 
 export type GalleryYear = { year: string; href: string };
@@ -209,7 +211,14 @@ export function MobileNavMenu({
           >
             {leftLinks.map((link) => (
               <motion.li key={link.label} variants={navItemVariants}>
-                <Link href={link.href} className="mobile-nav-link focus-ring-light block" onClick={onClose}>
+                <Link
+                  href={link.href}
+                  className="mobile-nav-link focus-ring-light block"
+                  onClick={(event) => {
+                    handleSectionLinkClick(event, link.href, isHome);
+                    onClose();
+                  }}
+                >
                   {link.label}
                 </Link>
               </motion.li>
@@ -281,12 +290,10 @@ export function MobileNavMenu({
             {/* Gallery link */}
             <motion.li variants={navItemVariants}>
               <Link
-                href="/#gallery"
+                href={GALLERY_BOTTOM_HREF}
                 className="mobile-nav-link focus-ring-light block"
-                onClick={() => {
-                  if (isHome) {
-                    document.getElementById("gallery")?.scrollIntoView({ behavior: "smooth" });
-                  }
+                onClick={(event) => {
+                  handleSectionLinkClick(event, GALLERY_BOTTOM_HREF, isHome);
                   onClose();
                 }}
               >
@@ -298,7 +305,14 @@ export function MobileNavMenu({
               .filter((link) => link.label !== "Contact")
               .map((link) => (
                 <motion.li key={link.label} variants={navItemVariants}>
-                  <Link href={link.href} className="mobile-nav-link focus-ring-light block" onClick={onClose}>
+                  <Link
+                    href={link.href}
+                    className="mobile-nav-link focus-ring-light block"
+                    onClick={(event) => {
+                      handleSectionLinkClick(event, link.href, isHome);
+                      onClose();
+                    }}
+                  >
                     {link.label}
                   </Link>
                 </motion.li>

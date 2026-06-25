@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mail, Phone } from "lucide-react";
+import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
+import { handleSectionLinkClick } from "@/lib/section-link";
 
 function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -21,15 +26,23 @@ function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
 
 const exploreLinks = [
   { label: "Home", href: "/#home" },
-  { label: "About", href: "/about" },
+  { label: "About", href: "/#about" },
   { label: "Programs", href: "/#programs" },
-  { label: "Gallery", href: "/gallery" },
+  { label: "Gallery", href: GALLERY_BOTTOM_HREF },
   { label: "Calendar", href: "/#calendar" },
+  { label: "Updates", href: "/#updates" },
 ];
 
 const companyLinks = [
-  { label: "About Us", href: "/about" },
+  { label: "About Us", href: "/#about" },
   { label: "Contact", href: "/#contact" },
+];
+
+const getInvolvedLinks = [
+  { label: "Volunteer", href: "/#volunteer" },
+  { label: "Donate", href: "/#donate" },
+  { label: "Membership", href: "/#membership" },
+  { label: "Vendor", href: "/#vendor" },
 ];
 
 const connectLinks = [
@@ -48,6 +61,9 @@ const FOOTER_MASK_SVG =
 const FOOTER_MASK_URL = `url("data:image/svg+xml,${encodeURIComponent(FOOTER_MASK_SVG)}")`;
 
 export function Footer() {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
   return (
     <footer id="contact" className="footer">
       <div className="footer__inner">
@@ -67,7 +83,27 @@ export function Footer() {
             <ul className="footer__list">
               {exploreLinks.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="footer__link focus-ring-light">
+                  <Link
+                    href={link.href}
+                    className="footer__link focus-ring-light"
+                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="footer__heading">Get Involved</h3>
+            <ul className="footer__list">
+              {getInvolvedLinks.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="footer__link focus-ring-light"
+                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -79,7 +115,11 @@ export function Footer() {
             <ul className="footer__list">
               {companyLinks.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className="footer__link focus-ring-light">
+                  <Link
+                    href={link.href}
+                    className="footer__link focus-ring-light"
+                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                  >
                     {link.label}
                   </Link>
                 </li>
