@@ -540,6 +540,57 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   background: rgba(251, 191, 36, 0.12);
 }
 
+/* Gallery page — full program/year chooser shown on entry */
+.gallery-chooser {
+  width: 100%;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(42, 42, 42, 0.94);
+  box-shadow:
+    0 14px 28px rgba(var(--ink-rgb), 0.22),
+    0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+  overflow: hidden;
+  padding: 1.25rem 1.25rem 0.25rem;
+}
+
+.gallery-chooser__group {
+  padding-bottom: 1.25rem;
+}
+
+.gallery-chooser__heading {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.22);
+  margin-bottom: 0.75rem;
+}
+
+.gallery-chooser__years {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.gallery-chooser__year-pill {
+  min-width: 3.5rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 640px) {
+  .gallery-chooser {
+    padding: 1.5rem 1.75rem 0.5rem;
+  }
+
+  .gallery-chooser__heading {
+    font-size: 0.8125rem;
+  }
+}
+
 /* Gallery page — top controls bar */
 .gallery-controls {
   display: flex;
@@ -596,6 +647,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   min-width: 0;
   min-height: 1.95rem;
   flex: 1 1 auto;
+  border: none;
+  background: none;
+  cursor: pointer;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 800;

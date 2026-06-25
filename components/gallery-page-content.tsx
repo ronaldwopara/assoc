@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { GalleryChooser } from "@/components/gallery-chooser";
 import { GalleryFilters } from "@/components/gallery-filters";
 import { ImageGallery } from "@/components/image-gallery";
 import {
@@ -9,9 +11,12 @@ import {
   type GallerySelection,
 } from "@/lib/gallery-categories";
 
+const FADE_TRANSITION = { duration: 0.18, ease: [0.165, 0.84, 0.44, 1] as const };
+
 export function GalleryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [hasChosen, setHasChosen] = useState(false);
 
   const selection = useMemo(
     () =>
@@ -33,10 +38,38 @@ export function GalleryPageContent() {
     [router],
   );
 
+  const handleChoose = useCallback(
+    (next: GallerySelection) => {
+      handleSelect(next);
+      setHasChosen(true);
+    },
+    [handleSelect],
+  );
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pt-6 sm:pt-8">
-      <GalleryFilters selection={selection} onSelect={handleSelect} />
-      <ImageGallery program={selection.program} year={selection.year} />
+      <AnimatePresence mode="wait" initial={false}>
+        {!hasChosen ? (
+          <GalleryChooser key="chooser" onSelect={handleChoose} />
+        ) : (
+          <motion.div
+            key="filters"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={FADE_TRANSITION}
+          >
+            <GalleryFilters
+              selection={selection}
+              onSelect={handleSelect}
+              onReopen={() => setHasChosen(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {hasChosen && (
+        <ImageGallery program={selection.program} year={selection.year} />
+      )}
     </div>
   );
 }

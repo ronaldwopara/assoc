@@ -19,9 +19,10 @@ const EXIT_TRANSITION = { duration: 0.1, ease: [0.165, 0.84, 0.44, 1] as const }
 interface GalleryFiltersProps {
   selection: GallerySelection;
   onSelect: (selection: GallerySelection) => void;
+  onReopen: () => void;
 }
 
-export function GalleryFilters({ selection, onSelect }: GalleryFiltersProps) {
+export function GalleryFilters({ selection, onSelect, onReopen }: GalleryFiltersProps) {
   const [yearsOpen, setYearsOpen] = useState(false);
   const programIndex = getGalleryCategoryIndex(selection.program);
   const category = GALLERY_CATEGORIES[programIndex];
@@ -45,6 +46,7 @@ export function GalleryFilters({ selection, onSelect }: GalleryFiltersProps) {
 
   return (
     <motion.div
+      layoutId="gallery-shell"
       layout
       transition={MORPH_TRANSITION}
       className="gallery-controls"
@@ -60,9 +62,15 @@ export function GalleryFilters({ selection, onSelect }: GalleryFiltersProps) {
         >
           <ChevronLeft className="gallery-controls__nav-icon" aria-hidden />
         </button>
-        <span className="gallery-controls__program-label" title={category.program}>
+        <button
+          type="button"
+          className="gallery-controls__program-label focus-ring-light"
+          title={category.program}
+          aria-label={`${category.program} — choose a different program`}
+          onClick={onReopen}
+        >
           {category.program}
-        </span>
+        </button>
         <button
           type="button"
           aria-label="Next program"

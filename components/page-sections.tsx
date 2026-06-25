@@ -199,7 +199,46 @@ export function UpdatesSection() {
         Updates
       </h2>
 
-      <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
+      <div className="mx-auto max-w-4xl rounded-3xl border border-(--orange)/25 bg-black px-5 py-6 text-center shadow-2xl shadow-black/20 sm:px-8 sm:py-8">
+        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-(--orange)">
+          February 2026
+        </span>
+        <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">
+          CBC News Edmonton Feature
+        </h3>
+        <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">
+          CBC News Edmonton features Tara McCarthy on Edmonton AM to discuss
+          how Strathcona County is celebrating its first Black History Month,
+          and to talk about her new documentary series, "Our Story, Our Voice."
+        </p>
+
+        <div className="mt-7 overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-black shadow-xl shadow-black/30">
+          <div className="relative aspect-video w-full">
+            <iframe
+              className="absolute inset-0 h-full w-full"
+              src="https://www.youtube.com/embed/WCMRMos38AM?si=P0-7dpw59P4iw0pv"
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </div>
+
+        <div className="mt-7 flex justify-center">
+          <a
+            href="https://www.cbc.ca/player/play/video/9.7106403"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+          >
+            View Article
+          </a>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
         <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
           February 2026
         </span>

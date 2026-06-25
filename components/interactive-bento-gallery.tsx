@@ -5,12 +5,59 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { JoinCommunityModal } from "@/components/join-community-modal";
+import {
+  AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
+  BLACK_HISTORY_MONTH_REGISTER_FORM_URL,
+  BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
+  END_OF_YEAR_FORM_URL,
+  FAMILY_WELLNESS_FORM_URL,
+  YOUTH_CREATIVE_LAB_FORM_URL,
+} from "@/lib/external-links";
 import type { MediaItemType } from "@/lib/featured-programs-data";
 
 const ctaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
 const drawerCtaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-12 min-w-0 flex-1 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out sm:min-h-14 sm:flex-none sm:px-10 sm:py-4 sm:text-base";
+type ProgramActionLink = { label: "Register" | "Volunteer"; href: string };
+
+const programActionLinks: Partial<Record<string, ProgramActionLink[]>> = {
+  "African Festival": [
+    {
+      label: "Volunteer",
+      href: AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
+    },
+  ],
+  "Black History Month": [
+    {
+      label: "Register",
+      href: BLACK_HISTORY_MONTH_REGISTER_FORM_URL,
+    },
+    {
+      label: "Volunteer",
+      href: BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
+    },
+  ],
+  "End-of-Year/Volunteer Appreciation Party": [
+    {
+      label: "Register",
+      href: END_OF_YEAR_FORM_URL,
+    },
+  ],
+  "Family Wellness Seminars": [
+    {
+      label: "Register",
+      href: FAMILY_WELLNESS_FORM_URL,
+    },
+  ],
+  "Youth Creative Lab": [
+    {
+      label: "Register",
+      href: YOUTH_CREATIVE_LAB_FORM_URL,
+    },
+  ],
+};
+
 function MediaItem({
   item,
   className,
@@ -142,7 +189,7 @@ function GalleryModal({
   setSelectedItem: (item: MediaItemType | null) => void;
   mediaItems: MediaItemType[];
   onRegister: (programTitle: string) => void;
-  onVolunteer: () => void;
+  onVolunteer: (programTitle: string) => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -182,6 +229,7 @@ function GalleryModal({
   }, [prevItem, nextItem, setSelectedItem, onClose, drawerOpen]);
 
   if (!isOpen) return null;
+  const actionLinks = programActionLinks[selectedItem.title];
 
   return (
     <div
@@ -363,20 +411,36 @@ function GalleryModal({
             </AnimatePresence>
 
             <div className="flex shrink-0 flex-row flex-nowrap gap-2 px-8 pb-8 pt-2 sm:gap-3 lg:px-10 lg:pb-10">
-              <button
-                type="button"
-                onClick={() => onRegister(selectedItem.title)}
-                className={drawerCtaClassName}
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                onClick={onVolunteer}
-                className={drawerCtaClassName}
-              >
-                Volunteer
-              </button>
+              {actionLinks ? (
+                actionLinks.map((actionLink) => (
+                  <a
+                    key={`${selectedItem.title}-${actionLink.label}`}
+                    href={actionLink.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={drawerCtaClassName}
+                  >
+                    {actionLink.label}
+                  </a>
+                ))
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onRegister(selectedItem.title)}
+                    className={drawerCtaClassName}
+                  >
+                    Register
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onVolunteer(selectedItem.title)}
+                    className={drawerCtaClassName}
+                  >
+                    Volunteer
+                  </button>
+                </>
+              )}
             </div>
           </div>
           </motion.div>
@@ -494,7 +558,16 @@ export function InteractiveBentoGallery({
     setIsJoinModalOpen(true);
   }, []);
 
-  const openVolunteer = useCallback(() => {
+  const openVolunteer = useCallback((programTitle: string) => {
+    const volunteerFormUrl = programActionLinks[programTitle]?.find(
+      (actionLink) => actionLink.label === "Volunteer",
+    )?.href;
+
+    if (volunteerFormUrl) {
+      window.open(volunteerFormUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     setJoinAction("Volunteer");
     setContactMessage(null);
     setIsJoinModalOpen(true);

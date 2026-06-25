@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { Calendar as CalendarIcon, MapPin } from "lucide-react";
 import { JoinCommunityModal } from "@/components/join-community-modal";
+import {
+  AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
+  BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
+  END_OF_YEAR_FORM_URL,
+  FAMILY_WELLNESS_FORM_URL,
+  YOUTH_CREATIVE_LAB_FORM_URL,
+} from "@/lib/external-links";
 
 interface UpcomingEvent {
   title: string;
@@ -56,6 +63,31 @@ const upcomingEvents: UpcomingEvent[] = [
   },
 ];
 
+const eventActionLinks: Partial<
+  Record<string, { label: "Register" | "Volunteer"; href: string }>
+> = {
+  "African Festival": {
+    label: "Volunteer",
+    href: AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
+  },
+  "Black History Month": {
+    label: "Volunteer",
+    href: BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
+  },
+  "End-of-Year/Volunteer Appreciation Party": {
+    label: "Register",
+    href: END_OF_YEAR_FORM_URL,
+  },
+  "Family Wellness Seminars": {
+    label: "Register",
+    href: FAMILY_WELLNESS_FORM_URL,
+  },
+  "Youth Creative Lab": {
+    label: "Register",
+    href: YOUTH_CREATIVE_LAB_FORM_URL,
+  },
+};
+
 export function CalendarSection() {
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
 
@@ -77,11 +109,14 @@ export function CalendarSection() {
           </div>
 
           <div className="mx-auto mt-12 max-w-4xl">
-            {upcomingEvents.map((event) => (
-              <div
-                key={event.title}
-                className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
-              >
+            {upcomingEvents.map((event) => {
+              const actionLink = eventActionLinks[event.title];
+
+              return (
+                <div
+                  key={event.title}
+                  className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
+                >
                 <div className="w-20 shrink-0 text-center sm:w-16">
                   <span className="inline-block rounded-full bg-(--orange-light) px-3 py-1 text-xs font-bold uppercase tracking-wide text-black">
                     {event.badge}
@@ -116,23 +151,37 @@ export function CalendarSection() {
                 </div>
 
                 <div className="flex w-full shrink-0 flex-row gap-2 sm:w-auto">
-                  <button
-                    type="button"
-                    disabled
-                    className="hero-cta-btn inline-flex w-full cursor-default items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
-                  >
-                    Register
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsVolunteerModalOpen(true)}
-                    className="hero-cta-btn focus-ring-light inline-flex w-full cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
-                  >
-                    Volunteer
-                  </button>
+                  {actionLink ? (
+                    <a
+                      href={actionLink.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hero-cta-btn focus-ring-light inline-flex w-full cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+                    >
+                      {actionLink.label}
+                    </a>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled
+                        className="hero-cta-btn inline-flex w-full cursor-default items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+                      >
+                        Register
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsVolunteerModalOpen(true)}
+                        className="hero-cta-btn focus-ring-light inline-flex w-full cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+                      >
+                        Volunteer
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
