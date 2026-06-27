@@ -207,7 +207,7 @@ export function UpdatesSection() {
           CBC News Edmonton Feature
         </h3>
         <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">
-          CBC News Edmonton features Tara McCarthy on Edmonton AM to discuss
+          CBC News Edmonton features Busayo Disu on Edmonton AM to discuss
           how Strathcona County is celebrating its first Black History Month,
           and to talk about her new documentary series, "Our Story, Our Voice."
         </p>

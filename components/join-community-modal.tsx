@@ -8,8 +8,56 @@ import { ExpandableTabs } from "@/components/expandable-tabs";
 import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
+const NEWSLETTER_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbzVF8QsexivXYnaGj6pvzThDl3sMTauPGAfzVuXOStQ1kYH8bXV2PyTmAMFKmF9lt3NWA/exec";
 
 const navbarBackgroundStyle = navTextureBackgroundStyleFromCssVar(NAVBAR_IMAGE_OPACITY);
+
+function postToAppsScript(endpoint: string, payload: Record<string, string>) {
+  return new Promise<void>((resolve) => {
+    try {
+      const body = JSON.stringify(payload);
+      const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+
+      if (navigator.sendBeacon(endpoint, blob)) {
+        resolve();
+        return;
+      }
+
+      const frameName = `apps-script-submit-${Date.now()}`;
+      const iframe = document.createElement("iframe");
+      const form = document.createElement("form");
+
+      iframe.name = frameName;
+      iframe.style.display = "none";
+
+      form.method = "POST";
+      form.action = endpoint;
+      form.target = frameName;
+      form.style.display = "none";
+
+      Object.entries(payload).forEach(([name, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(iframe);
+      document.body.appendChild(form);
+      form.submit();
+
+      window.setTimeout(() => {
+        iframe.remove();
+        form.remove();
+      }, 2000);
+    } finally {
+      // Apps Script is cross-origin, so submission is intentionally fire-and-forget.
+      resolve();
+    }
+  });
+}
 
 const actionTabs = [
   { title: "Newsletter", icon: Mail },
@@ -114,6 +162,9 @@ export function JoinCommunityModal({
   const [spouseConsent, setSpouseConsent] = useState<"Yes" | "No" | null>(null);
   const [registerChildren, setRegisterChildren] = useState<"Yes" | "No" | null>(null);
   const [contactMessage, setContactMessage] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
 
   const goToPreviousAction = () => {
     setActiveActionIndex((current) => {
@@ -137,8 +188,32 @@ export function JoinCommunityModal({
     if (isOpen) {
       setActiveActionIndex(defaultActionIndex);
       setContactMessage(initialContactMessage ?? "");
+      setNewsletterStatus("idle");
     }
   }, [isOpen, defaultActionIndex, initialContactMessage]);
+
+  const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setNewsletterStatus("submitting");
+
+    const formData = new FormData(form);
+    const payload = {
+      firstName: String(formData.get("firstName") ?? ""),
+      lastName: String(formData.get("lastName") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      strathconaResident: String(formData.get("strathconaResident") ?? ""),
+    };
+
+    try {
+      await postToAppsScript(NEWSLETTER_ENDPOINT, payload);
+
+      form.reset();
+      setNewsletterStatus("success");
+    } catch {
+      setNewsletterStatus("error");
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -235,7 +310,7 @@ export function JoinCommunityModal({
                   <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
                     Stay Connected!
                   </h2>
-                  <form className="space-y-4">
+                  <form className="space-y-4" onSubmit={handleNewsletterSubmit}>
                     <div>
                       <label className={fieldLabelClassName}>
                         Name <span className="text-(--orange)">*</span>
@@ -303,10 +378,21 @@ export function JoinCommunityModal({
 
                     <button
                       type="submit"
+                      disabled={newsletterStatus === "submitting"}
                       className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
                     >
-                      Subscribe
+                      {newsletterStatus === "submitting" ? "Subscribing..." : "Subscribe"}
                     </button>
+                    {newsletterStatus === "success" && (
+                      <p className="text-sm font-semibold text-(--brown-dark)">
+                        Thanks! You&apos;re on the newsletter list.
+                      </p>
+                    )}
+                    {newsletterStatus === "error" && (
+                      <p className="text-sm font-semibold text-red-700">
+                        Something went wrong. Please try again.
+                      </p>
+                    )}
                   </form>
                 </div>
               )}

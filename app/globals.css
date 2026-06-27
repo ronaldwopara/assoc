@@ -382,6 +382,12 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   color: var(--yellow);
 }
 
+.nav-logo-image {
+  filter:
+    drop-shadow(0 0.45rem 0.8rem rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 1.25rem rgba(250, 204, 21, 0.18));
+}
+
 /* ── Shared dropdown panel base ─────────────────────────────────────── */
 .nav-menu-content {
   padding: 0.5rem;
@@ -1390,6 +1396,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   display: block; /* eliminate inline baseline gap so wrapper height = image height */
   height: clamp(80px, 14vw, 140px);
   width: auto;
+  filter:
+    drop-shadow(0 1rem 1.5rem rgba(0, 0, 0, 0.5))
+    drop-shadow(0 0 2rem rgba(250, 204, 21, 0.22));
 }
 
 .loading-screen__progress-bar {
