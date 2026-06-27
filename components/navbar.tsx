@@ -416,7 +416,7 @@ export function Navbar() {
               className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
               onClick={(event) => handleSectionLinkClick(event, "/#home", isHome)}
             >
-              <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC logo" width={112} height={112} className="nav-logo-image h-14 w-auto" priority />
+              <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-18 w-auto" priority />
             </Link>
 
             {/* Right navigation */}
