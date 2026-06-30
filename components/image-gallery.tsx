@@ -7,7 +7,7 @@ import { getGalleryImagesForSelection } from "@/lib/gallery-images";
 import { cn } from "@/lib/utils";
 
 const AFRICAN_FESTIVAL_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipOaBC6eQJKD5QwabSndsk2rRqCPcTcy60-8y4N8CP4g_PoddgYvciUBdmcurYxdEg?key=TTdyUllMTm9qNW9ObWYxMGUzbDhuWFFucVdIZC1B";
+  "https://photos.google.com/share/AF1QipMjTmDXrlT0oB55zdjvAP4nRnuDFGv3Sd1v7uRyZZCdsDEKbBbpvarV79JolyPNQQ?key=QVZOZTMxWUVCdXRNVWVIUFFmZGlPd2tjdUFiVDh3";
 const BLACK_HISTORY_MONTH_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMFMS-3m6HBsbaC__yDGCUTPjoJyk_PQDFSO1bt6SAWuGWVDxYj_wnlEQ_iKsjCog?key=Sk9yTTMtbzB6UFNzUjBnbFAzTzN0MFlJSENycFVn";
 const AFRICAN_SUMMER_BBQ_2023_ALBUM_URL =
