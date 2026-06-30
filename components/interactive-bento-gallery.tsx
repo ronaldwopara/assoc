@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { JoinCommunityModal } from "@/components/join-community-modal";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 import {
   AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
   BLACK_HISTORY_MONTH_REGISTER_FORM_URL,
@@ -14,6 +15,12 @@ import {
   YOUTH_CREATIVE_LAB_FORM_URL,
 } from "@/lib/external-links";
 import type { MediaItemType } from "@/lib/featured-programs-data";
+
+// Not needed until a CTA is clicked — keep it out of the gallery's initial chunk.
+const JoinCommunityModal = dynamic(
+  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
+  { ssr: false },
+);
 
 const ctaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
@@ -245,7 +252,7 @@ function GalleryModal({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-2xl sm:my-4 sm:max-w-5xl sm:rounded-2xl md:my-8 lg:max-w-6xl"
+        className="relative mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-2xl max-[629px]:rounded-t-none sm:my-4 sm:max-w-5xl sm:rounded-2xl md:my-8 lg:max-w-6xl"
       >
         {/* Full-bleed media */}
         <AnimatePresence mode="wait">
@@ -463,11 +470,12 @@ export function InteractiveBentoGallery({
   description,
 }: InteractiveBentoGalleryProps) {
   const [selectedItem, setSelectedItem] = useState<MediaItemType | null>(null);
-  const [items] = useState(mediaItems);
   const [mounted, setMounted] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinAction, setJoinAction] = useState<string | null>(null);
   const [contactMessage, setContactMessage] = useState<string | null>(null);
+  const hasOpenedJoinModalRef = useRef(false);
+  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const scrollYRef = useRef(0);
   const hashRef = useRef("");
 
@@ -576,15 +584,18 @@ export function InteractiveBentoGallery({
   return (
     <div className="mx-auto w-full max-w-7xl">
       <div className="mb-8 text-center sm:mb-10">
-        <motion.h2
-          id="featured-programs-heading"
-          className="section-heading"
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {title}
-        </motion.h2>
+          <SectionLogoHeading
+            id="featured-programs-heading"
+            className="text-(--orange-light)"
+          >
+            {title}
+          </SectionLogoHeading>
+        </motion.div>
         <motion.div
           className="section-lead mx-auto"
           initial={{ opacity: 0, y: 20 }}
@@ -611,7 +622,7 @@ export function InteractiveBentoGallery({
             },
           }}
         >
-          {items.map((item, index) => (
+          {mediaItems.map((item, index) => (
             <motion.button
               key={item.id}
               type="button"
@@ -655,19 +666,21 @@ export function InteractiveBentoGallery({
             isOpen
             onClose={closeModal}
             setSelectedItem={setSelectedItem}
-            mediaItems={items}
+            mediaItems={mediaItems}
             onRegister={openRegister}
             onVolunteer={openVolunteer}
           />,
           document.body,
         )}
 
-      <JoinCommunityModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-        initialAction={joinAction}
-        initialContactMessage={contactMessage}
-      />
+      {hasOpenedJoinModalRef.current && (
+        <JoinCommunityModal
+          isOpen={isJoinModalOpen}
+          onClose={() => setIsJoinModalOpen(false)}
+          initialAction={joinAction}
+          initialContactMessage={contactMessage}
+        />
+      )}
     </div>
   );
 }

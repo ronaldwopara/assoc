@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
 import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
@@ -12,11 +13,22 @@ const UPDATE_IMAGES: string[] = [
   `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-1.webp`,
   `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-2.webp`,
   `${CLOUDINARY_BASE}/v1782010331/asosc/updates/updates-3.webp`,
-  `${CLOUDINARY_BASE}/v1782010334/asosc/updates/updates-4.webp`,
+  `${CLOUDINARY_BASE}/v1782755924/asosc/updates/certificate.webp`,
+];
+
+const SPONSOR_IMAGES: string[] = [
+  `${CLOUDINARY_BASE}/v1782764734/asosc/sponsors/sevus.webp`,
+  `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/canada.webp`,
+  `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/alberta.webp`,
+  `${CLOUDINARY_BASE}/v1782764736/asosc/sponsors/strathcona-county.webp`,
 ];
 
 function getUpdateImages(): string[] {
   return UPDATE_IMAGES;
+}
+
+function getSponsorImages(): string[] {
+  return SPONSOR_IMAGES;
 }
 
 interface DocumentItem {
@@ -59,13 +71,13 @@ function CardBullet({ children }: { children: React.ReactNode }) {
 export function AboutContent() {
   return (
     <>
-      <h2 id="about-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+      <SectionLogoHeading id="about-heading">
         About Us
-      </h2>
+      </SectionLogoHeading>
 
       <StackedCards>
         <StackedCardBody
-          videoSrc="/African-festival.mp4"
+          videoSrc="https://res.cloudinary.com/daldas2e7/video/upload/v1782756282/asosc/videos/african-festival-optimized.mp4"
           videoLabel="African Festival community celebration"
         >
           <h3 className="mb-4">Our Mission</h3>
@@ -87,8 +99,8 @@ export function AboutContent() {
         </StackedCardBody>
 
         <StackedCardBody
-          videoSrc="/Youth-Creative-Media-Lab.mp4"
-          videoLabel="Youth Creative Lab program"
+          videoSrc="https://res.cloudinary.com/daldas2e7/video/upload/v1782761786/asosc/videos/black-history-month-optimized.mp4"
+          videoLabel="Black History Month celebration"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
           <p className="text-(--orange-light)!">
@@ -144,9 +156,9 @@ export function DocumentsSection() {
       aria-labelledby="documents-heading"
     >
       <div className="supplemental mx-auto max-w-3xl text-center">
-        <h2 id="documents-heading" className="mb-6 whitespace-nowrap text-center text-[clamp(1.5rem,8vw,4rem)] font-bold tracking-wide text-(--orange)">
+        <SectionLogoHeading id="documents-heading">
           Documents &amp; Reports
-        </h2>
+        </SectionLogoHeading>
         <div className="section-lead mx-auto">
           Annual financial statements, our bylaws, and our strategic plan are
           available below for download.
@@ -195,9 +207,9 @@ export function UpdatesSection() {
       className="section-shell bg-(--cream-light)"
       aria-labelledby="updates-heading"
     >
-      <h2 id="updates-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)">
+      <SectionLogoHeading id="updates-heading">
         Updates
-      </h2>
+      </SectionLogoHeading>
 
       <div className="mx-auto max-w-4xl rounded-3xl border border-(--orange)/25 bg-black px-5 py-6 text-center shadow-2xl shadow-black/20 sm:px-8 sm:py-8">
         <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-(--orange)">
@@ -207,7 +219,7 @@ export function UpdatesSection() {
           CBC News Edmonton Feature
         </h3>
         <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">
-          CBC News Edmonton features Busayo Disu on Edmonton AM to discuss
+          CBC News Edmonton features the founder of ASOSC, Busayo Disu, on Edmonton AM to discuss
           how Strathcona County is celebrating its first Black History Month,
           and to talk about her new documentary series, "Our Story, Our Voice."
         </p>
@@ -272,6 +284,57 @@ export function UpdatesSection() {
             ))}
           </div>
         </div>
+      )}
+    </section>
+  );
+}
+
+export function SponsorsSection() {
+  const images = getSponsorImages();
+  // Triple so the seamless loop never visibly resets
+  const sponsorImages = images.length > 0 ? [...images, ...images, ...images] : [];
+
+  return (
+    <section
+      id="sponsors"
+      className="section-shell bg-(--cream-light)"
+      aria-labelledby="sponsors-heading"
+    >
+      <SectionLogoHeading id="sponsors-heading">
+        Sponsors
+      </SectionLogoHeading>
+
+      <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
+        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
+          Community Partners
+        </span>
+        <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
+          Thank You To Our Sponsors
+        </h3>
+        <p className="mt-4 text-lg leading-relaxed text-black/80">
+          Thank you to the partners who help make ASOSC programs, events, and
+          community initiatives possible.
+        </p>
+      </div>
+
+      {sponsorImages.length > 0 && (
+        <div className="updates-marquee mt-12">
+          <div className="updates-marquee__track">
+            {sponsorImages.map((file, index) => (
+              <div
+                key={`${file}-${index}`}
+                className="updates-marquee__item flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-(--brown-dark)/10 bg-white px-5 py-5 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
+              >
+                <img
+                  src={file}
+                  alt=""
+                  className="max-h-full max-w-full object-contain"
+                  loading="eager"
+                />
+              </div>
+            ))}
+            </div>
+          </div>
       )}
     </section>
   );

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 
 interface ArcGalleryHeroProps {
   images: string[];
@@ -143,13 +144,9 @@ export function ArcGalleryHero({
       </div>
 
       <div className="relative z-20 mx-auto -mt-32 max-w-2xl px-6 text-center sm:-mt-40 lg:-mt-48">
-        <h2
-          id="gallery-heading"
-          className="section-heading"
-          style={{ fontSize: "clamp(2.75rem, 6vw, 4.25rem)" }}
-        >
+        <SectionLogoHeading id="gallery-heading">
           Gallery
-        </h2>
+        </SectionLogoHeading>
         <p
           className="mx-auto mt-6 max-w-2xl text-lg font-semibold leading-relaxed"
           style={{ color: "var(--orange)" }}

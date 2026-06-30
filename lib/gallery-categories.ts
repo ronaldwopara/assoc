@@ -10,17 +10,19 @@ export const GALLERY_CATEGORIES: GalleryCategory[] = [
   {
     slug: "african-festival",
     program: "African Festival",
-    years: [
-      { year: "2025", href: "/gallery?program=african-festival&year=2025" },
-      { year: "2024", href: "/gallery?program=african-festival&year=2024" },
-    ],
+    years: [{ year: "2025", href: "/gallery?program=african-festival&year=2025" }],
   },
   {
     slug: "black-history-month",
     program: "Black History Month",
+    years: [{ year: "2025", href: "/gallery?program=black-history-month&year=2025" }],
+  },
+  {
+    slug: "african-summer-bbq",
+    program: "African Summer BBQ",
     years: [
-      { year: "2025", href: "/gallery?program=black-history-month&year=2025" },
-      { year: "2024", href: "/gallery?program=black-history-month&year=2024" },
+      { year: "2023", href: "/gallery?program=african-summer-bbq&year=2023" },
+      { year: "2022", href: "/gallery?program=african-summer-bbq&year=2022" },
     ],
   },
   {

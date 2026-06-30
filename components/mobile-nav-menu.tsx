@@ -23,8 +23,6 @@ type MobileNavMenuProps = {
   onClose: () => void;
   programsOpen: boolean;
   setProgramsOpen: (open: boolean) => void;
-  galleryOpen: boolean;
-  setGalleryOpen: (open: boolean) => void;
   leftLinks: NavLink[];
   rightLinks: NavLink[];
   programs: ProgramItem[];

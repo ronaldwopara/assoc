@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { GalleryPageContent } from "@/components/gallery-page-content";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 
 export const metadata: Metadata = {
   title: "Gallery",
@@ -19,16 +20,12 @@ export default function GalleryPage() {
           aria-labelledby="gallery-page-heading"
         >
           <div className="mx-auto max-w-5xl px-5 pt-2 text-center sm:px-6 sm:pt-0">
-            <h1
+            <SectionLogoHeading
               id="gallery-page-heading"
-              className="section-heading"
-              style={{
-                fontSize: "clamp(2.25rem, 6vw, 4.25rem)",
-                color: "var(--orange)",
-              }}
+              as="h1"
             >
               Gallery
-            </h1>
+            </SectionLogoHeading>
             <p
               className="mx-auto mt-3 max-w-md text-base font-semibold leading-relaxed sm:mt-6 sm:max-w-2xl sm:text-lg"
               style={{ color: "var(--orange)" }}

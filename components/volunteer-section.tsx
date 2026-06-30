@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { JoinCommunityModal } from "@/components/join-community-modal";
+import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { cn } from "@/lib/utils";
+
+// Not needed until a CTA is clicked — keep it out of this section's initial chunk.
+const JoinCommunityModal = dynamic(
+  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
+  { ssr: false },
+);
 
 const communityActions = [
   {
@@ -63,6 +70,8 @@ interface CommunityActionSectionProps {
 export function CommunityActionSection({ actionId }: CommunityActionSectionProps) {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const hasOpenedJoinModalRef = useRef(false);
+  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const item = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
   const isDark = "theme" in item && item.theme === "dark";
 
@@ -73,12 +82,11 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
         className={cn("section-shell", isDark ? "bg-black" : "bg-(--cream-light)")}
         aria-labelledby={`${item.id}-heading`}
       >
-        <h2
+        <SectionLogoHeading
           id={`${item.id}-heading`}
-          className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange)"
         >
           {item.heading}
-        </h2>
+        </SectionLogoHeading>
 
         <div
           className={cn(
@@ -128,11 +136,13 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
         </div>
       </section>
 
-      <JoinCommunityModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-        initialAction={activeAction}
-      />
+      {hasOpenedJoinModalRef.current && (
+        <JoinCommunityModal
+          isOpen={isJoinModalOpen}
+          onClose={() => setIsJoinModalOpen(false)}
+          initialAction={activeAction}
+        />
+      )}
     </>
   );
 }

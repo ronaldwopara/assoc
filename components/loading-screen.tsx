@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { motion } from "framer-motion";
 
 const MAX_WAIT = 6000;
-const BAR_DURATION = 1500; // ms — must match loading-progress animation in globals.css
+const BAR_DURATION = 500; // ms — must match loading-progress animation in globals.css
 
 const LOADING_PHRASES = [
   "Loading...",

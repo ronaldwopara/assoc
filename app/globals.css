@@ -154,7 +154,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   position: absolute;
   inset: -2px;
   padding: 2px;
-  background: conic-gradient(from var(--ring-angle), transparent 0deg, var(--gold) 25deg, var(--gold-dark) 55deg, transparent 100deg, transparent 360deg);
+  background: conic-gradient(from var(--ring-angle), transparent 0deg, var(--yellow) 25deg, var(--yellow-dark) 55deg, transparent 100deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -217,12 +217,6 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 /* Documents section heading */
 #documents-heading { color: var(--orange); }
 
-/* Gallery section heading */
-#gallery-heading,
-#gallery-page-heading {
-  color: var(--orange);
-  font-size: clamp(2.25rem, 5vw, 3.5rem);
-}
 #gallery .section-lead { color: var(--orange); }
 
 /* Section typography */
@@ -288,6 +282,14 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
     0 0 0 2px var(--gold),
     0 0 0 4px var(--cream-light);
   z-index: 1;
+}
+
+@media (max-width: 629px) {
+  .programs-bento-grid,
+  .programs-bento-tile:first-child {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
 }
 
 @media (min-width: 640px) {
@@ -1415,7 +1417,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   height: 100%;
   width: 0%;
   background: var(--yellow);
-  animation: loading-progress 1.5s linear forwards;
+  animation: loading-progress 0.5s linear forwards;
   box-shadow: 0 0 8px var(--yellow);
 }
 
@@ -1547,5 +1549,91 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   .footer__link {
     font-size: 0.8rem;
     word-break: break-word;
+  }
+}
+
+/* ── Mobile landscape ────────────────────────────────────────────────────
+ * Real phones in landscape report a short max-height (~360-430px) regardless
+ * of width, unlike tablets/desktop landscape. Targeting max-height instead
+ * of width keeps these fixes from reaching anything but handset landscape.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Hero: headline + subhead + CTAs were taller than the available
+     (100dvh - navbar) space, so the section's overflow-hidden clipped the
+     headline's top line under the navbar and crowded the CTAs off-screen. */
+  .hero-headline {
+    margin-top: 0;
+    font-size: clamp(1.25rem, 4.5vw, 2rem);
+    line-height: 1.15;
+  }
+
+  .hero-subheadline {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .hero-cta-row {
+    margin-top: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  #home .hero-cta-row .hero-cta-btn {
+    min-height: 2.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  /* About "Our Mission/Vision" cards: the sticky-pin scroll trick computes
+     its pin duration from the card's height. In landscape the stacked
+     (column) cards are tall relative to the short viewport, so the first
+     card stayed pinned under the navbar for a huge scroll distance,
+     reading as stuck/broken. Drop the pin and let cards scroll normally. */
+  .stacked-card-pin--first {
+    position: relative;
+    top: auto;
+  }
+
+  .stacked-cards-container {
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .stacked-card {
+    min-height: 0;
+  }
+
+  .stacked-card__media {
+    height: 160px;
+  }
+
+  .stacked-card__content {
+    padding: 1.5rem;
+  }
+
+  /* Programs bento mosaic: a fixed aspect-ratio combined with a 100vh cap
+     forced the whole grid down to the viewport height, crushing rows to a
+     few dozen pixels and clipping/overlapping tile text. The mosaic's
+     fr-based row tracks need a definite container height to size sanely, so
+     rather than just removing the height cap (which collapses the fr rows
+     to ~0), fall back to the same single-column, content-sized layout used
+     below the sm breakpoint. */
+  .programs-bento-frame {
+    max-height: none;
+    aspect-ratio: auto;
+    overflow: visible;
+  }
+
+  .programs-bento-grid {
+    display: flex;
+    flex-direction: column;
+    position: static;
+    height: auto;
+  }
+
+  .programs-bento-tile {
+    width: 100%;
+    height: auto !important;
+    min-height: 9rem;
   }
 }

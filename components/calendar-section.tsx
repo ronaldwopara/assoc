@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Calendar as CalendarIcon, MapPin } from "lucide-react";
-import { JoinCommunityModal } from "@/components/join-community-modal";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 import {
   AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
   BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
@@ -10,6 +11,12 @@ import {
   FAMILY_WELLNESS_FORM_URL,
   YOUTH_CREATIVE_LAB_FORM_URL,
 } from "@/lib/external-links";
+
+// Not needed until the Volunteer CTA is clicked — keep it out of this section's initial chunk.
+const JoinCommunityModal = dynamic(
+  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
+  { ssr: false },
+);
 
 interface UpcomingEvent {
   title: string;
@@ -26,7 +33,7 @@ const upcomingEvents: UpcomingEvent[] = [
     badge: "AUG",
     location: "Strathcona County, AB",
     when: "Annual — August",
-    videoSrc: "/African-festival.mp4",
+    videoSrc: "https://res.cloudinary.com/daldas2e7/video/upload/v1782756282/asosc/videos/african-festival-optimized.mp4",
     href: "#festival",
   },
   {
@@ -34,7 +41,7 @@ const upcomingEvents: UpcomingEvent[] = [
     badge: "FEB",
     location: "Strathcona County, AB",
     when: "Annual — February",
-    videoSrc: "/black-history-month.mp4",
+    videoSrc: "https://res.cloudinary.com/daldas2e7/video/upload/v1782761786/asosc/videos/black-history-month-optimized.mp4",
     href: "#bhm",
   },
   {
@@ -42,7 +49,7 @@ const upcomingEvents: UpcomingEvent[] = [
     badge: "DEC",
     location: "Strathcona County, AB",
     when: "Annual — December",
-    videoSrc: "/Annual-End-of-Year-Celebration.mp4",
+    videoSrc: "https://res.cloudinary.com/daldas2e7/video/upload/v1782758139/asosc/videos/annual-end-of-year-celebration-optimized.mp4",
     href: "#celebration",
   },
   {
@@ -50,7 +57,7 @@ const upcomingEvents: UpcomingEvent[] = [
     badge: "ALL YEAR",
     location: "Strathcona County, AB",
     when: "Seasonal sessions",
-    videoSrc: "/Family-Wellness-Seminars.mp4",
+    videoSrc: "https://res.cloudinary.com/daldas2e7/video/upload/v1782758607/asosc/videos/family-wellness-seminars-optimized.mp4",
     href: "#wellness",
   },
   {
@@ -58,7 +65,7 @@ const upcomingEvents: UpcomingEvent[] = [
     badge: "ALL YEAR",
     location: "Strathcona County, AB",
     when: "Ongoing program",
-    videoSrc: "/Youth-Creative-Media-Lab.mp4",
+    videoSrc: "https://res.cloudinary.com/daldas2e7/video/upload/v1782760767/asosc/videos/youth-creative-media-lab-optimized-20260629.mp4",
     href: "#youth-lab",
   },
 ];
@@ -90,6 +97,8 @@ const eventActionLinks: Partial<
 
 export function CalendarSection() {
   const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
+  const hasOpenedJoinModalRef = useRef(false);
+  hasOpenedJoinModalRef.current ||= isVolunteerModalOpen;
 
   return (
     <>
@@ -100,9 +109,12 @@ export function CalendarSection() {
       >
         <div className="relative z-10">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 id="calendar-heading" className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange-light)">
+            <SectionLogoHeading
+              id="calendar-heading"
+              className="text-(--orange-light)"
+            >
               Calendar
-            </h2>
+            </SectionLogoHeading>
             <span className="mt-4 inline-block rounded-full bg-(--hero-cta) px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
               Upcoming Events
             </span>
@@ -186,11 +198,13 @@ export function CalendarSection() {
         </div>
       </section>
 
-      <JoinCommunityModal
-        isOpen={isVolunteerModalOpen}
-        onClose={() => setIsVolunteerModalOpen(false)}
-        initialAction="Volunteer"
-      />
+      {hasOpenedJoinModalRef.current && (
+        <JoinCommunityModal
+          isOpen={isVolunteerModalOpen}
+          onClose={() => setIsVolunteerModalOpen(false)}
+          initialAction="Volunteer"
+        />
+      )}
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
@@ -10,7 +11,6 @@ import {
   MobileNavMenu,
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
-import { JoinCommunityModal } from "@/components/join-community-modal";
 import { getGalleryDropdown } from "@/lib/gallery-categories";
 import {
   GALLERY_BOTTOM_HASH,
@@ -19,6 +19,12 @@ import {
 } from "@/lib/gallery-scroll";
 import { handleSectionLinkClick } from "@/lib/section-link";
 import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
+
+// Not needed until a CTA is clicked — keep it out of the navbar's initial chunk.
+const JoinCommunityModal = dynamic(
+  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
+  { ssr: false },
+);
 
 const NAVBAR_IMAGE_OPACITY = 0.8  ;
 
@@ -59,7 +65,7 @@ const programsDropdown = [
   },
 ];
 
-export const galleryDropdown: GalleryProgram[] = getGalleryDropdown();
+const galleryDropdown: GalleryProgram[] = getGalleryDropdown();
 
 const leftLinks = [
   { label: "Home", href: "/#home" },
@@ -175,7 +181,7 @@ export function Navbar() {
   const router = useRouter();
   const isHome = pathname === "/";
   const [programsOpen, setProgramsOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [, setGalleryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(() => routeActiveSection(pathname));
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
@@ -183,8 +189,11 @@ export function Navbar() {
   const [showJoinNav, setShowJoinNav] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [joinModalAction, setJoinModalAction] = useState<string | null>(null);
+  const hasOpenedJoinModalRef = useRef(false);
+  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const navActiveSection = isHome ? activeSection : routeActiveSection(pathname);
   const lampTarget = hoveredNav ?? navActiveSection;
+  const shouldShowJoinNav = !isHome || showJoinNav;
   const [togglePos, setTogglePos] = useState({ x: 0, y: 0 });
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const logoLinkRef = useRef<HTMLAnchorElement>(null);
@@ -437,7 +446,7 @@ export function Navbar() {
               {rightLinks.map((link) => {
                 const id = hashId(link.href);
 
-                if (link.label === "Contact" && showJoinNav) {
+                if (link.label === "Contact" && shouldShowJoinNav) {
                   return (
                     <motion.button
                       key={link.label}
@@ -514,8 +523,6 @@ export function Navbar() {
         onClose={closeMobileMenu}
         programsOpen={programsOpen}
         setProgramsOpen={setProgramsOpen}
-        galleryOpen={galleryOpen}
-        setGalleryOpen={setGalleryOpen}
         leftLinks={leftLinks}
         rightLinks={rightLinks}
         programs={programsDropdown}
@@ -528,11 +535,13 @@ export function Navbar() {
         }}
       />
 
-      <JoinCommunityModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-        initialAction={joinModalAction}
-      />
+      {hasOpenedJoinModalRef.current && (
+        <JoinCommunityModal
+          isOpen={isJoinModalOpen}
+          onClose={() => setIsJoinModalOpen(false)}
+          initialAction={joinModalAction}
+        />
+      )}
     </header>
   );
 }

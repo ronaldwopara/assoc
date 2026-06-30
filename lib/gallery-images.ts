@@ -2,6 +2,9 @@ const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
 
 const LANDSCAPE = 16 / 9;
 const PORTRAIT = 9 / 16;
+const BHM_LANDSCAPE = 1024 / 683;
+const BHM_PORTRAIT = 1024 / 1536;
+const ASB_LANDSCAPE = 4 / 3;
 const EOYP_REPLACEMENT_RATIO = 1600 / 1204;
 
 export type GalleryImage = {
@@ -54,6 +57,90 @@ const GALLERY_IMAGES: GalleryImage[] = [
     ratio: PORTRAIT,
     program: "african-festival",
     year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769447/asosc/gallery-prev/black-history-month/bhm-2025-1.webp`,
+    alt: "Black History Month celebration gathering",
+    ratio: BHM_LANDSCAPE,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769447/asosc/gallery-prev/black-history-month/bhm-2025-2.webp`,
+    alt: "Black History Month community celebration",
+    ratio: BHM_LANDSCAPE,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769448/asosc/gallery-prev/black-history-month/bhm-2025-3.webp`,
+    alt: "Black History Month attendees in conversation",
+    ratio: BHM_LANDSCAPE,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769449/asosc/gallery-prev/black-history-month/bhm-2025-5.webp`,
+    alt: "Black History Month group photo",
+    ratio: BHM_LANDSCAPE,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769449/asosc/gallery-prev/black-history-month/bhm-2025-4.webp`,
+    alt: "Black History Month event portrait",
+    ratio: BHM_PORTRAIT,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782769450/asosc/gallery-prev/black-history-month/bhm-2025-6.webp`,
+    alt: "Black History Month community moment",
+    ratio: BHM_LANDSCAPE,
+    program: "black-history-month",
+    year: "2025",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770300/asosc/gallery-prev/african-summer-bbq/asb-2023-1.webp`,
+    alt: "African Summer BBQ community gathering",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770302/asosc/gallery-prev/african-summer-bbq/asb-2023-2.webp`,
+    alt: "African Summer BBQ outdoor celebration",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770303/asosc/gallery-prev/african-summer-bbq/asb-2023-3.webp`,
+    alt: "African Summer BBQ attendees",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770304/asosc/gallery-prev/african-summer-bbq/asb-2023-4.webp`,
+    alt: "African Summer BBQ group photo",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770304/asosc/gallery-prev/african-summer-bbq/asb-2023-5.webp`,
+    alt: "African Summer BBQ community moment",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782770306/asosc/gallery-prev/african-summer-bbq/asb-2023-6.webp`,
+    alt: "African Summer BBQ celebration highlight",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2023",
   },
   {
     src: `${CLOUDINARY_BASE}/v1782010327/asosc/gallery-prev/eoyp-1.webp`,

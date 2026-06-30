@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { JoinCommunityModal } from "./join-community-modal";
+import dynamic from "next/dynamic";
+
+// Not needed until a CTA is clicked — keep it out of the hero's initial chunk.
+const JoinCommunityModal = dynamic(
+  () => import("./join-community-modal").then((m) => m.JoinCommunityModal),
+  { ssr: false },
+);
 
 const HEADLINE = "AFRICANS SOCIETY OF STRATHCONA COUNTY";
 const WORDS = HEADLINE.split(" ");
@@ -15,6 +21,8 @@ const ctaClassName =
 export function HeroContent() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const ctaRef = useRef<HTMLButtonElement>(null);
+  const hasOpenedJoinModalRef = useRef(false);
+  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
 
   useEffect(() => {
     const el = ctaRef.current;
@@ -33,7 +41,7 @@ export function HeroContent() {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-start justify-center px-6 text-left text-white sm:px-16 lg:px-24 xl:px-32">
       <div className="pointer-events-auto max-w-4xl">
-        <h1 className="mt--30 flex flex-wrap gap-x-3 select-none text-[clamp(2rem,6vw,4.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
+        <h1 className="hero-headline mt--30 flex flex-wrap gap-x-3 select-none text-[clamp(2rem,6vw,4.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
 
           {WORDS.map((word) => (
             <span key={word}>{word}</span>
@@ -41,13 +49,13 @@ export function HeroContent() {
         </h1>
 
         <div
-          className="mt-6 max-w-[42rem] select-none text-lg font-normal leading-relaxed text-white/95 sm:text-xl"
+          className="hero-subheadline mt-6 max-w-[42rem] select-none text-lg font-normal leading-relaxed text-white/95 sm:text-xl"
           role="doc-subtitle"
         >
           {SUBHEADLINE}
         </div>
 
-        <div className="mt-20 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="hero-cta-row mt-20 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             ref={ctaRef}
             type="button"
@@ -63,10 +71,12 @@ export function HeroContent() {
         </div>
       </div>
 
-      <JoinCommunityModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
-      />
+      {hasOpenedJoinModalRef.current && (
+        <JoinCommunityModal
+          isOpen={isJoinModalOpen}
+          onClose={() => setIsJoinModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

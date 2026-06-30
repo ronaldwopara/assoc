@@ -26,7 +26,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "Our Story, Our Voice",
     desc: "Stories that change perspectives.",
-    url: "/our-story.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782762601/asosc/videos/our-story-optimized.mp4",
     area: "story",
     href: "#our-story",
     details: {
@@ -54,7 +54,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "Youth Creative Lab",
     desc: "Raising the next generation of African leaders.",
-    url: "/Youth-Creative-Media-Lab.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782760767/asosc/videos/youth-creative-media-lab-optimized-20260629.mp4",
     area: "youth",
     href: "#youth-lab",
     details: {
@@ -92,7 +92,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "African Festival",
     desc: "Celebrating culture. Connecting community.",
-    url: "/African-Festival.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782756282/asosc/videos/african-festival-optimized.mp4",
     area: "festival",
     href: "#festival",
     details: {
@@ -124,7 +124,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "Black History Month",
     desc: "Honoring heritage and celebrating achievements.",
-    url: "/black-history-month.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782761786/asosc/videos/black-history-month-optimized.mp4",
     area: "bhm",
     href: "#bhm",
     details: {
@@ -152,7 +152,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "Family Wellness Seminars",
     desc: "Supporting strong communities and healthy African families.",
-    url: "/Family-Wellness-Seminars.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782758607/asosc/videos/family-wellness-seminars-optimized.mp4",
     area: "wellness",
     href: "#wellness",
     details: {
@@ -187,7 +187,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
     type: "video",
     title: "End-of-Year/Volunteer Appreciation Party",
     desc: "Celebrating togetherness.",
-    url: "/Annual-End-of-Year-Celebration.mp4",
+    url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782758139/asosc/videos/annual-end-of-year-celebration-optimized.mp4",
     area: "celebration",
     href: "#celebration",
     details: {

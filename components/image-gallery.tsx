@@ -8,6 +8,15 @@ import { cn } from "@/lib/utils";
 
 const AFRICAN_FESTIVAL_ALBUM_URL =
   "https://photos.google.com/share/AF1QipOaBC6eQJKD5QwabSndsk2rRqCPcTcy60-8y4N8CP4g_PoddgYvciUBdmcurYxdEg?key=TTdyUllMTm9qNW9ObWYxMGUzbDhuWFFucVdIZC1B";
+const BLACK_HISTORY_MONTH_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipMFMS-3m6HBsbaC__yDGCUTPjoJyk_PQDFSO1bt6SAWuGWVDxYj_wnlEQ_iKsjCog?key=Sk9yTTMtbzB6UFNzUjBnbFAzTzN0MFlJSENycFVn";
+const AFRICAN_SUMMER_BBQ_2023_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipMg2THI6p5J7B1M4hShpd1gMBVubIXZRlNybzw46N6jUpJsqpfkt8_V6jbYeAn5lg?key=UlMtVVQ2enZGMXZRRnJ1amZkSFVYUjJteG51MTlR";
+const GALLERY_ALBUM_URLS: Partial<Record<string, string>> = {
+  "african-festival": AFRICAN_FESTIVAL_ALBUM_URL,
+  "black-history-month": BLACK_HISTORY_MONTH_ALBUM_URL,
+  "african-summer-bbq": AFRICAN_SUMMER_BBQ_2023_ALBUM_URL,
+};
 const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
 const PLACEHOLDER_RATIOS = [
@@ -133,9 +142,9 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
       {!isExpanded && (
         <div className="gallery-bento__cta-wrap">
-          {program === "african-festival" ? (
+          {GALLERY_ALBUM_URLS[program] ? (
             <a
-              href={AFRICAN_FESTIVAL_ALBUM_URL}
+              href={GALLERY_ALBUM_URLS[program]}
               target="_blank"
               rel="noopener noreferrer"
               className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"

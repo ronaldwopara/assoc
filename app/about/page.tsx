@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar";
 import { AboutContent, DocumentsSection } from "@/components/page-sections";
 import { CircularTestimonials } from "@/components/circular-testimonials";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 
 const boardMembers = [
   {
@@ -50,9 +51,12 @@ export default function AboutPage() {
           className="section-shell bg-black"
           aria-labelledby="board-heading"
         >
-          <h2 id="board-heading" className="mb-6 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange-light)">
+          <SectionLogoHeading
+            id="board-heading"
+            className="text-(--orange-light)"
+          >
             Meet the Board
-          </h2>
+          </SectionLogoHeading>
 
           <div className="flex justify-center">
             <CircularTestimonials testimonials={boardMembers} theme="dark" />

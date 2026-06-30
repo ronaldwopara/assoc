@@ -135,6 +135,29 @@ function CheckboxGroup({ name, options }: { name: string; options: string[] }) {
   );
 }
 
+function NameFields() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <input
+        type="text"
+        name="firstName"
+        placeholder="First"
+        autoComplete="given-name"
+        required
+        className={fieldInputClassName}
+      />
+      <input
+        type="text"
+        name="lastName"
+        placeholder="Last"
+        autoComplete="family-name"
+        required
+        className={fieldInputClassName}
+      />
+    </div>
+  );
+}
+
 interface JoinCommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -315,24 +338,7 @@ export function JoinCommunityModal({
                       <label className={fieldLabelClassName}>
                         Name <span className="text-(--orange)">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="First"
-                          autoComplete="given-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Last"
-                          autoComplete="family-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                      </div>
+                      <NameFields />
                     </div>
 
                     <div>
@@ -406,24 +412,7 @@ export function JoinCommunityModal({
                       <label className={fieldLabelClassName}>
                         Name <span className="text-(--orange)">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="First"
-                          autoComplete="given-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Last"
-                          autoComplete="family-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                      </div>
+                      <NameFields />
                     </div>
 
                     <div>
@@ -597,24 +586,7 @@ export function JoinCommunityModal({
                       <label className={fieldLabelClassName}>
                         Name <span className="text-(--orange)">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="First"
-                          autoComplete="given-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Last"
-                          autoComplete="family-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                      </div>
+                      <NameFields />
                     </div>
 
                     <div>
@@ -930,24 +902,7 @@ export function JoinCommunityModal({
                       <label className={fieldLabelClassName}>
                         Contact Person <span className="text-(--orange)">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="First"
-                          autoComplete="given-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Last"
-                          autoComplete="family-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                      </div>
+                      <NameFields />
                     </div>
 
                     <div>
@@ -1063,24 +1018,7 @@ export function JoinCommunityModal({
                       <label className={fieldLabelClassName}>
                         Name <span className="text-(--orange)">*</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="First"
-                          autoComplete="given-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Last"
-                          autoComplete="family-name"
-                          required
-                          className={fieldInputClassName}
-                        />
-                      </div>
+                      <NameFields />
                     </div>
 
                     <div>
