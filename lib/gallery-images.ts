@@ -5,6 +5,9 @@ const PORTRAIT = 9 / 16;
 const BHM_LANDSCAPE = 1024 / 683;
 const BHM_PORTRAIT = 1024 / 1536;
 const ASB_LANDSCAPE = 4 / 3;
+const ASB_2022_BANNER = 1170 / 662;
+const ASB_2022_PORTRAIT = 1600 / 2133;
+const ASB_2022_SCREENSHOT = 1118 / 1596;
 const EOYP_REPLACEMENT_RATIO = 1600 / 1204;
 
 export type GalleryImage = {
@@ -141,6 +144,48 @@ const GALLERY_IMAGES: GalleryImage[] = [
     ratio: ASB_LANDSCAPE,
     program: "african-summer-bbq",
     year: "2023",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785331/asosc/gallery-prev/african-summer-bbq/asb-2022-1.webp`,
+    alt: "African Summer BBQ 2022 community banner",
+    ratio: ASB_2022_BANNER,
+    program: "african-summer-bbq",
+    year: "2022",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785332/asosc/gallery-prev/african-summer-bbq/asb-2022-2.webp`,
+    alt: "African Summer BBQ 2022 outdoor gathering",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2022",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785332/asosc/gallery-prev/african-summer-bbq/asb-2022-3.webp`,
+    alt: "African Summer BBQ 2022 event portrait",
+    ratio: ASB_2022_PORTRAIT,
+    program: "african-summer-bbq",
+    year: "2022",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785333/asosc/gallery-prev/african-summer-bbq/asb-2022-4.webp`,
+    alt: "African Summer BBQ 2022 community moment",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2022",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785334/asosc/gallery-prev/african-summer-bbq/asb-2022-5.webp`,
+    alt: "African Summer BBQ 2022 celebration highlight",
+    ratio: ASB_LANDSCAPE,
+    program: "african-summer-bbq",
+    year: "2022",
+  },
+  {
+    src: `${CLOUDINARY_BASE}/v1782785335/asosc/gallery-prev/african-summer-bbq/asb-2022-6.webp`,
+    alt: "African Summer BBQ 2022 flyer",
+    ratio: ASB_2022_SCREENSHOT,
+    program: "african-summer-bbq",
+    year: "2022",
   },
   {
     src: `${CLOUDINARY_BASE}/v1782010327/asosc/gallery-prev/eoyp-1.webp`,

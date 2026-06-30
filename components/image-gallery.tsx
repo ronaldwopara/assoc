@@ -12,10 +12,13 @@ const BLACK_HISTORY_MONTH_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMFMS-3m6HBsbaC__yDGCUTPjoJyk_PQDFSO1bt6SAWuGWVDxYj_wnlEQ_iKsjCog?key=Sk9yTTMtbzB6UFNzUjBnbFAzTzN0MFlJSENycFVn";
 const AFRICAN_SUMMER_BBQ_2023_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMg2THI6p5J7B1M4hShpd1gMBVubIXZRlNybzw46N6jUpJsqpfkt8_V6jbYeAn5lg?key=UlMtVVQ2enZGMXZRRnJ1amZkSFVYUjJteG51MTlR";
+const AFRICAN_SUMMER_BBQ_2022_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipPF8q3MlrmlSfFzT8D3Q3nh0wto6RphKudDzhcgqJVarRWU4kp4vLH751QsA-lDGw?key=UUE2elVFZlFwakxiMnkxMXJ6YmhQS0haSWhicUxR";
 const GALLERY_ALBUM_URLS: Partial<Record<string, string>> = {
   "african-festival": AFRICAN_FESTIVAL_ALBUM_URL,
   "black-history-month": BLACK_HISTORY_MONTH_ALBUM_URL,
-  "african-summer-bbq": AFRICAN_SUMMER_BBQ_2023_ALBUM_URL,
+  "african-summer-bbq:2023": AFRICAN_SUMMER_BBQ_2023_ALBUM_URL,
+  "african-summer-bbq:2022": AFRICAN_SUMMER_BBQ_2022_ALBUM_URL,
 };
 const LANDSCAPE_RATIO = 16 / 9;
 const PORTRAIT_RATIO = 9 / 16;
@@ -69,6 +72,7 @@ interface ImageGalleryProps {
 
 export function ImageGallery({ program, year }: ImageGalleryProps) {
   const images = getGalleryImagesForSelection(program, year);
+  const albumUrl = GALLERY_ALBUM_URLS[`${program}:${year}`] ?? GALLERY_ALBUM_URLS[program];
   const columnCount = useColumnCount();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const categoryLabel =
@@ -142,9 +146,9 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
       {!isExpanded && (
         <div className="gallery-bento__cta-wrap">
-          {GALLERY_ALBUM_URLS[program] ? (
+          {albumUrl ? (
             <a
-              href={GALLERY_ALBUM_URLS[program]}
+              href={albumUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-10 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
