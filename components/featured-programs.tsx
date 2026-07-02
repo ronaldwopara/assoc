@@ -13,7 +13,7 @@ export function FeaturedPrograms() {
       <div className="relative z-10">
         <InteractiveBentoGallery
           mediaItems={featuredProgramsMedia}
-          title="Our Programs & Initiatives"
+          title="Our Programs"
           description="We believe storytelling, cultural pride and community engagement are powerful tools for change."
         />
         {/* Scroll anchors for navbar program links */}

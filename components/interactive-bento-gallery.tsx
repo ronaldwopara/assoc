@@ -69,76 +69,52 @@ function MediaItem({
   item,
   className,
   onClick,
+  eager = false,
 }: {
   item: MediaItemType;
   className?: string;
   onClick?: () => void;
+  /** When false, only attach src and play once the tile is near the viewport. */
+  eager?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isInView, setIsInView] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(true);
+  const [isInView, setIsInView] = useState(eager);
+  const shouldLoad = eager || isInView;
 
   useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: "50px",
-      threshold: 0.1,
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        setIsInView(entry.isIntersecting);
-      });
-    }, options);
+    if (item.type !== "video") return;
 
     const video = videoRef.current;
-    if (video) observer.observe(video);
+    if (!video) return;
 
-    return () => {
-      if (video) observer.unobserve(video);
-    };
-  }, []);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(eager || entry.isIntersecting);
+      },
+      { root: null, rootMargin: "80px", threshold: 0.15 },
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [eager, item.type]);
 
   useEffect(() => {
-    let mounted = true;
+    const video = videoRef.current;
+    if (!video || item.type !== "video") return;
 
-    const handleVideoPlay = async () => {
-      if (!videoRef.current || !isInView || !mounted) return;
-
-      try {
-        if (videoRef.current.readyState >= 3) {
-          setIsBuffering(false);
-          await videoRef.current.play();
-        } else {
-          setIsBuffering(true);
-          await new Promise<void>((resolve) => {
-            if (videoRef.current) {
-              videoRef.current.oncanplay = () => resolve();
-            }
-          });
-          if (mounted) {
-            setIsBuffering(false);
-            await videoRef.current.play();
-          }
-        }
-      } catch {
-        setIsBuffering(false);
-      }
-    };
-
-    if (isInView) {
-      handleVideoPlay();
-    } else if (videoRef.current) {
-      videoRef.current.pause();
+    if (shouldLoad) {
+      void video.play().catch(() => {});
+      return;
     }
 
-    return () => {
-      mounted = false;
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-    };
-  }, [isInView]);
+    video.pause();
+  }, [shouldLoad, item.type, item.url]);
+
+  const handleVideoReady = () => {
+    const video = videoRef.current;
+    if (!video || !shouldLoad) return;
+    void video.play().catch(() => {});
+  };
 
   if (item.type === "video") {
     return (
@@ -147,23 +123,14 @@ function MediaItem({
           ref={videoRef}
           className="h-full w-full object-cover"
           onClick={onClick}
+          onLoadedData={handleVideoReady}
+          src={shouldLoad ? item.url : undefined}
           playsInline
           muted
           loop
-          preload="auto"
-          style={{
-            opacity: isBuffering ? 0.8 : 1,
-            transition: "opacity 0.2s",
-            transform: "translateZ(0)",
-          }}
-        >
-          <source src={item.url} type="video/mp4" />
-        </video>
-        {isBuffering && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          </div>
-        )}
+          preload={shouldLoad ? "metadata" : "none"}
+          aria-hidden={onClick ? undefined : true}
+        />
       </div>
     );
   }
@@ -264,7 +231,7 @@ function GalleryModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <MediaItem item={selectedItem} className="h-full w-full object-cover" />
+            <MediaItem item={selectedItem} eager className="h-full w-full object-cover" />
           </motion.div>
         </AnimatePresence>
 
@@ -623,12 +590,19 @@ export function InteractiveBentoGallery({
           }}
         >
           {mediaItems.map((item, index) => (
-            <motion.button
+            <motion.div
               key={item.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               layoutId={`media-${item.id}`}
-              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full p-0 text-left`}
+              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full cursor-pointer p-0 text-left`}
               onClick={() => openItem(item)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openItem(item);
+                }
+              }}
               variants={{
                 hidden: { opacity: 0 },
                 visible: {
@@ -642,9 +616,9 @@ export function InteractiveBentoGallery({
             >
               <MediaItem
                 item={item}
-                className="absolute inset-0 h-full w-full"
+                className="pointer-events-none absolute inset-0 h-full w-full"
               />
-              <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6">
+              <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6">
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" />
                 <h3 className="relative line-clamp-2 text-lg font-semibold text-white sm:text-xl md:text-2xl">
                   {item.title}
@@ -653,7 +627,7 @@ export function InteractiveBentoGallery({
                   {item.desc}
                 </div>
               </div>
-            </motion.button>
+            </motion.div>
           ))}
         </motion.div>
       </div>

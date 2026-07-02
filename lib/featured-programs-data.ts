@@ -31,10 +31,10 @@ export const featuredProgramsMedia: MediaItemType[] = [
     href: "#our-story",
     details: {
       description:
-        "Our Story, Our Voice is a powerful storytelling platform that shares the lived experiences of African immigrants in Canada through books, film, podcasts and community dialogue.",
+        "Our Story Our Voice is a powerful storytelling platform created in partnership with Busayo Disu that shares the lived experiences of African immigrants in Canada through books, film, podcasts and community dialogue.",
       sections: [
         {
-          heading: "What We Offer",
+          heading: "Projects",
           bullets: [
             "Book: Our Story, Our Voice (available for purchase)",
             "Documentary series (annual releases)",

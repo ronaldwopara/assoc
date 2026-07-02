@@ -235,5 +235,9 @@ export function getGalleryImagesForSelection(program: string, year: string): Gal
 }
 
 export function getGalleryPreviewUrls(): string[] {
-  return GALLERY_IMAGES.map((image) => image.src);
+  return GALLERY_IMAGES.filter(
+    (image) =>
+      (image.program === "african-festival" && image.year === "2025") ||
+      (image.program === "end-of-year-party" && image.year === "2025"),
+  ).map((image) => image.src);
 }

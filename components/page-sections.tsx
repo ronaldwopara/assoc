@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
-import { SectionLogoHeading } from "@/components/section-logo-heading";
+import { ABOUT_US_LOGO_URL, SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
 import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
@@ -71,7 +71,7 @@ function CardBullet({ children }: { children: React.ReactNode }) {
 export function AboutContent() {
   return (
     <>
-      <SectionLogoHeading id="about-heading">
+      <SectionLogoHeading id="about-heading" logoSrc={ABOUT_US_LOGO_URL}>
         About Us
       </SectionLogoHeading>
 

@@ -2,13 +2,15 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
-const ASOSC_LOGO_URL = `${CLOUDINARY_BASE}/v1782010314/asosc/logo.webp`;
+
+export const ABOUT_US_LOGO_URL = `${CLOUDINARY_BASE}/v1782952089/asosc/about-us-logo.webp`;
 
 type SectionLogoHeadingProps = {
   id?: string;
   as?: "h1" | "h2";
   children: React.ReactNode;
   className?: string;
+  logoSrc?: string;
 };
 
 export function SectionLogoHeading({
@@ -16,6 +18,7 @@ export function SectionLogoHeading({
   as: Heading = "h2",
   children,
   className,
+  logoSrc,
 }: SectionLogoHeadingProps) {
   return (
     <Heading
@@ -25,15 +28,17 @@ export function SectionLogoHeading({
         className,
       )}
     >
-      <Image
-        src={ASOSC_LOGO_URL}
-        alt=""
-        width={96}
-        height={96}
-        loading="eager"
-        className="h-[1.1em] w-auto"
-        aria-hidden="true"
-      />
+      {logoSrc ? (
+        <Image
+          src={logoSrc}
+          alt=""
+          width={160}
+          height={160}
+          loading="eager"
+          className="h-[1.9em] w-auto"
+          aria-hidden="true"
+        />
+      ) : null}
       {children}
     </Heading>
   );
