@@ -1104,8 +1104,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   }
 
   .hero-content {
-    padding-top: clamp(2rem, 9vh, 4.5rem);
-    padding-bottom: 0;
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: calc(var(--hero-dots-offset) + 1.5rem);
   }
 
   .hero-copy {
