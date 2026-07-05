@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
 import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
   themeColor: "#f7f7f7",
 };
 

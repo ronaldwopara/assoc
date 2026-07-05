@@ -114,21 +114,17 @@ function DropdownChevron({ open }: { open: boolean }) {
 
 function useNavbarKeyboard(
   mobileMenuOpen: boolean,
-  setMobileMenuOpen: (open: boolean) => void,
-  setProgramsOpen: (open: boolean) => void,
-  setGalleryOpen: (open: boolean) => void,
+  closeMobileMenu: () => void,
 ) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-        setProgramsOpen(false);
-        setGalleryOpen(false);
+        closeMobileMenu();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setMobileMenuOpen, setProgramsOpen, setGalleryOpen]);
+  }, [closeMobileMenu]);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -204,7 +200,15 @@ export function Navbar() {
     // Expose the real navbar logo element so LoadingScreen can measure it exactly
     (window as Window & { __navLogoEl?: HTMLElement }).__navLogoEl = logoLinkRef.current ?? undefined;
   }, []);
-  useNavbarKeyboard(mobileMenuOpen, setMobileMenuOpen, setProgramsOpen, setGalleryOpen);
+  const closeMobileMenu = useCallback(() => {
+    // Move focus out of the panel before aria-hidden is applied on close.
+    toggleButtonRef.current?.focus({ preventScroll: true });
+    setMobileMenuOpen(false);
+    setProgramsOpen(false);
+    setGalleryOpen(false);
+  }, []);
+
+  useNavbarKeyboard(mobileMenuOpen, closeMobileMenu);
 
   useEffect(() => {
     const handleHeroCtaPastView = (event: Event) => {
@@ -293,12 +297,6 @@ export function Navbar() {
       if (open) { setProgramsOpen(false); setGalleryOpen(false); }
       return !open;
     });
-  };
-
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-    setProgramsOpen(false);
-    setGalleryOpen(false);
   };
 
   return (
