@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useInView } from "framer-motion";
+import { GalleryLightbox } from "@/components/gallery-lightbox";
 import { GALLERY_CATEGORIES } from "@/lib/gallery-categories";
-import { getGalleryImagesForSelection } from "@/lib/gallery-images";
+import { getGalleryImagesForSelection, type GalleryImage } from "@/lib/gallery-images";
 import { cn } from "@/lib/utils";
 
 const AFRICAN_FESTIVAL_ALBUM_URL =
@@ -65,6 +66,14 @@ function distributeIntoColumns<T extends { ratio: number }>(
   return columns;
 }
 
+/** True when the tile sits in the solid (non-faded) part of the collapsed preview. */
+function isInCollapsedPreview(itemEl: HTMLElement, frameEl: HTMLElement) {
+  const frameRect = frameEl.getBoundingClientRect();
+  const itemRect = itemEl.getBoundingClientRect();
+  const solidBottom = frameRect.top + frameRect.height * 0.62;
+  return itemRect.top < solidBottom;
+}
+
 interface ImageGalleryProps {
   program: string;
   year: string;
@@ -75,16 +84,43 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
   const albumUrl = GALLERY_ALBUM_URLS[`${program}:${year}`] ?? GALLERY_ALBUM_URLS[program];
   const columnCount = useColumnCount();
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
+  const frameRef = React.useRef<HTMLDivElement>(null);
   const categoryLabel =
     GALLERY_CATEGORIES.find((item) => item.slug === program)?.program ?? "Gallery";
 
   React.useEffect(() => {
     setIsExpanded(false);
+    setLightboxIndex(null);
   }, [program, year]);
 
   const columns = React.useMemo(
     () => distributeIntoColumns(images, columnCount),
     [images, columnCount],
+  );
+
+  const openLightbox = React.useCallback((image: GalleryImage) => {
+    const index = images.findIndex((item) => item.src === image.src);
+    if (index >= 0) setLightboxIndex(index);
+  }, [images]);
+
+  const handleImageActivate = React.useCallback(
+    (image: GalleryImage, itemEl: HTMLElement) => {
+      const frameEl = frameRef.current;
+      const blockedByCollapse = !isExpanded && frameEl && !isInCollapsedPreview(itemEl, frameEl);
+
+      if (blockedByCollapse) {
+        if (albumUrl) {
+          window.open(albumUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+        setIsExpanded(true);
+        return;
+      }
+
+      openLightbox(image);
+    },
+    [albumUrl, isExpanded, openLightbox],
   );
 
   if (images.length === 0) {
@@ -125,7 +161,7 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
   return (
     <div className="pb-8 pt-4 sm:pb-10">
-      <div className="gallery-bento-frame">
+      <div ref={frameRef} className="gallery-bento-frame">
         <div
           className={cn("gallery-bento", !isExpanded && "gallery-bento--collapsed")}
         >
@@ -134,9 +170,8 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
               {column.map((image) => (
                 <AnimatedImage
                   key={`${program}-${year}-${image.src}`}
-                  alt={image.alt}
-                  src={image.src}
-                  ratio={image.ratio}
+                  image={image}
+                  onActivate={handleImageActivate}
                 />
               ))}
             </div>
@@ -166,24 +201,41 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
           )}
         </div>
       )}
+
+      {lightboxIndex !== null && (
+        <GalleryLightbox
+          images={images}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
     </div>
   );
 }
 
 interface AnimatedImageProps {
-  alt: string;
-  src: string;
-  ratio: number;
+  image: GalleryImage;
+  onActivate: (image: GalleryImage, itemEl: HTMLElement) => void;
 }
 
-function AnimatedImage({ alt, src, ratio }: AnimatedImageProps) {
-  const ref = React.useRef(null);
+function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
+  const ref = React.useRef<HTMLButtonElement>(null);
   const isInView = useInView(ref, { once: true });
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
 
   return (
-    <div ref={ref} className="gallery-bento__item" style={{ aspectRatio: ratio }}>
+    <button
+      ref={ref}
+      type="button"
+      className="gallery-bento__item gallery-bento__item--interactive"
+      style={{ aspectRatio: image.ratio }}
+      onClick={() => {
+        if (ref.current) onActivate(image, ref.current);
+      }}
+      aria-label={`View ${image.alt}`}
+    >
       <div
         className={cn("gallery-bento__placeholder", {
           "opacity-0": isLoaded && !hasError,
@@ -191,9 +243,10 @@ function AnimatedImage({ alt, src, ratio }: AnimatedImageProps) {
         aria-hidden
       />
       {!hasError && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
-          alt={alt}
-          src={src}
+          alt=""
+          src={image.src}
           className={cn("gallery-bento__image opacity-0 transition-opacity duration-300 ease-out", {
             "opacity-100": isInView && isLoaded,
           })}
@@ -202,6 +255,6 @@ function AnimatedImage({ alt, src, ratio }: AnimatedImageProps) {
           onError={() => setHasError(true)}
         />
       )}
-    </div>
+    </button>
   );
 }
