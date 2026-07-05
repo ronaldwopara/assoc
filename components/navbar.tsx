@@ -12,13 +12,15 @@ import {
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
 import { getGalleryDropdown } from "@/lib/gallery-categories";
+import { getEventsNavHref } from "@/lib/events-nav";
 import {
   GALLERY_BOTTOM_HASH,
   GALLERY_BOTTOM_HREF,
   scrollGalleryToBottom,
 } from "@/lib/gallery-scroll";
-import { handleSectionLinkClick } from "@/lib/section-link";
-import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
+import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
+import { handleSectionLinkClick, normalizeLegacyEventsHash } from "@/lib/section-link";
+import { ABOUT_US_LOGO_URL } from "@/components/section-logo-heading";
 
 // Not needed until a CTA is clicked — keep it out of the navbar's initial chunk.
 const JoinCommunityModal = dynamic(
@@ -26,12 +28,12 @@ const JoinCommunityModal = dynamic(
   { ssr: false },
 );
 
-const NAVBAR_IMAGE_OPACITY = 0.8  ;
-
-const navbarBackgroundStyle = navTextureBackgroundStyleFromCssVar(NAVBAR_IMAGE_OPACITY);
+const NAVBAR_LOGO_URL = ABOUT_US_LOGO_URL;
 
 function hashId(href: string) {
-  return href.slice(href.indexOf("#") + 1);
+  const hashIndex = href.indexOf("#");
+  if (hashIndex < 0) return href.replace(/^\//, "") || "home";
+  return href.slice(hashIndex + 1);
 }
 
 const navLinkClassName = "nav-menu-trigger focus-ring cursor-pointer";
@@ -59,7 +61,7 @@ const programsDropdown = [
     href: "/#bhm",
   },
   {
-    title: "Family Wellness Programs",
+    title: SETTLEMENT_WELLBEING_TITLE,
     description: "Supporting strong, healthy African families.",
     href: "/#wellness",
   },
@@ -72,10 +74,7 @@ const leftLinks = [
   { label: "About", href: "/#about" },
 ];
 
-const rightLinks = [
-  { label: "Calendar", href: "/#calendar" },
-  { label: "Contact", href: "/#contact" },
-];
+const contactLink = { label: "Contact", href: "/#contact" };
 
 const DROPDOWN_EASE = [0.65, 0.01, 0.05, 0.99] as const;
 
@@ -141,17 +140,17 @@ function useNavbarKeyboard(
 function NavbarBackground() {
   return (
     <div
-      className="absolute inset-0"
-      style={navbarBackgroundStyle}
+      className="navbar-shell absolute inset-0"
       aria-hidden="true"
     />
   );
 }
 
-const SECTION_IDS = ["home", "about", "programs", "gallery", "calendar", "contact"];
+const SECTION_IDS = ["home", "about", "programs", "gallery", "events", "contact"];
 
 function routeActiveSection(pathname: string) {
   if (pathname === "/about") return "about";
+  if (pathname === "/events") return "events";
   return "home";
 }
 
@@ -159,7 +158,7 @@ function NavLamp({ instant = false }: { instant?: boolean }) {
   return (
     <motion.div
       layoutId="nav-lamp"
-      className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center text-(--yellow)"
+      className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center text-(--orange)"
       initial={false}
       transition={
         instant
@@ -167,11 +166,7 @@ function NavLamp({ instant = false }: { instant?: boolean }) {
           : { type: "spring", stiffness: 350, damping: 30 }
       }
     >
-      <div className="relative h-1 w-10 rounded-full bg-current">
-        <div className="absolute -left-2 -top-2 h-6 w-14 rounded-full bg-current/40 blur-md" />
-        <div className="absolute -top-1 left-1 h-6 w-8 rounded-full bg-current/40 blur-md" />
-        <div className="absolute left-3 top-0 h-4 w-4 rounded-full bg-current/40 blur-sm" />
-      </div>
+      <div className="h-1 w-10 rounded-full bg-current" />
     </motion.div>
   );
 }
@@ -180,6 +175,11 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const isHome = pathname === "/";
+  const eventsNavHref = getEventsNavHref(isHome);
+  const rightLinks = [
+    { label: "Events", href: eventsNavHref },
+    contactLink,
+  ];
   const [programsOpen, setProgramsOpen] = useState(false);
   const [, setGalleryOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -220,6 +220,11 @@ export function Navbar() {
     const raf = requestAnimationFrame(() => setLampInstant(false));
     return () => cancelAnimationFrame(raf);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!isHome) return;
+    normalizeLegacyEventsHash();
+  }, [isHome]);
 
   useEffect(() => {
     if (!isHome) return;
@@ -302,7 +307,7 @@ export function Navbar() {
         <div className="absolute inset-0 overflow-hidden" aria-hidden>
           <NavbarBackground />
         </div>
-        <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-white">
+        <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-(--ink)">
           <LayoutGroup id={pathname}>
           <div
             className="relative flex h-20 items-center justify-between"
@@ -425,13 +430,16 @@ export function Navbar() {
               className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
               onClick={(event) => handleSectionLinkClick(event, "/#home", isHome)}
             >
-              <Image src="https://res.cloudinary.com/daldas2e7/image/upload/v1782010314/asosc/logo.webp" alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-18 w-auto" priority />
+              <Image src={NAVBAR_LOGO_URL} alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-18 w-auto" priority />
             </Link>
 
             {/* Right navigation */}
             <div className="hidden lg:ml-auto lg:flex lg:items-center lg:gap-6">
               {/* Gallery link */}
-              <div className="relative">
+              <div
+                className="relative"
+                onMouseEnter={() => setHoveredNav("gallery")}
+              >
                 <Link
                   href={GALLERY_BOTTOM_HREF}
                   className={navLinkClassName}

@@ -31,9 +31,9 @@ export const GALLERY_CATEGORIES: GalleryCategory[] = [
     years: [{ year: "2025", href: "/gallery?program=youth-creative-lab&year=2025" }],
   },
   {
-    slug: "family-wellness-seminars",
-    program: "Family Wellness Seminars",
-    years: [{ year: "2025", href: "/gallery?program=family-wellness-seminars&year=2025" }],
+    slug: "settlement-well-being-initiatives",
+    program: "Settlement & Well-Being Initiatives",
+    years: [{ year: "2025", href: "/gallery?program=settlement-well-being-initiatives&year=2025" }],
   },
   {
     slug: "end-of-year-party",

@@ -210,9 +210,9 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 #programs .section-heading { color: var(--orange-light); }
 #programs .section-lead { color: var(--orange-light); }
 
-/* Calendar section text */
-#calendar .section-heading { color: var(--orange-light); }
-#calendar .section-lead { color: var(--orange-light); }
+/* Events section text */
+#events .section-heading { color: var(--orange-light); }
+#events .section-lead { color: var(--orange-light); }
 
 /* Documents section heading */
 #documents-heading { color: var(--orange); }
@@ -361,7 +361,14 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   }
 }
 
-/* Nav menu trigger — matches NavigationMenu hover (transparent + subtle fill) */
+/* Nav menu trigger — white navbar with dark ink + orange active state */
+.navbar-shell {
+  background-color: #f7f7f7;
+  box-shadow:
+    0 1px 0 rgba(var(--ink-rgb), 0.1),
+    0 4px 16px rgba(var(--ink-rgb), 0.06);
+}
+
 .nav-menu-trigger {
   display: inline-flex;
   align-items: center;
@@ -371,7 +378,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   padding: 0.5rem 0.75rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   background-color: transparent;
   transition:
     color 150ms ease,
@@ -381,13 +388,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 .nav-menu-trigger:hover,
 .nav-menu-trigger[data-open="true"],
 .nav-menu-trigger[data-active="true"] {
-  color: var(--yellow);
-}
-
-.nav-logo-image {
-  filter:
-    drop-shadow(0 0.45rem 0.8rem rgba(0, 0, 0, 0.45))
-    drop-shadow(0 0 1.25rem rgba(250, 204, 21, 0.18));
+  color: var(--orange);
 }
 
 /* ── Shared dropdown panel base ─────────────────────────────────────── */
@@ -870,14 +871,19 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   text-transform: uppercase;
   color: #ffff;
   padding: 0.3em 0;
-  transition: opacity 150ms ease;
+  transition: color 150ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .mobile-nav-link:hover,
   .mobile-nav-programs:hover {
-    color: var(--gold);
+    color: var(--yellow);
   }
+}
+
+.mobile-nav-link:active,
+.mobile-nav-programs:active {
+  color: var(--yellow);
 }
 
 /* Programs trigger — same text style but flex row so chevron is inline */
@@ -893,7 +899,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   text-transform: uppercase;
   color: #fff;
   padding: 0.3em 0;
-  transition: opacity 150ms ease;
+  transition: color 150ms ease;
   background: none;
   border: none;
   cursor: pointer;

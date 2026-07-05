@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
+import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { cn } from "@/lib/utils";
 
 // Not needed until a CTA is clicked — keep it out of this section's initial chunk.
@@ -29,6 +31,16 @@ const communityActions = [
     body: "Your contribution helps fund cultural celebrations, youth programming, wellness sessions, storytelling projects, and community outreach.",
     button: "Donate Today",
     action: "Donate",
+  },
+  {
+    id: "events",
+    heading: "Events",
+    eyebrow: "Show Up & Celebrate",
+    title: "Find Your Place At Our Next Gathering",
+    body: "From the African Festival to Black History Month, wellness sessions, and youth programs — explore what's coming up across Strathcona County and take part.",
+    button: "Get Involved",
+    linkHref: EVENTS_PAGE_PATH,
+    theme: "dark",
   },
   {
     id: "membership",
@@ -122,16 +134,25 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
           </p>
 
           <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveAction(item.action);
-                setIsJoinModalOpen(true);
-              }}
-              className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
-            >
-              {item.button}
-            </button>
+            {"linkHref" in item && item.linkHref ? (
+              <Link
+                href={item.linkHref}
+                className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
+              >
+                {item.button}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAction("action" in item ? item.action : null);
+                  setIsJoinModalOpen(true);
+                }}
+                className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
+              >
+                {item.button}
+              </button>
+            )}
           </div>
         </div>
       </section>

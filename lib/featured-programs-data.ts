@@ -1,3 +1,5 @@
+import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
+
 export interface ProgramSection {
   heading: string;
   bullets?: string[];
@@ -31,15 +33,13 @@ export const featuredProgramsMedia: MediaItemType[] = [
     href: "#our-story",
     details: {
       description:
-        "Our Story Our Voice is a powerful storytelling platform created in partnership with Busayo Disu that shares the lived experiences of African immigrants in Canada through books, film, podcasts and community dialogue.",
+        "Our Story Our Voice is a powerful storytelling platform created in partnership with Busayo Disu to share the lived experiences of African immigrants in Canada through film and community dialogue.",
       sections: [
         {
           heading: "Projects",
           bullets: [
-            "Book: Our Story, Our Voice (available for purchase)",
             "Documentary series (annual releases)",
             "Public screenings and discussions",
-            "Podcasts",
           ],
         },
         {
@@ -150,7 +150,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
   {
     id: 5,
     type: "video",
-    title: "Family Wellness Seminars",
+    title: SETTLEMENT_WELLBEING_TITLE,
     desc: "Supporting strong communities and healthy African families.",
     url: "https://res.cloudinary.com/daldas2e7/video/upload/v1782758607/asosc/videos/family-wellness-seminars-optimized.mp4",
     area: "wellness",

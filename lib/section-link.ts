@@ -1,5 +1,8 @@
 import { GALLERY_BOTTOM_HASH, scrollGalleryToBottom } from "@/lib/gallery-scroll";
 
+export const LEGACY_EVENTS_HASH = "#calendar";
+export const EVENTS_HOME_HASH = "#events";
+
 /** Scrolls to the section matching a "#id" hash, smoothly. Handles the gallery's special bottom-scroll case. */
 export function scrollToHash(hash: string, behavior: ScrollBehavior = "smooth") {
   if (hash === GALLERY_BOTTOM_HASH) {
@@ -27,4 +30,12 @@ export function handleSectionLinkClick(
   event.preventDefault();
   window.history.pushState(null, "", href);
   scrollToHash(hash);
+}
+
+/** Rewrites old #calendar bookmarks to #events on the home page. */
+export function normalizeLegacyEventsHash() {
+  if (typeof window === "undefined") return;
+  if (window.location.hash !== LEGACY_EVENTS_HASH) return;
+  window.history.replaceState(null, "", `/${EVENTS_HOME_HASH}`);
+  scrollToHash(EVENTS_HOME_HASH, "auto");
 }

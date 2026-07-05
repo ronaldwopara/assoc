@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
-import { ABOUT_US_LOGO_URL, SectionLogoHeading } from "@/components/section-logo-heading";
+import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
 import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
-export { CalendarSection } from "@/components/calendar-section";
+export { EventsPageContent } from "@/components/events-section";
 
 const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
 
@@ -71,7 +71,7 @@ function CardBullet({ children }: { children: React.ReactNode }) {
 export function AboutContent() {
   return (
     <>
-      <SectionLogoHeading id="about-heading" logoSrc={ABOUT_US_LOGO_URL}>
+      <SectionLogoHeading id="about-heading">
         About Us
       </SectionLogoHeading>
 

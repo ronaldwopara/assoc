@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle, Store } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
 import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
+import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 const NEWSLETTER_ENDPOINT =
@@ -104,7 +105,7 @@ const vendorEventOptions = [
   "African Festival",
   "Black History Month Gala",
   "End-of-Year/Volunteer Appreciation Party",
-  "Family Wellness Seminars",
+  SETTLEMENT_WELLBEING_TITLE,
   "Youth Creative Lab",
   "Other Community Events",
 ];

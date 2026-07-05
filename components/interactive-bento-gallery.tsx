@@ -15,6 +15,7 @@ import {
   YOUTH_CREATIVE_LAB_FORM_URL,
 } from "@/lib/external-links";
 import type { MediaItemType } from "@/lib/featured-programs-data";
+import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
 
 // Not needed until a CTA is clicked — keep it out of the gallery's initial chunk.
 const JoinCommunityModal = dynamic(
@@ -51,7 +52,7 @@ const programActionLinks: Partial<Record<string, ProgramActionLink[]>> = {
       href: END_OF_YEAR_FORM_URL,
     },
   ],
-  "Family Wellness Seminars": [
+  [SETTLEMENT_WELLBEING_TITLE]: [
     {
       label: "Register",
       href: FAMILY_WELLNESS_FORM_URL,
@@ -69,66 +70,23 @@ function MediaItem({
   item,
   className,
   onClick,
-  eager = false,
 }: {
   item: MediaItemType;
   className?: string;
   onClick?: () => void;
-  /** When false, only attach src and play once the tile is near the viewport. */
-  eager?: boolean;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isInView, setIsInView] = useState(eager);
-  const shouldLoad = eager || isInView;
-
-  useEffect(() => {
-    if (item.type !== "video") return;
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(eager || entry.isIntersecting);
-      },
-      { root: null, rootMargin: "80px", threshold: 0.15 },
-    );
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [eager, item.type]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || item.type !== "video") return;
-
-    if (shouldLoad) {
-      void video.play().catch(() => {});
-      return;
-    }
-
-    video.pause();
-  }, [shouldLoad, item.type, item.url]);
-
-  const handleVideoReady = () => {
-    const video = videoRef.current;
-    if (!video || !shouldLoad) return;
-    void video.play().catch(() => {});
-  };
-
   if (item.type === "video") {
     return (
       <div className={`${className ?? ""} relative overflow-hidden`}>
         <video
-          ref={videoRef}
           className="h-full w-full object-cover"
           onClick={onClick}
-          onLoadedData={handleVideoReady}
-          src={shouldLoad ? item.url : undefined}
-          playsInline
+          src={item.url}
           muted
           loop
-          preload={shouldLoad ? "metadata" : "none"}
+          autoPlay
+          playsInline
+          preload="metadata"
           aria-hidden={onClick ? undefined : true}
         />
       </div>
@@ -231,7 +189,7 @@ function GalleryModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <MediaItem item={selectedItem} eager className="h-full w-full object-cover" />
+            <MediaItem item={selectedItem} className="h-full w-full object-cover" />
           </motion.div>
         </AnimatePresence>
 

@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { FeaturedPrograms } from "@/components/featured-programs";
 import { CommunityActionSection } from "@/components/volunteer-section";
-import { AboutSection, CalendarSection, GallerySection, SponsorsSection, UpdatesSection } from "@/components/page-sections";
+import { AboutSection, GallerySection, SponsorsSection, UpdatesSection } from "@/components/page-sections";
 import { LoadingScreen } from "@/components/loading-screen";
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
         <CommunityActionSection actionId="volunteer" />
         <GallerySection />
         <CommunityActionSection actionId="donate" />
-        <CalendarSection />
+        <CommunityActionSection actionId="events" />
         <CommunityActionSection actionId="membership" />
         <CommunityActionSection actionId="vendor" />
         <UpdatesSection />

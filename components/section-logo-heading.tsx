@@ -24,10 +24,11 @@ export function SectionLogoHeading({
     <Heading
       id={id}
       className={cn(
-        "mb-6 flex flex-wrap items-center justify-center gap-3 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange) sm:gap-4",
+        "mb-6 flex flex-col items-center justify-center gap-3 text-center text-[clamp(2.5rem,6vw,4.5rem)] font-bold tracking-wide text-(--orange) sm:gap-4",
         className,
       )}
     >
+      {children}
       {logoSrc ? (
         <Image
           src={logoSrc}
@@ -39,7 +40,6 @@ export function SectionLogoHeading({
           aria-hidden="true"
         />
       ) : null}
-      {children}
     </Heading>
   );
 }

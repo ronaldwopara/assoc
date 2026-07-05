@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Mail, Phone } from "lucide-react";
+import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
 import { handleSectionLinkClick } from "@/lib/section-link";
 
@@ -29,7 +30,6 @@ const exploreLinks = [
   { label: "About", href: "/#about" },
   { label: "Programs", href: "/#programs" },
   { label: "Gallery", href: GALLERY_BOTTOM_HREF },
-  { label: "Calendar", href: "/#calendar" },
   { label: "Updates", href: "/#updates" },
 ];
 
@@ -39,6 +39,7 @@ const companyLinks = [
 ];
 
 const getInvolvedLinks = [
+  { label: "Events", href: EVENTS_PAGE_PATH },
   { label: "Volunteer", href: "/#volunteer" },
   { label: "Donate", href: "/#donate" },
   { label: "Membership", href: "/#membership" },
