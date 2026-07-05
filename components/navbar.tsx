@@ -116,15 +116,18 @@ function useNavbarKeyboard(
   mobileMenuOpen: boolean,
   closeMobileMenu: () => void,
 ) {
+  const closeRef = useRef(closeMobileMenu);
+  closeRef.current = closeMobileMenu;
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        closeMobileMenu();
+        closeRef.current();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeMobileMenu]);
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
