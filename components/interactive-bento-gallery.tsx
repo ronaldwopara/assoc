@@ -553,7 +553,7 @@ export function InteractiveBentoGallery({
               role="button"
               tabIndex={0}
               layoutId={`media-${item.id}`}
-              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full cursor-pointer p-0 text-left`}
+              className={`programs-bento-tile programs-bento-tile--${item.area} focus-ring-light block w-full cursor-pointer overflow-hidden p-0 text-left`}
               onClick={() => openItem(item)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {

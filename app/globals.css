@@ -284,14 +284,6 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   z-index: 1;
 }
 
-@media (max-width: 629px) {
-  .programs-bento-grid,
-  .programs-bento-tile:first-child {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
-}
-
 @media (min-width: 640px) {
   .programs-bento-frame {
     max-width: calc(60rem + 10px);
@@ -324,6 +316,7 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
 
   .programs-bento-tile--story {
     grid-area: story;
+    border-radius: 1rem;
   }
 
   .programs-bento-tile--youth {
