@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { AutoFitCardTitle } from "@/components/auto-fit-card-title";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { cn } from "@/lib/utils";
@@ -116,14 +117,11 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
           >
             {item.eyebrow}
           </span>
-          <h3
-            className={cn(
-              "mt-4 text-2xl font-bold sm:text-3xl",
-              isDark ? "text-(--cream-light)" : "text-black",
-            )}
+          <AutoFitCardTitle
+            className={isDark ? "text-(--cream-light)" : "text-black"}
           >
             {item.title}
-          </h3>
+          </AutoFitCardTitle>
           <p
             className={cn(
               "mx-auto mt-4 max-w-2xl text-lg leading-relaxed",

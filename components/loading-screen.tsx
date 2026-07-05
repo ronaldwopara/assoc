@@ -177,6 +177,7 @@ export function LoadingScreen() {
             height={160}
             className="loading-screen__logo"
             priority
+            loading="eager"
           />
         </motion.div>
 

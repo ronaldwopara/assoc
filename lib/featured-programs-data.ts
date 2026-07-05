@@ -171,7 +171,7 @@ export const featuredProgramsMedia: MediaItemType[] = [
           heading: "What We Provide",
           bullets: [
             "Educational seminars",
-            "Expert-led discussions",
+            "Expert-led health discussions",
             "Safe spaces for dialogue",
           ],
         },

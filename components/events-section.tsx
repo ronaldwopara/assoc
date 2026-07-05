@@ -116,10 +116,13 @@ export function EventsPageContent() {
           <SectionLogoHeading
             id="events-page-heading"
             as="h1"
-            className="text-(--orange-light)"
+            className="mb-2 text-(--orange-light)"
           >
             Events
           </SectionLogoHeading>
+          <span className="inline-block rounded-full bg-(--hero-cta) px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
+            Show Up & Celebrate
+          </span>
         </div>
         <EventsList />
       </div>
