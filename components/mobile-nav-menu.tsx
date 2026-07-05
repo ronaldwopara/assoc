@@ -89,7 +89,7 @@ export function MobileMenuToggle({
     <button
       ref={ref}
       type="button"
-      className="focus-ring relative flex h-11 w-11 cursor-pointer items-center justify-center text-(--ink) lg:hidden"
+      className="focus-ring relative flex h-11 w-11 cursor-pointer items-center justify-center text-(--orange) lg:hidden"
       style={{ zIndex: 52 }}
       onClick={onToggle}
       aria-label={isOpen ? "Close menu" : "Open menu"}

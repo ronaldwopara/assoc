@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
   },
+  themeColor: "#f7f7f7",
 };
 
 export default function RootLayout({
