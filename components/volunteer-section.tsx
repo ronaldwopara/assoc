@@ -7,6 +7,7 @@ import { AutoFitCardTitle } from "@/components/auto-fit-card-title";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { cn } from "@/lib/utils";
+import { ContentBrow } from "@/components/content-brow";
 
 // Not needed until a CTA is clicked — keep it out of this section's initial chunk.
 const JoinCommunityModal = dynamic(
@@ -109,14 +110,7 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
               : "border border-(--brown-dark)/10 bg-(--cream)/60",
           )}
         >
-          <span
-            className={cn(
-              "inline-block rounded-full px-4 py-1 text-sm font-bold uppercase tracking-wide",
-              isDark ? "bg-(--hero-cta) text-black" : "bg-(--hero-cta)/20 text-black",
-            )}
-          >
-            {item.eyebrow}
-          </span>
+          <ContentBrow theme={isDark ? "dark" : "light"}>{item.eyebrow}</ContentBrow>
           <AutoFitCardTitle
             className={isDark ? "text-(--cream-light)" : "text-black"}
           >

@@ -279,7 +279,7 @@ export function JoinCommunityModal({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={overlayRef} className="fixed inset-0 z-(--z-modal) flex items-center justify-center overflow-x-hidden p-4 sm:p-6">
+        <div ref={overlayRef} className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-center justify-center overflow-x-hidden">
           <motion.div
             className="absolute inset-0 bg-black/30"
             initial={{ opacity: 0 }}

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clock, MapPin } from "lucide-react";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
+import { ContentBrow } from "@/components/content-brow";
 import { eventActionLinks, upcomingEvents } from "@/lib/events-data";
 
 const JoinCommunityModal = dynamic(
@@ -120,9 +121,7 @@ export function EventsPageContent() {
           >
             Events
           </SectionLogoHeading>
-          <span className="inline-block rounded-full bg-(--hero-cta) px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
-            Show Up & Celebrate
-          </span>
+          <ContentBrow theme="dark">Show Up & Celebrate</ContentBrow>
         </div>
         <EventsList />
       </div>

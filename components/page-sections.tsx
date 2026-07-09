@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContentBrow } from "@/components/content-brow";
 import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
@@ -212,9 +213,7 @@ export function UpdatesSection() {
       </SectionLogoHeading>
 
       <div className="mx-auto max-w-4xl rounded-3xl border border-(--orange)/25 bg-black px-5 py-6 text-center shadow-2xl shadow-black/20 sm:px-8 sm:py-8">
-        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-(--orange)">
-          February 2026
-        </span>
+        <ContentBrow theme="dark">February 2026</ContentBrow>
         <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">
           CBC News Edmonton Feature
         </h3>
@@ -251,9 +250,7 @@ export function UpdatesSection() {
       </div>
 
       <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
-          February 2026
-        </span>
+        <ContentBrow>February 2026</ContentBrow>
         <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
           Black History Month
         </h3>
@@ -305,9 +302,7 @@ export function SponsorsSection() {
       </SectionLogoHeading>
 
       <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <span className="inline-block rounded-full bg-(--hero-cta)/20 px-4 py-1 text-sm font-bold uppercase tracking-wide text-black">
-          Community Partners
-        </span>
+        <ContentBrow>Community Partners</ContentBrow>
         <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
           Thank You To Our Sponsors
         </h3>

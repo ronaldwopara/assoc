@@ -165,7 +165,7 @@ function GalleryModal({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 top-(--navbar-height) z-40 flex flex-col overflow-x-hidden bg-black"
+      className="fixed inset-x-0 bottom-0 top-(--header-height) z-40 flex flex-col overflow-x-hidden bg-black pb-(--safe-bottom)"
       role="dialog"
       aria-modal="true"
       aria-label={selectedItem.title}

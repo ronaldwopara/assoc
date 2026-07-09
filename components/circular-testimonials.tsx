@@ -10,9 +10,9 @@ import {
 } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ContentBrow } from "@/components/content-brow";
 
 interface Testimonial {
-  quote: string;
   name: string;
   designation: string;
   src: string;
@@ -25,17 +25,10 @@ interface CircularTestimonialsProps {
 }
 
 function calculateGap(width: number) {
-  const minWidth = 1024;
-  const maxWidth = 1456;
-  const minGap = 60;
-  const maxGap = 86;
-  if (width <= minWidth) return minGap;
-  if (width >= maxWidth)
-    return Math.max(minGap, maxGap + 0.06018 * (width - maxWidth));
-  return minGap + (maxGap - minGap) * ((width - minWidth) / (maxWidth - minWidth));
+  return Math.round(Math.max(32, Math.min(52, width * 0.18)));
 }
 
-const quoteVariants = {
+const contentVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
@@ -155,29 +148,31 @@ export function CircularTestimonials({
 
   return (
     <div className="w-full max-w-4xl p-8">
-      <div className="grid gap-20 md:grid-cols-2">
-        <div
-          ref={imageContainerRef}
-          className="relative h-96 w-full"
-          style={{ perspective: "1000px" }}
-        >
-          {testimonials.map((testimonial, index) => (
-            <img
-              key={testimonial.src}
-              src={testimonial.src}
-              alt={testimonial.name}
-              className="absolute h-full w-full rounded-3xl object-cover shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
-              data-index={index}
-              style={getImageStyle(index)}
-            />
-          ))}
+      <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
+        <div className="flex justify-center md:justify-end">
+          <div
+            ref={imageContainerRef}
+            className="relative aspect-3/4 w-full max-w-[260px] sm:max-w-[280px]"
+            style={{ perspective: "1000px" }}
+          >
+            {testimonials.map((testimonial, index) => (
+              <img
+                key={testimonial.src}
+                src={testimonial.src}
+                alt={testimonial.name}
+                className="absolute inset-0 h-full w-full rounded-3xl object-cover object-[center_20%] shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+                data-index={index}
+                style={getImageStyle(index)}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-col justify-between">
+        <div className="flex flex-col items-center justify-between text-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex}
-              variants={quoteVariants}
+              variants={contentVariants}
               initial="initial"
               animate="animate"
               exit="exit"
@@ -186,35 +181,21 @@ export function CircularTestimonials({
               <h3
                 className={
                   theme === "dark"
-                    ? "mb-8 text-2xl font-bold text-(--orange-light)"
-                    : "mb-8 text-2xl font-bold text-(--orange)"
+                    ? "text-2xl font-bold text-(--cream-light) sm:text-3xl"
+                    : "text-2xl font-bold text-(--orange) sm:text-3xl"
                 }
               >
-                {activeTestimonial.name}
+                {activeTestimonial.designation}
               </h3>
-              <p
-                className={
-                  theme === "dark"
-                    ? "text-lg leading-relaxed text-(--cream)/85"
-                    : "text-lg leading-relaxed text-black/80"
-                }
-              >
-                {activeTestimonial.quote.split(" ").map((word, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ filter: "blur(10px)", opacity: 0, y: 5 }}
-                    animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, ease: "easeInOut", delay: 0.025 * i }}
-                    className="inline-block"
-                  >
-                    {word}&nbsp;
-                  </motion.span>
-                ))}
-              </p>
+              <div className="mt-4">
+                <ContentBrow theme={theme === "dark" ? "dark" : "light"}>
+                  {activeTestimonial.name}
+                </ContentBrow>
+              </div>
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex gap-6 pt-12 md:pt-0">
+          <div className="flex justify-center gap-6 pt-12 md:pt-0">
             <button
               type="button"
               onClick={handlePrevClick}
