@@ -147,9 +147,9 @@ export function CircularTestimonials({
   }
 
   return (
-    <div className="w-full max-w-4xl p-8">
-      <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
-        <div className="flex justify-center md:justify-end">
+    <div className="w-full max-w-5xl p-8">
+      <div className="grid items-center gap-12 md:grid-cols-2 md:gap-x-16 lg:gap-x-20">
+        <div className="flex justify-center md:justify-end md:pr-2 lg:pr-6">
           <div
             ref={imageContainerRef}
             className="relative aspect-3/4 w-full max-w-[260px] sm:max-w-[280px]"
@@ -168,7 +168,7 @@ export function CircularTestimonials({
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between text-center">
+        <div className="flex flex-col items-center justify-center gap-10 px-2 text-center md:gap-12 md:px-6 lg:px-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex}
@@ -177,25 +177,24 @@ export function CircularTestimonials({
               animate="animate"
               exit="exit"
               transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="space-y-5"
             >
               <h3
                 className={
                   theme === "dark"
-                    ? "text-2xl font-bold text-(--cream-light) sm:text-3xl"
-                    : "text-2xl font-bold text-(--orange) sm:text-3xl"
+                    ? "text-2xl font-bold leading-tight text-(--cream-light) sm:text-3xl lg:text-4xl"
+                    : "text-2xl font-bold leading-tight text-(--orange) sm:text-3xl lg:text-4xl"
                 }
               >
                 {activeTestimonial.designation}
               </h3>
-              <div className="mt-4">
-                <ContentBrow theme={theme === "dark" ? "dark" : "light"}>
-                  {activeTestimonial.name}
-                </ContentBrow>
-              </div>
+              <ContentBrow theme={theme === "dark" ? "dark" : "light"}>
+                {activeTestimonial.name}
+              </ContentBrow>
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex justify-center gap-6 pt-12 md:pt-0">
+          <div className="flex justify-center gap-6 pt-2">
             <button
               type="button"
               onClick={handlePrevClick}

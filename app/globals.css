@@ -121,6 +121,29 @@ p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
   cursor: default;
 }
 
+/* Hide the blinking text caret on static page content */
+html,
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  caret-color: transparent;
+}
+
+input,
+textarea,
+select,
+[contenteditable]:not([contenteditable="false"]),
+a {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable="false"]) {
+  caret-color: auto;
+}
+
 /* Shared focus style for interactive controls */
 .focus-ring {
   outline: none;
