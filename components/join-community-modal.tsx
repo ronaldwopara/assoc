@@ -515,6 +515,13 @@ export function JoinCommunityModal({
                         I would like to receive email updates regarding future conferences
                       </label>
                     </div>
+
+                    <button
+                      type="submit"
+                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
+                    >
+                      Submit
+                    </button>
                   </form>
                 </div>
               )}
