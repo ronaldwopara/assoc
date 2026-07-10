@@ -1661,12 +1661,6 @@ textarea,
 }
 
 
-.join-modal {
-  box-shadow:
-    0 32px 80px rgba(60, 30, 10, 0.35),
-    0 0 0 1px rgba(251, 191, 36, 0.16);
-}
-
 .join-modal__grain {
   position: absolute;
   inset: -10%;
@@ -1691,10 +1685,10 @@ textarea,
 
 .join-modal-overlay {
   padding:
-    max(1rem, var(--safe-top))
-    max(1rem, var(--safe-right))
-    max(1rem, var(--safe-bottom))
-    max(1rem, var(--safe-left));
+    max(0px, var(--safe-top))
+    0
+    max(0px, var(--safe-bottom))
+    0;
 }
 
 @media (min-width: 640px) {
@@ -1704,6 +1698,20 @@ textarea,
       max(1.5rem, var(--safe-right))
       max(1.5rem, var(--safe-bottom))
       max(1.5rem, var(--safe-left));
+  }
+
+  .join-modal {
+    box-shadow:
+      0 32px 80px rgba(60, 30, 10, 0.35),
+      0 0 0 1px rgba(251, 191, 36, 0.16);
+  }
+}
+
+@media (max-width: 639px) {
+  .join-modal {
+    box-shadow:
+      0 -8px 40px rgba(60, 30, 10, 0.22),
+      0 0 0 1px rgba(251, 191, 36, 0.12);
   }
 }
 

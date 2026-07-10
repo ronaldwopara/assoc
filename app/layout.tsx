@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { PreventTextCaret } from "@/components/prevent-text-caret";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
-import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,13 +38,6 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <head>
-        {process.env.NODE_ENV === "development" ? (
-          // Must load before React — next/script is too late for standalone DevTools.
-          <script src="http://localhost:8097" />
-        ) : null}
-        <link rel="preload" href={NAV_TEXTURE_URL} as="image" type="image/webp" fetchPriority="high" />
-      </head>
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <PreventTextCaret />
         <SkipLink />
