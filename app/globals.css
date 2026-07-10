@@ -31,11 +31,12 @@
   /* Layout */
   --page-chrome: #f7f7f7;
   --navbar-height: 5rem;
+  /* Use env() directly in layout calcs — iOS WebKit can resolve nested var(--safe-*) to 0 */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --header-height: calc(var(--navbar-height) + var(--safe-top));
+  --header-height: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   --stacked-card-pin-gap: 2rem;
   --stacked-card-height: 600px;
 
@@ -88,7 +89,20 @@ body::-webkit-scrollbar {
 
 /* Fixed header: texture bleeds into the notch; bar content stays below it */
 .site-header {
-  padding-top: var(--safe-top);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Pull navbar texture up behind the status bar / notch */
+.site-header__backdrop {
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Subpages (no hero): first section clears the full fixed header */
+.site-main:not(:has(.hero-section)) > .section-shell:first-child {
+  padding-top: var(--header-height);
 }
 
 @layer base {
@@ -1118,15 +1132,15 @@ textarea,
 /* Mobile nav — circular reveal, same glass panel as desktop dropdown */
 .mobile-nav-close {
   position: absolute;
-  top: max(1.5rem, calc(var(--safe-top) + 0.75rem));
-  right: max(1rem, var(--safe-right));
+  top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
+  right: max(1rem, env(safe-area-inset-right, 0px));
 }
 
 .mobile-nav-content {
-  padding-top: max(5rem, calc(var(--safe-top) + var(--navbar-height)));
-  padding-bottom: max(2.5rem, calc(var(--safe-bottom) + 1rem));
-  padding-left: max(2rem, var(--safe-left));
-  padding-right: max(2rem, var(--safe-right));
+  padding-top: max(5rem, calc(env(safe-area-inset-top, 0px) + var(--navbar-height)));
+  padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
+  padding-left: max(2rem, env(safe-area-inset-left, 0px));
+  padding-right: max(2rem, env(safe-area-inset-right, 0px));
 }
 
 .mobile-nav-overlay {
@@ -1492,7 +1506,7 @@ textarea,
  */
 .stacked-card-pin--first {
   position: sticky;
-  top: var(--header-height);
+  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   padding-top: var(--stacked-card-pin-gap);
 }
 

@@ -139,7 +139,7 @@ function useNavbarKeyboard(
 function NavbarBackground() {
   return (
     <div
-      className="navbar-shell absolute inset-0"
+      className="navbar-shell site-header__backdrop absolute"
       aria-hidden="true"
     />
   );
