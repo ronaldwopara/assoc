@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { PreventTextCaret } from "@/components/prevent-text-caret";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
-import { NAV_TEXTURE_URL } from "@/lib/nav-texture";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#f7f7f7",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -37,10 +38,8 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <head>
-        <link rel="preload" href={NAV_TEXTURE_URL} as="image" type="image/webp" fetchPriority="high" />
-      </head>
       <body className="min-h-screen antialiased" suppressHydrationWarning>
+        <PreventTextCaret />
         <SkipLink />
         {children}
         <Footer />

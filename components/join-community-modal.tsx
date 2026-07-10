@@ -274,12 +274,36 @@ export function JoinCommunityModal({
     };
   }, [isOpen]);
 
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 640px)");
+    const updateViewport = () => setIsDesktop(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
+
+  const dialogMotion = isDesktop
+    ? {
+        initial: { opacity: 0, scale: 0.94, y: 24 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.96, y: 16 },
+        transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
+      }
+    : {
+        initial: { y: "100%" },
+        animate: { y: 0 },
+        exit: { y: "100%" },
+        transition: { type: "spring" as const, stiffness: 380, damping: 36 },
+      };
+
   if (!mounted) return null;
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={overlayRef} className="fixed inset-0 z-(--z-modal) flex items-center justify-center overflow-x-hidden p-4 sm:p-6">
+        <div ref={overlayRef} className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-end justify-center overflow-x-hidden sm:items-center">
           <motion.div
             className="absolute inset-0 bg-black/30"
             initial={{ opacity: 0 }}
@@ -294,40 +318,42 @@ export function JoinCommunityModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="join-community-heading"
-            className="join-modal relative flex w-full max-w-xl flex-col overflow-hidden rounded-2xl"
+            className="join-modal relative flex h-[80dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl pb-(--safe-bottom) sm:h-auto sm:max-h-none sm:rounded-2xl sm:pb-0"
             style={{ backgroundColor: "var(--cream-light)" }}
-            initial={{ opacity: 0, scale: 0.94, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            initial={dialogMotion.initial}
+            animate={dialogMotion.animate}
+            exit={dialogMotion.exit}
+            transition={dialogMotion.transition}
           >
-            {/* Navbar-style header */}
-            <div className="join-modal__header relative flex shrink-0 flex-col">
+            {/* Navbar-style header — texture fills rounded top incl. handle area */}
+            <div className="join-modal__header relative shrink-0">
               <div className="absolute inset-0" style={navbarBackgroundStyle} aria-hidden="true" />
 
-              <div className="relative z-10 flex justify-end p-1.5 sm:p-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close dialog"
-                  className="join-modal__close focus-ring-light flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 active:scale-95"
-                >
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
-                    <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close dialog"
+                className="join-modal__close focus-ring-light absolute top-3 right-3 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 active:scale-95 sm:top-3.5 sm:right-3.5"
+              >
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+                  <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+
+              <div className="relative z-10 flex justify-center pt-3 sm:hidden" aria-hidden="true">
+                <div className="h-1 w-10 rounded-full bg-(--yellow)" />
               </div>
 
               <h2
                 id="join-community-heading"
-                className="relative z-10 px-6 pb-3 text-center text-lg font-bold text-white sm:pb-4 sm:text-xl"
+                className="relative z-10 px-10 pt-3 pb-5 text-center text-lg font-bold text-white sm:px-6 sm:pt-4 sm:pb-6 sm:text-xl"
               >
                 Join Our Community
               </h2>
             </div>
 
             {/* Body */}
-            <div className="relative h-[60vh] overflow-x-hidden overflow-y-auto px-6 py-8 text-center sm:px-10 sm:py-10">
+            <div className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6 text-center sm:h-[60vh] sm:flex-none sm:px-10 sm:py-10">
               <div className="join-modal__grain" aria-hidden="true" />
               {actionTabs[activeActionIndex ?? -1]?.title === "Newsletter" && (
                 <div className="relative z-10 mx-auto max-w-md text-left">
@@ -489,6 +515,13 @@ export function JoinCommunityModal({
                         I would like to receive email updates regarding future conferences
                       </label>
                     </div>
+
+                    <button
+                      type="submit"
+                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
+                    >
+                      Submit
+                    </button>
                   </form>
                 </div>
               )}

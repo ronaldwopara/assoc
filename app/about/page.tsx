@@ -3,34 +3,34 @@ import { AboutContent, DocumentsSection } from "@/components/page-sections";
 import { CircularTestimonials } from "@/components/circular-testimonials";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 
+const CLOUDINARY_BASE =
+  "https://res.cloudinary.com/daldas2e7/image/upload/c_fill,g_face,w_600,h_800,f_webp,q_auto";
+
 const boardMembers = [
   {
-    name: "Board Chair",
-    designation: "Chairperson",
-    quote:
-      "ASOSC exists to celebrate African heritage while building bridges with the wider Strathcona County community. Every program we run is rooted in that mission.",
-    src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp",
+    designation: "Founder/President",
+    name: "Busayo Disu",
+    src: `${CLOUDINARY_BASE}/v1783629200/asosc/board/busayo-disu.jpg`,
   },
   {
-    name: "Vice Chair",
-    designation: "Vice Chairperson",
-    quote:
-      "We are proud to create spaces where African families feel seen, supported, and connected — and where neighbours can learn from one another.",
-    src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp",
-  },
-  {
-    name: "Treasurer",
     designation: "Treasurer",
-    quote:
-      "Sound stewardship of our resources lets us invest directly in youth programs, cultural events, and community outreach across the county.",
-    src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/3-c.webp",
+    name: "Bose Osa-Izeko",
+    src: `${CLOUDINARY_BASE}/v1783629201/asosc/board/bose-osa-izeko.jpg`,
   },
   {
-    name: "Secretary",
-    designation: "Secretary",
-    quote:
-      "From volunteers to partners, our community shows up time and again — and we're committed to keeping that momentum going for years to come.",
-    src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/4-c.webp",
+    designation: "Director",
+    name: "Omoniyi Fabarebo",
+    src: `${CLOUDINARY_BASE}/v1783629202/asosc/board/omoniyi-fabarebo.jpg`,
+  },
+  {
+    designation: "Director at Large",
+    name: "Kayode Disu",
+    src: `${CLOUDINARY_BASE}/v1783629202/asosc/board/kayode-disu.jpg`,
+  },
+  {
+    designation: "Director at Large",
+    name: "Temitope Haastrup",
+    src: `${CLOUDINARY_BASE}/v1783629203/asosc/board/temitope-haastrup.jpg`,
   },
 ];
 

@@ -7,7 +7,7 @@ export function HeroSection() {
   return (
     <section
       id="home"
-      className="hero-section relative z-10 mt-(--navbar-height) h-[calc(100dvh-var(--navbar-height))] overflow-hidden"
+      className="hero-section relative z-10 mt-(--header-height) h-[calc(100dvh-var(--header-height))] overflow-hidden"
       aria-label="Welcome"
     >
       <HeroCarousel />

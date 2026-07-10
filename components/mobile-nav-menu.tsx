@@ -194,14 +194,14 @@ export function MobileNavMenu({
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="absolute right-4 top-6 flex h-11 w-11 items-center justify-center text-(--yellow) focus-ring-light"
+          className="mobile-nav-close flex h-11 w-11 items-center justify-center text-(--yellow) focus-ring-light"
         >
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
             <path d="M4 4l18 18M22 4L4 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
         </button>
 
-        <div className="flex h-full flex-col justify-between overflow-y-auto px-8 pb-10 pt-20">
+        <div className="mobile-nav-content flex h-full flex-col justify-between overflow-y-auto">
           <motion.ul
             className="m-0 list-none p-0"
             variants={navListVariants}

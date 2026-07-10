@@ -303,7 +303,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-(--z-navbar)">
+    <header className="site-header fixed inset-x-0 top-0 z-(--z-navbar)">
       <div className="relative">
         <div className="absolute inset-0 overflow-hidden" aria-hidden>
           <NavbarBackground />
