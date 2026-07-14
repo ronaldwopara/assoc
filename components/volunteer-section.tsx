@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AutoFitCardTitle } from "@/components/auto-fit-card-title";
+import { EventTicketMarquee } from "@/components/event-ticket";
+import { MembershipCardMarquee } from "@/components/membership-card-marquee";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { cn } from "@/lib/utils";
@@ -84,6 +86,7 @@ interface CommunityActionSectionProps {
 export function CommunityActionSection({ actionId }: CommunityActionSectionProps) {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [membershipCategory, setMembershipCategory] = useState<string | null>(null);
   const hasOpenedJoinModalRef = useRef(false);
   hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const item = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
@@ -125,6 +128,24 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
             {item.body}
           </p>
 
+          {item.id === "events" && (
+            <div className="mt-8">
+              <EventTicketMarquee />
+            </div>
+          )}
+
+          {item.id === "membership" && (
+            <div className="mt-8">
+              <MembershipCardMarquee
+                onSelect={(categoryValue) => {
+                  setMembershipCategory(categoryValue);
+                  setActiveAction("Membership");
+                  setIsJoinModalOpen(true);
+                }}
+              />
+            </div>
+          )}
+
           <div className="mt-8 flex justify-center">
             {"linkHref" in item && item.linkHref ? (
               <Link
@@ -154,6 +175,7 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
           isOpen={isJoinModalOpen}
           onClose={() => setIsJoinModalOpen(false)}
           initialAction={activeAction}
+          initialMembershipCategory={membershipCategory}
         />
       )}
     </>
