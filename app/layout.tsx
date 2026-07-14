@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { PreventTextCaret } from "@/components/prevent-text-caret";
 import { OrientationLock } from "@/components/orientation-lock";
+import { SafeAreaFrame } from "@/components/safe-area-frame";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
 import "./globals.css";
@@ -47,6 +48,7 @@ export default function RootLayout({
         {children}
         <Footer />
         <OrientationLock />
+        <SafeAreaFrame />
       </body>
     </html>
   );

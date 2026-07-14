@@ -90,26 +90,30 @@ body::-webkit-scrollbar {
 
 /* Safe-area strips: pinned to the viewport edges so the notch/status-bar and
    home-indicator regions always read a fixed color, independent of scroll
-   position or whatever section happens to be underneath. Without this, iOS
-   Safari samples the page's own edge content for those strips, which flickers
-   between colors as you scroll. */
-body::before,
-body::after {
-  content: "";
+   position, the loading screen, modals, or whatever section is underneath.
+   Real DOM elements (see SafeAreaFrame), each promoted to its own compositing
+   layer with translateZ(0) — iOS Safari otherwise fails to paint fixed
+   elements into the safe-area region until a scroll/overscroll forces a
+   repaint, which is what caused the top to start black and "correct itself"
+   on overscroll. Sits above every other layer (z 400 > loading 200 >
+   orientation 300 > modal 100). */
+.safe-area-strip {
   position: fixed;
   left: 0;
   right: 0;
   z-index: 400;
   pointer-events: none;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
-body::before {
+.safe-area-strip--top {
   top: 0;
   height: env(safe-area-inset-top, 0px);
   background: #f7f7f7;
 }
 
-body::after {
+.safe-area-strip--bottom {
   bottom: 0;
   height: env(safe-area-inset-bottom, 0px);
   background: #000;
