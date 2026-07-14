@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mail, Phone } from "lucide-react";
+import { Info, Mail, Phone } from "lucide-react";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
 import { handleSectionLinkClick } from "@/lib/section-link";
@@ -78,54 +78,67 @@ export function Footer() {
         />
         <h2 className="sr-only">ASOSC</h2>
 
-        <div className="footer__columns">
-          <div>
-            <h3 className="footer__heading">Explore</h3>
-            <ul className="footer__list">
-              {exploreLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="footer__link focus-ring-light"
-                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="footer__heading">Get Involved</h3>
-            <ul className="footer__list">
-              {getInvolvedLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="footer__link focus-ring-light"
-                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="footer__heading">Company</h3>
-            <ul className="footer__list">
-              {companyLinks.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="footer__link focus-ring-light"
-                    onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <div className="footer__body">
+          <p className="footer__acknowledgment">
+            <Info className="footer__acknowledgment-icon" aria-hidden="true" />
+            <span>
+              We respectfully acknowledge that the Africans Society of Strathcona
+              County operates on Treaty 6 Territory, the traditional lands of many
+              First Nations and the Métis. We honour Indigenous Peoples, their
+              enduring stewardship of these lands, and our shared commitment to
+              reconciliation.
+            </span>
+          </p>
+
+          <div className="footer__columns">
+            <div>
+              <h3 className="footer__heading">Explore</h3>
+              <ul className="footer__list">
+                {exploreLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="footer__link focus-ring-light"
+                      onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="footer__heading">Get Involved</h3>
+              <ul className="footer__list">
+                {getInvolvedLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="footer__link focus-ring-light"
+                      onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="footer__heading">Company</h3>
+              <ul className="footer__list">
+                {companyLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="footer__link focus-ring-light"
+                      onClick={(event) => handleSectionLinkClick(event, link.href, isHome)}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 

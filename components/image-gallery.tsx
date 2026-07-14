@@ -11,68 +11,34 @@ const AFRICAN_FESTIVAL_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMjTmDXrlT0oB55zdjvAP4nRnuDFGv3Sd1v7uRyZZCdsDEKbBbpvarV79JolyPNQQ?key=QVZOZTMxWUVCdXRNVWVIUFFmZGlPd2tjdUFiVDh3";
 const BLACK_HISTORY_MONTH_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMFMS-3m6HBsbaC__yDGCUTPjoJyk_PQDFSO1bt6SAWuGWVDxYj_wnlEQ_iKsjCog?key=Sk9yTTMtbzB6UFNzUjBnbFAzTzN0MFlJSENycFVn";
+const BLACK_HISTORY_MONTH_2025_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipOZzdsANnX0qoKW_LCKFfxniQZZaQjm7z1pOpGavfahqyBIcNgMio_sESkxEMQkCg?key=cl80U3BPNFJ6VzVsMHF0WVRwSHU1dm1kQjZJdmNB";
+const BLACK_HISTORY_MONTH_2022_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipMuqrtcE50Z11leAES8XzxZnpMK3HVcHtEjuKNMXSYURAwiolGPon93bXSJnZWtHA?key=TEdFZk9td05mM0F0Y2hQRzhMZ0lWaF9udHVFRkNn";
+const AFRICAN_SUMMER_BBQ_2024_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipNdCzMh1qKAhBNN7nirvTHglhTPxhalg4itGsLnqeNJ2F9pyzZW1wgQzCs14Hd6vA?key=aDZqS3hSel9IUTdmdkExcWZ2R3VOZVBjeVMtQUFR";
 const AFRICAN_SUMMER_BBQ_2023_ALBUM_URL =
   "https://photos.google.com/share/AF1QipMg2THI6p5J7B1M4hShpd1gMBVubIXZRlNybzw46N6jUpJsqpfkt8_V6jbYeAn5lg?key=UlMtVVQ2enZGMXZRRnJ1amZkSFVYUjJteG51MTlR";
 const AFRICAN_SUMMER_BBQ_2022_ALBUM_URL =
   "https://photos.google.com/share/AF1QipPF8q3MlrmlSfFzT8D3Q3nh0wto6RphKudDzhcgqJVarRWU4kp4vLH751QsA-lDGw?key=UUE2elVFZlFwakxiMnkxMXJ6YmhQS0haSWhicUxR";
+const END_OF_YEAR_PARTY_2025_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipNDqcwea4ouL9CbzIWcQWE1Li3OLL25PmrDC46e7wzYJe4aTvxdTM7wmfPmrY8pcA?key=NmM2OTRSQTVWazNvcnpCc1RqMDFDZk55RTR6MkJn";
+const END_OF_YEAR_PARTY_2024_ALBUM_URL =
+  "https://photos.google.com/share/AF1QipPROAi5aMzptLRQFzenlNGfNXMbiO17_H2or7BXTFZ3eBAVCl8cnNXTLwXjgs9ukw?key=NWZMNUEzUHhQMzA0eXFnQm1KOUs5dG5SUEsxekNR";
 const GALLERY_ALBUM_URLS: Partial<Record<string, string>> = {
   "african-festival": AFRICAN_FESTIVAL_ALBUM_URL,
   "black-history-month": BLACK_HISTORY_MONTH_ALBUM_URL,
+  "black-history-month:2025": BLACK_HISTORY_MONTH_2025_ALBUM_URL,
+  "black-history-month:2022": BLACK_HISTORY_MONTH_2022_ALBUM_URL,
+  "african-summer-bbq:2024": AFRICAN_SUMMER_BBQ_2024_ALBUM_URL,
   "african-summer-bbq:2023": AFRICAN_SUMMER_BBQ_2023_ALBUM_URL,
   "african-summer-bbq:2022": AFRICAN_SUMMER_BBQ_2022_ALBUM_URL,
+  "end-of-year-party:2025": END_OF_YEAR_PARTY_2025_ALBUM_URL,
+  "end-of-year-party:2024": END_OF_YEAR_PARTY_2024_ALBUM_URL,
 };
-const LANDSCAPE_RATIO = 16 / 9;
-const PORTRAIT_RATIO = 9 / 16;
-const PLACEHOLDER_RATIOS = [
-  LANDSCAPE_RATIO,
-  PORTRAIT_RATIO,
-  LANDSCAPE_RATIO,
-  PORTRAIT_RATIO,
-  LANDSCAPE_RATIO,
-  PORTRAIT_RATIO,
-];
 
-function useColumnCount() {
-  const [count, setCount] = React.useState(2);
-
-  React.useEffect(() => {
-    const mq = window.matchMedia("(min-width: 640px)");
-    const update = () => setCount(mq.matches ? 3 : 2);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-
-  return count;
-}
-
-/** Greedy shortest-column-first placement so every program gets the same balanced bento feel. */
-function distributeIntoColumns<T extends { ratio: number }>(
-  items: T[],
-  columnCount: number,
-): T[][] {
-  const columns: T[][] = Array.from({ length: columnCount }, () => []);
-  const heights = new Array(columnCount).fill(0);
-
-  for (const item of items) {
-    let shortest = 0;
-    for (let i = 1; i < columnCount; i++) {
-      if (heights[i] < heights[shortest]) shortest = i;
-    }
-    columns[shortest].push(item);
-    heights[shortest] += 1 / item.ratio;
-  }
-
-  return columns;
-}
-
-/** True when the tile sits in the solid (non-faded) part of the collapsed preview. */
-function isInCollapsedPreview(itemEl: HTMLElement, frameEl: HTMLElement) {
-  const frameRect = frameEl.getBoundingClientRect();
-  const itemRect = itemEl.getBoundingClientRect();
-  const solidBottom = frameRect.top + frameRect.height * 0.62;
-  return itemRect.top < solidBottom;
-}
+/** Collapsed preview always shows a neat 2×3 landscape grid (matches gallery reference). */
+const PREVIEW_TILE_COUNT = 6;
 
 interface ImageGalleryProps {
   program: string;
@@ -82,10 +48,8 @@ interface ImageGalleryProps {
 export function ImageGallery({ program, year }: ImageGalleryProps) {
   const images = getGalleryImagesForSelection(program, year);
   const albumUrl = GALLERY_ALBUM_URLS[`${program}:${year}`] ?? GALLERY_ALBUM_URLS[program];
-  const columnCount = useColumnCount();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
-  const frameRef = React.useRef<HTMLDivElement>(null);
   const categoryLabel =
     GALLERY_CATEGORIES.find((item) => item.slug === program)?.program ?? "Gallery";
 
@@ -94,55 +58,32 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
     setLightboxIndex(null);
   }, [program, year]);
 
-  const columns = React.useMemo(
-    () => distributeIntoColumns(images, columnCount),
-    [images, columnCount],
+  const visibleImages = isExpanded ? images : images.slice(0, PREVIEW_TILE_COUNT);
+  const showViewMore = !isExpanded && images.length > 0;
+  const bentoCountClass = images.length === 3 ? "gallery-bento--count-3" : undefined;
+
+  const openLightbox = React.useCallback(
+    (image: GalleryImage) => {
+      const index = images.findIndex((item) => item.src === image.src);
+      if (index >= 0) setLightboxIndex(index);
+    },
+    [images],
   );
 
-  const openLightbox = React.useCallback((image: GalleryImage) => {
-    const index = images.findIndex((item) => item.src === image.src);
-    if (index >= 0) setLightboxIndex(index);
-  }, [images]);
-
   const handleImageActivate = React.useCallback(
-    (image: GalleryImage, itemEl: HTMLElement) => {
-      const frameEl = frameRef.current;
-      const blockedByCollapse = !isExpanded && frameEl && !isInCollapsedPreview(itemEl, frameEl);
-
-      if (blockedByCollapse) {
-        if (albumUrl) {
-          window.open(albumUrl, "_blank", "noopener,noreferrer");
-          return;
-        }
-        setIsExpanded(true);
-        return;
-      }
-
+    (image: GalleryImage) => {
       openLightbox(image);
     },
-    [albumUrl, isExpanded, openLightbox],
+    [openLightbox],
   );
 
   if (images.length === 0) {
-    const placeholderColumns = distributeIntoColumns(
-      PLACEHOLDER_RATIOS.map((ratio, index) => ({ ratio, key: index })),
-      columnCount,
-    );
-
     return (
       <div className="gallery-bento-frame pb-8 pt-4 sm:pb-10">
-        <div className="gallery-bento">
-          {placeholderColumns.map((column, columnIndex) => (
-            <div key={columnIndex} className="gallery-bento__column">
-              {column.map((item) => (
-                <div
-                  key={item.key}
-                  className="gallery-bento__item"
-                  style={{ aspectRatio: item.ratio }}
-                >
-                  <div className="gallery-bento__placeholder" aria-hidden />
-                </div>
-              ))}
+        <div className="gallery-bento" aria-hidden>
+          {Array.from({ length: PREVIEW_TILE_COUNT }, (_, index) => (
+            <div key={index} className="gallery-bento__item">
+              <div className="gallery-bento__placeholder" />
             </div>
           ))}
         </div>
@@ -161,25 +102,25 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
   return (
     <div className="pb-8 pt-4 sm:pb-10">
-      <div ref={frameRef} className="gallery-bento-frame">
+      <div className="gallery-bento-frame">
         <div
-          className={cn("gallery-bento", !isExpanded && "gallery-bento--collapsed")}
+          className={cn(
+            "gallery-bento",
+            bentoCountClass,
+            !isExpanded && "gallery-bento--collapsed",
+          )}
         >
-          {columns.map((column, columnIndex) => (
-            <div key={columnIndex} className="gallery-bento__column">
-              {column.map((image) => (
-                <AnimatedImage
-                  key={`${program}-${year}-${image.src}`}
-                  image={image}
-                  onActivate={handleImageActivate}
-                />
-              ))}
-            </div>
+          {visibleImages.map((image) => (
+            <AnimatedImage
+              key={`${program}-${year}-${image.src}`}
+              image={image}
+              onActivate={handleImageActivate}
+            />
           ))}
         </div>
       </div>
 
-      {!isExpanded && (
+      {showViewMore && (
         <div className="gallery-bento__cta-wrap">
           {albumUrl ? (
             <a
@@ -216,7 +157,7 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
 
 interface AnimatedImageProps {
   image: GalleryImage;
-  onActivate: (image: GalleryImage, itemEl: HTMLElement) => void;
+  onActivate: (image: GalleryImage) => void;
 }
 
 function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
@@ -230,10 +171,7 @@ function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
       ref={ref}
       type="button"
       className="gallery-bento__item gallery-bento__item--interactive"
-      style={{ aspectRatio: image.ratio }}
-      onClick={() => {
-        if (ref.current) onActivate(image, ref.current);
-      }}
+      onClick={() => onActivate(image)}
       aria-label={`View ${image.alt}`}
     >
       <div

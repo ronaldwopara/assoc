@@ -4,6 +4,7 @@ import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
+import { AboutSectionShell } from "@/components/about-flags-texture";
 import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
 export { EventsPageContent } from "@/components/events-section";
@@ -69,7 +70,7 @@ function CardBullet({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AboutContent() {
+export function AboutContent({ footer }: { footer?: React.ReactNode }) {
   return (
     <>
       <SectionLogoHeading id="about-heading">
@@ -111,28 +112,27 @@ export function AboutContent() {
           </p>
         </StackedCardBody>
       </StackedCards>
+      {footer}
     </>
   );
 }
 
 export function AboutSection() {
   return (
-    <section
-      id="about"
-      className="section-shell bg-(--cream-light)"
-      aria-labelledby="about-heading"
-    >
-      <AboutContent />
-
-      <div className="about-section__cta flex justify-center pb-4">
-        <Link
-          href="/about#board"
-          className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-15 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
-        >
-          Learn More
-        </Link>
-      </div>
-    </section>
+    <AboutSectionShell id="about" aria-labelledby="about-heading">
+      <AboutContent
+        footer={
+          <div className="about-section__cta flex justify-center pb-4">
+            <Link
+              href="/about#board"
+              className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-15 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
+            >
+              Learn More
+            </Link>
+          </div>
+        }
+      />
+    </AboutSectionShell>
   );
 }
 
@@ -288,8 +288,6 @@ export function UpdatesSection() {
 
 export function SponsorsSection() {
   const images = getSponsorImages();
-  // Triple so the seamless loop never visibly resets
-  const sponsorImages = images.length > 0 ? [...images, ...images, ...images] : [];
 
   return (
     <section
@@ -312,24 +310,32 @@ export function SponsorsSection() {
         </p>
       </div>
 
-      {sponsorImages.length > 0 && (
-        <div className="updates-marquee mt-12">
-          <div className="updates-marquee__track">
-            {sponsorImages.map((file, index) => (
-              <div
-                key={`${file}-${index}`}
-                className="updates-marquee__item flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-(--brown-dark)/10 bg-white px-5 py-5 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
-              >
-                <img
-                  src={file}
-                  alt=""
-                  className="max-h-full max-w-full object-contain"
-                  loading="eager"
-                />
-              </div>
-            ))}
-            </div>
+      {images.length > 0 && (
+        <div className="sponsors-arc mt-12" aria-hidden="false">
+          <div className="sponsors-arc__pivot">
+            {/* Repeat logos around the full circle so the arc never empties as it spins. */}
+            {Array.from({ length: 5 }, (_, repeat) =>
+              images.map((file, index) => {
+                const itemIndex = repeat * images.length + index;
+                const angle = itemIndex * (360 / (images.length * 5));
+                return (
+                  <div
+                    key={`${file}-${itemIndex}`}
+                    className="sponsors-arc__item"
+                    style={{ "--arc-angle": `${angle}deg` } as React.CSSProperties}
+                  >
+                    <img
+                      src={file}
+                      alt=""
+                      className="max-h-full max-w-full object-contain"
+                      loading="eager"
+                    />
+                  </div>
+                );
+              })
+            )}
           </div>
+        </div>
       )}
     </section>
   );

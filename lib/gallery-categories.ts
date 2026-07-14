@@ -10,17 +10,26 @@ export const GALLERY_CATEGORIES: GalleryCategory[] = [
   {
     slug: "african-festival",
     program: "African Festival",
-    years: [{ year: "2025", href: "/gallery?program=african-festival&year=2025" }],
+    years: [
+      { year: "2026", href: "/gallery?program=african-festival&year=2026" },
+      { year: "2025", href: "/gallery?program=african-festival&year=2025" },
+    ],
   },
   {
     slug: "black-history-month",
     program: "Black History Month",
-    years: [{ year: "2025", href: "/gallery?program=black-history-month&year=2025" }],
+    years: [
+      { year: "2026", href: "/gallery?program=black-history-month&year=2026" },
+      { year: "2025", href: "/gallery?program=black-history-month&year=2025" },
+      { year: "2022", href: "/gallery?program=black-history-month&year=2022" },
+    ],
   },
   {
     slug: "african-summer-bbq",
     program: "African Summer BBQ",
     years: [
+      { year: "2026", href: "/gallery?program=african-summer-bbq&year=2026" },
+      { year: "2024", href: "/gallery?program=african-summer-bbq&year=2024" },
       { year: "2023", href: "/gallery?program=african-summer-bbq&year=2023" },
       { year: "2022", href: "/gallery?program=african-summer-bbq&year=2022" },
     ],
@@ -38,7 +47,10 @@ export const GALLERY_CATEGORIES: GalleryCategory[] = [
   {
     slug: "end-of-year-party",
     program: "End-of-Year/Volunteer Appreciation Party",
-    years: [{ year: "2025", href: "/gallery?program=end-of-year-party&year=2025" }],
+    years: [
+      { year: "2025", href: "/gallery?program=end-of-year-party&year=2025" },
+      { year: "2024", href: "/gallery?program=end-of-year-party&year=2024" },
+    ],
   },
 ];
 
@@ -48,8 +60,8 @@ export type GallerySelection = {
 };
 
 export const DEFAULT_GALLERY_SELECTION: GallerySelection = {
-  program: GALLERY_CATEGORIES[0].slug,
-  year: GALLERY_CATEGORIES[0].years[0].year,
+  program: "african-festival",
+  year: "2025",
 };
 
 export function isValidGallerySelection(

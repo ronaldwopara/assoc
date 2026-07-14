@@ -14,11 +14,11 @@ export default function Home() {
         <HeroSection />
         <AboutSection />
         <FeaturedPrograms />
-        <CommunityActionSection actionId="volunteer" />
+        <CommunityActionSection actionId="membership" />
         <GallerySection />
         <CommunityActionSection actionId="donate" />
         <CommunityActionSection actionId="events" />
-        <CommunityActionSection actionId="membership" />
+        <CommunityActionSection actionId="volunteer" />
         <CommunityActionSection actionId="vendor" />
         <UpdatesSection />
         <CommunityActionSection actionId="contact" />
