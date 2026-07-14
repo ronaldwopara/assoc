@@ -88,6 +88,33 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* Safe-area strips: pinned to the viewport edges so the notch/status-bar and
+   home-indicator regions always read a fixed color, independent of scroll
+   position or whatever section happens to be underneath. Without this, iOS
+   Safari samples the page's own edge content for those strips, which flickers
+   between colors as you scroll. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  pointer-events: none;
+}
+
+body::before {
+  top: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #f7f7f7;
+}
+
+body::after {
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: #000;
+}
+
 /* Fixed header: texture bleeds into the notch; bar content stays below it */
 .site-header {
   padding-top: env(safe-area-inset-top, 0px);
@@ -1533,10 +1560,10 @@ textarea,
  */
 .sponsors-arc {
   --arc-radius: 520px;
-  --arc-peak: 175px; /* height of the arc apex above the section bottom */
+  --arc-peak: 105px; /* height of the arc apex above the section bottom */
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 190px;
   overflow: hidden;
   mask: linear-gradient(
     90deg,
@@ -1779,17 +1806,12 @@ textarea,
   right: 0;
   bottom: 4px;
   z-index: 0;
-  pointer-events: none;
-}
-
-.about-flags-texture__sticky {
-  position: sticky;
-  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 3px;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .about-flags-texture__row {
