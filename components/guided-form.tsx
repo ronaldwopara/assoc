@@ -951,7 +951,7 @@ export function GuidedForm({
   const paymentMethod = asString(values.paymentMethod);
   const showEtransferPanel = paymentMethod === "etransfer";
   const showCardConfirm = paymentMethod === "card";
-  const payVerb = "Donate";
+  const payVerb = paymentKind === "membership" ? "Subscribe" : "Donate";
 
   const handlePayCard = () => {
     const url = getStripeCheckoutUrl(paymentKind, values);
