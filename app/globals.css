@@ -1532,7 +1532,7 @@ textarea,
  * container is clipped and the side mask fades the edges.
  */
 .sponsors-arc {
-  --arc-radius: 500px;
+  --arc-radius: 520px;
   --arc-peak: 175px; /* height of the arc apex above the section bottom */
   position: relative;
   width: 100%;
@@ -1576,8 +1576,8 @@ textarea,
   position: absolute;
   left: 0;
   top: 0;
-  width: 11rem;
-  height: 8.5rem;
+  width: 10.75rem;
+  height: 8.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1598,29 +1598,29 @@ textarea,
 
 @media (min-width: 768px) {
   .sponsors-arc {
-    --arc-radius: 780px;
+    --arc-radius: 800px;
     --arc-peak: 220px;
     height: 330px;
   }
 
   .sponsors-arc__item {
-    width: 16.5rem;
-    height: 12.25rem;
-    padding: 1.5rem;
+    width: 15.5rem;
+    height: 11.5rem;
+    padding: 1.45rem;
   }
 }
 
 @media (min-width: 1024px) {
   .sponsors-arc {
-    --arc-radius: 1200px;
+    --arc-radius: 1180px;
     --arc-peak: 260px;
     height: 380px;
   }
 
   .sponsors-arc__item {
-    width: 19.5rem;
-    height: 14.5rem;
-    padding: 1.85rem;
+    width: 18rem;
+    height: 13.25rem;
+    padding: 1.7rem;
   }
 }
 
@@ -1766,7 +1766,6 @@ textarea,
 /* ── About flags texture ─────────────────────────────────────────────── */
 .about-section-shell {
   position: relative;
-  overflow: hidden;
 }
 
 .about-section-shell__content {
@@ -1778,14 +1777,19 @@ textarea,
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 4px;
   z-index: 0;
+  pointer-events: none;
+}
+
+.about-flags-texture__sticky {
+  position: sticky;
+  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 3px;
   overflow: hidden;
-  pointer-events: none;
 }
 
 .about-flags-texture__row {
@@ -1810,8 +1814,8 @@ textarea,
   width: 107px;
   height: 80px;
   flex-shrink: 0;
-  opacity: 0.82;
-  filter: grayscale(18%) saturate(1.08);
+  opacity: 0.9;
+  filter: grayscale(20%) saturate(0.85) brightness(0.95);
   border-radius: 3px;
   box-shadow: 0 1px 4px rgba(var(--ink-rgb), 0.12);
   object-fit: cover;

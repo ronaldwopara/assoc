@@ -313,11 +313,11 @@ export function SponsorsSection() {
       {images.length > 0 && (
         <div className="sponsors-arc mt-12" aria-hidden="false">
           <div className="sponsors-arc__pivot">
-            {/* Repeat logos around the full circle so the arc never empties as it spins. */}
-            {Array.from({ length: 5 }, (_, repeat) =>
+            {/* Four loops around the circle — tight enough to feel full, loose enough not to overlap. */}
+            {Array.from({ length: 4 }, (_, repeat) =>
               images.map((file, index) => {
                 const itemIndex = repeat * images.length + index;
-                const angle = itemIndex * (360 / (images.length * 5));
+                const angle = itemIndex * (360 / (images.length * 4));
                 return (
                   <div
                     key={`${file}-${itemIndex}`}

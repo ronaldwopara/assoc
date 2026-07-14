@@ -11,7 +11,15 @@ const FLAG_HEIGHT = 80;
 const FLAG_WIDTH = 107;
 const ROW_GAP = 3;
 const ROW_HEIGHT = FLAG_HEIGHT + ROW_GAP;
-const BASE_DURATION_S = 45;
+const BASE_DURATION_S = 70;
+
+/* The flag block is pinned (position: sticky) while the section scrolls past
+   it, so the Vision card visibly slides over it instead of moving with it.
+   That only works if the sticky block is shorter than the space it's pinned
+   within — the gap is how far it can "travel" before releasing. Filling the
+   whole remaining section height (as a plain background texture would) left
+   ~0px of travel, so it never appeared to stick. */
+const MIN_STICKY_TRAVEL = 320;
 
 function offsetTopWithin(root: HTMLElement, el: HTMLElement) {
   let top = 0;
@@ -88,9 +96,11 @@ function AboutFlagsTexture({ top, rowCount }: { top: number; rowCount: number })
       style={{ top: `${top}px` }}
       aria-hidden="true"
     >
-      {Array.from({ length: rowCount }, (_, index) => (
-        <FlagRow key={index} rowIndex={index} />
-      ))}
+      <div className="about-flags-texture__sticky">
+        {Array.from({ length: rowCount }, (_, index) => (
+          <FlagRow key={index} rowIndex={index} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -128,7 +138,11 @@ export function AboutSectionShell({
       /* Top of Vision card = where the two cards meet in the layout */
       const seamY = offsetTopWithin(section, card2);
       const textureHeight = section.offsetHeight - seamY;
-      const rows = Math.floor((textureHeight + ROW_GAP) / ROW_HEIGHT);
+      const stickyFillHeight = Math.min(
+        textureHeight - MIN_STICKY_TRAVEL,
+        window.innerHeight,
+      );
+      const rows = Math.floor((stickyFillHeight + ROW_GAP) / ROW_HEIGHT);
 
       setMeetTop(Math.max(0, Math.round(seamY)));
       setRowCount(Math.max(1, rows));
