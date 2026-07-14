@@ -1,18 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Mail, HandHeart, Heart, IdCard, MessageCircle, Store } from "lucide-react";
 import { ExpandableTabs } from "@/components/expandable-tabs";
+import { GuidedForm, type FormValues } from "@/components/guided-form";
+import { MembershipCard } from "@/components/membership-card";
+import {
+  contactSteps,
+  donateSteps,
+  membershipCategoryOptions,
+  membershipSteps,
+  newsletterSteps,
+  valuesToPayload,
+  vendorSteps,
+  volunteerSteps,
+} from "@/lib/join-community-forms";
+import {
+  clearFormDraft,
+  readFormDrafts,
+  upsertFormDraft,
+  writeFormDrafts,
+  type FormDraft,
+  type FormDraftMap,
+} from "@/lib/join-community-drafts";
 import { navTextureBackgroundStyleFromCssVar } from "@/lib/nav-texture";
-import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
 
 const NAVBAR_IMAGE_OPACITY = 0.95;
 const NEWSLETTER_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbzVF8QsexivXYnaGj6pvzThDl3sMTauPGAfzVuXOStQ1kYH8bXV2PyTmAMFKmF9lt3NWA/exec";
 
 const navbarBackgroundStyle = navTextureBackgroundStyleFromCssVar(NAVBAR_IMAGE_OPACITY);
+
+const FORM_DEFAULTS: Record<string, FormValues> = {
+  Newsletter: {},
+  Volunteer: {},
+  Donate: { donationAmount: "50" },
+  Membership: {},
+  Vendor: {},
+  Contact: {},
+};
 
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
@@ -69,101 +97,28 @@ const actionTabs = [
   { title: "Contact", icon: MessageCircle },
 ];
 
-const fieldLabelClassName = "mb-1.5 block text-sm font-semibold text-black";
-const fieldInputClassName =
-  "focus-ring-light w-full rounded-xl border border-(--brown-dark)/15 bg-white px-4 py-3 text-black placeholder:text-black/40 focus:outline-none";
-const fieldTextareaClassName = `${fieldInputClassName} resize-none`;
-const checkboxLabelClassName = "flex items-center gap-2 text-black";
-
-const volunteerInterests = [
-  "Event and Programs Planning",
-  "Workshop/Seminar Facilitation",
-  "Fundraising",
-  "Community outreach or Advocacy",
-  "Youth Mentorship",
-  "Artist or Performer",
-  "Others",
-];
-
-const donationAmounts = [10, 25, 50, 60, 75, 100];
-
-const ageOptions = ["65 years and above", "18 - 64 years", "Under 18 years"];
-const genderOptions = ["Male", "Female", "Prefer not to say"];
-const yesNoOptions = ["Yes", "No"];
-const childrenCountOptions = ["1", "2", "3", "4", "5+"];
-const membershipParticipationOptions = [
-  "Volunteering at Events and Programs",
-  "Sponsorship",
-  "Fundraising",
-  "Lending or Donation of African artifacts",
-  "Community outreach and/or Advocacy",
-  "Partnership/Collaborations",
-  "Youth Group",
-];
-
-const vendorEventOptions = [
-  "African Festival",
-  "Black History Month Gala",
-  "End-of-Year/Volunteer Appreciation Party",
-  SETTLEMENT_WELLBEING_TITLE,
-  "Youth Creative Lab",
-  "Other Community Events",
-];
-
-function RadioGroup({ name, options }: { name: string; options: string[] }) {
-  return (
-    <div className="flex flex-wrap gap-x-6 gap-y-2">
-      {options.map((option) => (
-        <label key={option} className={checkboxLabelClassName}>
-          <input type="radio" name={name} value={option} className="accent-(--brown-dark)" />
-          {option}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function CheckboxGroup({ name, options }: { name: string; options: string[] }) {
-  return (
-    <div className="space-y-2">
-      {options.map((option) => (
-        <label key={option} className={checkboxLabelClassName}>
-          <input type="checkbox" name={name} value={option} className="accent-(--brown-dark)" />
-          {option}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function NameFields() {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <input
-        type="text"
-        name="firstName"
-        placeholder="First"
-        autoComplete="given-name"
-        required
-        className={fieldInputClassName}
-      />
-      <input
-        type="text"
-        name="lastName"
-        placeholder="Last"
-        autoComplete="family-name"
-        required
-        className={fieldInputClassName}
-      />
-    </div>
-  );
-}
-
 interface JoinCommunityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialAction?: string | null;
   initialContactMessage?: string | null;
+  /** Pre-selects a membership category (value from membershipCategoryOptions). */
+  initialMembershipCategory?: string | null;
+}
+
+async function handleNewsletterSubmit(values: FormValues) {
+  const payload = {
+    firstName: String(values.firstName ?? ""),
+    lastName: String(values.lastName ?? ""),
+    email: String(values.email ?? ""),
+    strathconaResident: String(values.strathconaResident ?? ""),
+  };
+  await postToAppsScript(NEWSLETTER_ENDPOINT, payload);
+}
+
+async function handleGenericSubmit(_values: FormValues) {
+  // Endpoints for remaining forms can be wired the same way as newsletter.
+  await Promise.resolve();
 }
 
 export function JoinCommunityModal({
@@ -171,6 +126,7 @@ export function JoinCommunityModal({
   onClose,
   initialAction = null,
   initialContactMessage = null,
+  initialMembershipCategory = null,
 }: JoinCommunityModalProps) {
   const [mounted, setMounted] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -178,66 +134,130 @@ export function JoinCommunityModal({
   const initialActionIndex = actionTabs.findIndex((tab) => tab.title === initialAction);
   const defaultActionIndex = initialActionIndex >= 0 ? initialActionIndex : 0;
   const [activeActionIndex, setActiveActionIndex] = useState<number | null>(defaultActionIndex);
+  const [sessionKey, setSessionKey] = useState(0);
+  const [drafts, setDrafts] = useState<FormDraftMap>({});
+  const [formDirty, setFormDirty] = useState(false);
+  const [tabsAwake, setTabsAwake] = useState(false);
+  const [formSucceeded, setFormSucceeded] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [successValues, setSuccessValues] = useState<FormValues | null>(null);
+  const membershipCardRef = useRef<HTMLDivElement>(null);
 
-  const [donationFrequency, setDonationFrequency] = useState<"once" | "monthly">("once");
-  const [donationAmount, setDonationAmount] = useState<number | "custom" | null>(donationAmounts[2]);
-  const [customAmount, setCustomAmount] = useState("");
+  const tabsLocked = formDirty && !tabsAwake;
 
-  const [spouseConsent, setSpouseConsent] = useState<"Yes" | "No" | null>(null);
-  const [registerChildren, setRegisterChildren] = useState<"Yes" | "No" | null>(null);
-  const [contactMessage, setContactMessage] = useState("");
-  const [newsletterStatus, setNewsletterStatus] = useState<
-    "idle" | "submitting" | "success" | "error"
-  >("idle");
+  const requestActionSwitch = (nextIndex: number) => {
+    if (nextIndex === activeActionIndex) {
+      if (tabsLocked) setTabsAwake(true);
+      return;
+    }
+
+    if (formDirty && !tabsAwake) {
+      setTabsAwake(true);
+      return;
+    }
+
+    setActiveActionIndex(nextIndex);
+    setTabsAwake(true);
+    setFormDirty(false);
+    setFormSucceeded(false);
+    setSuccessMessage("");
+    setSuccessValues(null);
+  };
 
   const goToPreviousAction = () => {
-    setActiveActionIndex((current) => {
-      const activeIndex = current ?? 0;
-      return (activeIndex - 1 + actionTabs.length) % actionTabs.length;
-    });
+    const activeIndex = activeActionIndex ?? 0;
+    requestActionSwitch((activeIndex - 1 + actionTabs.length) % actionTabs.length);
   };
 
   const goToNextAction = () => {
-    setActiveActionIndex((current) => {
-      const activeIndex = current ?? 0;
-      return (activeIndex + 1) % actionTabs.length;
+    const activeIndex = activeActionIndex ?? 0;
+    requestActionSwitch((activeIndex + 1) % actionTabs.length);
+  };
+
+  const handleDirtyChange = (
+    formId: string,
+    dirty: boolean,
+    source: "hydrate" | "edit",
+  ) => {
+    setFormDirty(dirty);
+
+    if (source === "hydrate") return;
+
+    if (dirty) {
+      setTabsAwake(false);
+      return;
+    }
+
+    setDrafts((current) => {
+      if (!(formId in current)) return current;
+      const next = clearFormDraft(current, formId);
+      writeFormDrafts(next);
+      return next;
     });
+  };
+
+  const handleDraftChange = (
+    formId: string,
+    draft: FormDraft,
+    source: "hydrate" | "edit",
+  ) => {
+    setDrafts((current) => {
+      const next = upsertFormDraft(current, formId, draft);
+      writeFormDrafts(next);
+      return next;
+    });
+    if (source === "edit") setTabsAwake(false);
+  };
+
+  const handleFormCompleted = (formId: string) => {
+    setDrafts((current) => {
+      const next = clearFormDraft(current, formId);
+      writeFormDrafts(next);
+      return next;
+    });
+    setFormDirty(false);
+    setTabsAwake(false);
+  };
+
+  const getFormSeed = (formId: string, extraDefaults: FormValues = {}) => {
+    const baseline = { ...(FORM_DEFAULTS[formId] ?? {}), ...extraDefaults };
+    const draft = drafts[formId];
+    return {
+      baselineValues: baseline,
+      initialValues: draft?.values ?? baseline,
+      initialStepIndex: draft?.stepIndex ?? 0,
+    };
   };
 
   useEffect(() => {
     setMounted(true);
+    setDrafts(readFormDrafts());
   }, []);
 
   useEffect(() => {
     if (isOpen) {
       setActiveActionIndex(defaultActionIndex);
-      setContactMessage(initialContactMessage ?? "");
-      setNewsletterStatus("idle");
+      setSessionKey((key) => key + 1);
+      setDrafts(readFormDrafts());
+      setFormDirty(false);
+      setTabsAwake(false);
+      setFormSucceeded(false);
+      setSuccessMessage("");
+      setSuccessValues(null);
     }
   }, [isOpen, defaultActionIndex, initialContactMessage]);
 
-  const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    setNewsletterStatus("submitting");
+  useEffect(() => {
+    if (!isOpen || !formDirty) return;
 
-    const formData = new FormData(form);
-    const payload = {
-      firstName: String(formData.get("firstName") ?? ""),
-      lastName: String(formData.get("lastName") ?? ""),
-      email: String(formData.get("email") ?? ""),
-      strathconaResident: String(formData.get("strathconaResident") ?? ""),
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
     };
 
-    try {
-      await postToAppsScript(NEWSLETTER_ENDPOINT, payload);
-
-      form.reset();
-      setNewsletterStatus("success");
-    } catch {
-      setNewsletterStatus("error");
-    }
-  };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isOpen, formDirty]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -275,35 +295,157 @@ export function JoinCommunityModal({
   }, [isOpen]);
 
   const [isDesktop, setIsDesktop] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const sheetContentRef = useRef<HTMLDivElement>(null);
+  const [sheetHeight, setSheetHeight] = useState<number | "auto">("auto");
+  const [heightReady, setHeightReady] = useState(false);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 640px)");
+    const media = window.matchMedia("(min-width: 768px)");
     const updateViewport = () => setIsDesktop(media.matches);
     updateViewport();
     media.addEventListener("change", updateViewport);
     return () => media.removeEventListener("change", updateViewport);
   }, []);
 
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setSheetHeight("auto");
+      setHeightReady(false);
+      return;
+    }
+
+    const node = sheetContentRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    const maxSheetHeight = () => {
+      const vhCap = window.innerHeight * (isDesktop ? 0.75 : 0.78);
+      const remCap = isDesktop ? 40 * 16 : Number.POSITIVE_INFINITY;
+      return Math.min(vhCap, remCap);
+    };
+
+    const measure = () => {
+      const next = Math.ceil(node.getBoundingClientRect().height);
+      if (next > 0) setSheetHeight(Math.min(next, maxSheetHeight()));
+    };
+
+    measure();
+    const readyFrame = requestAnimationFrame(() => setHeightReady(true));
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => {
+      cancelAnimationFrame(readyFrame);
+      observer.disconnect();
+    };
+  }, [isOpen, activeActionIndex, sessionKey, isDesktop]);
+
   const dialogMotion = isDesktop
     ? {
         initial: { opacity: 0, scale: 0.94, y: 24 },
         animate: { opacity: 1, scale: 1, y: 0 },
         exit: { opacity: 0, scale: 0.96, y: 16 },
-        transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
       }
     : {
         initial: { y: "100%" },
         animate: { y: 0 },
         exit: { y: "100%" },
-        transition: { type: "spring" as const, stiffness: 380, damping: 36 },
       };
+
+  const heightTransition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.38, ease: [0.16, 1, 0.3, 1] as const };
+
+  const dialogTransition = isDesktop
+    ? {
+        duration: 0.4,
+        ease: [0.16, 1, 0.3, 1] as const,
+        height: heightTransition,
+      }
+    : {
+        y: { type: "spring" as const, stiffness: 380, damping: 36 },
+        height: heightTransition,
+      };
+
+  const activeTitle = actionTabs[activeActionIndex ?? -1]?.title;
+  const formInstanceKey = `${activeTitle ?? "form"}-${sessionKey}`;
+  const animatedHeight =
+    reduceMotion || !heightReady || sheetHeight === "auto" ? "auto" : sheetHeight;
+
+  const newsletterSeed = getFormSeed("Newsletter");
+  const volunteerSeed = getFormSeed("Volunteer");
+  const donateSeed = getFormSeed("Donate");
+  const membershipSeed = getFormSeed(
+    "Membership",
+    initialMembershipCategory ? { membershipCategory: initialMembershipCategory } : {},
+  );
+  const vendorSeed = getFormSeed("Vendor");
+  const contactSeed = getFormSeed("Contact", {
+    message: initialContactMessage ?? "",
+  });
+
+  const SUCCESS_MESSAGES: Record<string, string> = {
+    Newsletter: "Thanks! You're on the newsletter list.",
+    Volunteer: "Thanks for volunteering with ASOSC!",
+    Donate: "Thank you for your generous donation!",
+    Membership: "Thanks! Your membership application was received.",
+    Vendor: "Thanks! Your vendor registration was received.",
+    Contact: "Thanks! Your message was sent.",
+  };
+
+  const handleFormSuccessChange = (success: boolean, values?: FormValues) => {
+    setFormSucceeded(success);
+    if (success) {
+      setSuccessMessage(SUCCESS_MESSAGES[activeTitle ?? ""] ?? "Sent.");
+      setSuccessValues(values ?? null);
+    }
+  };
+
+  const membershipSuccessCategory =
+    activeTitle === "Membership" && successValues
+      ? membershipCategoryOptions.find(
+          (option) => option.value === String(successValues.membershipCategory ?? ""),
+        )
+      : undefined;
+  const membershipSuccessName = successValues
+    ? [successValues.firstName, successValues.lastName]
+        .map((part) => String(part ?? "").trim())
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
+  const handleDownloadMembershipCard = async () => {
+    const node = membershipCardRef.current;
+    if (!node) return;
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(node, { pixelRatio: 3, cacheBust: true });
+      const link = document.createElement("a");
+      link.download = "asosc-membership-card.png";
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      // Download is best-effort; the card stays visible either way.
+    }
+  };
+
+  const formGuards = (formId: string) => ({
+    onDirtyChange: (dirty: boolean, source: "hydrate" | "edit") =>
+      handleDirtyChange(formId, dirty, source),
+    onDraftChange: (draft: FormDraft, source: "hydrate" | "edit") =>
+      handleDraftChange(formId, draft, source),
+    onCompleted: () => handleFormCompleted(formId),
+    onSuccessChange: handleFormSuccessChange,
+  });
 
   if (!mounted) return null;
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={overlayRef} className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-end justify-center overflow-x-hidden sm:items-center">
+        <div
+          ref={overlayRef}
+          className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-end justify-center overflow-x-hidden md:items-center"
+        >
           <motion.div
             className="absolute inset-0 bg-black/30"
             initial={{ opacity: 0 }}
@@ -318,14 +460,20 @@ export function JoinCommunityModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="join-community-heading"
-            className="join-modal relative flex h-[80dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl pb-(--safe-bottom) sm:h-auto sm:max-h-none sm:rounded-2xl sm:pb-0"
-            style={{ backgroundColor: "var(--cream-light)" }}
+            className="join-modal relative flex w-full max-w-xl flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
+            style={{
+              backgroundColor: "var(--cream-light)",
+              maxHeight: isDesktop ? "min(75vh, 40rem)" : "78dvh",
+            }}
             initial={dialogMotion.initial}
-            animate={dialogMotion.animate}
+            animate={{
+              ...dialogMotion.animate,
+              height: animatedHeight,
+            }}
             exit={dialogMotion.exit}
-            transition={dialogMotion.transition}
+            transition={dialogTransition}
           >
-            {/* Navbar-style header — texture fills rounded top incl. handle area */}
+            <div ref={sheetContentRef} className="flex w-full flex-col">
             <div className="join-modal__header relative shrink-0">
               <div className="absolute inset-0" style={navbarBackgroundStyle} aria-hidden="true" />
 
@@ -333,813 +481,213 @@ export function JoinCommunityModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="join-modal__close focus-ring-light absolute top-3 right-3 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 active:scale-95 sm:top-3.5 sm:right-3.5"
+                className="join-modal__close focus-ring-light absolute top-3 right-3 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-transform duration-150 hover:scale-110 active:scale-95 md:top-3.5 md:right-3.5"
               >
-                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  aria-hidden="true"
+                >
                   <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
                 </svg>
               </button>
 
-              <div className="relative z-10 flex justify-center pt-3 sm:hidden" aria-hidden="true">
+              <div className="relative z-10 flex justify-center pt-3 md:hidden" aria-hidden="true">
                 <div className="h-1 w-10 rounded-full bg-(--yellow)" />
               </div>
 
               <h2
                 id="join-community-heading"
-                className="relative z-10 px-10 pt-3 pb-5 text-center text-lg font-bold text-white sm:px-6 sm:pt-4 sm:pb-6 sm:text-xl"
+                className="relative z-10 px-10 pt-3 pb-5 text-center text-lg font-bold text-white md:px-6 md:pt-4 md:pb-6 md:text-xl"
               >
                 Join Our Community
               </h2>
             </div>
 
-            {/* Body */}
-            <div className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-6 text-center sm:h-[60vh] sm:flex-none sm:px-10 sm:py-10">
+            <div className="relative flex min-h-0 shrink flex-col overflow-y-auto px-5 pt-3 md:px-8 md:pt-5">
               <div className="join-modal__grain" aria-hidden="true" />
-              {actionTabs[activeActionIndex ?? -1]?.title === "Newsletter" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Stay Connected!
-                  </h2>
-                  <form className="space-y-4" onSubmit={handleNewsletterSubmit}>
-                    <div>
-                      <label className={fieldLabelClassName}>
-                        Name <span className="text-(--orange)">*</span>
-                      </label>
-                      <NameFields />
-                    </div>
 
-                    <div>
-                      <label htmlFor="newsletter-email" className={fieldLabelClassName}>
-                        Email <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="newsletter-email"
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Do you reside or own a business in Strathcona County?
-                      </span>
-                      <div className="flex gap-6">
-                        <label className="flex items-center gap-2 text-black">
-                          <input
-                            type="radio"
-                            name="strathconaResident"
-                            value="yes"
-                            className="accent-(--brown-dark)"
-                          />
-                          Yes
-                        </label>
-                        <label className="flex items-center gap-2 text-black">
-                          <input
-                            type="radio"
-                            name="strathconaResident"
-                            value="no"
-                            className="accent-(--brown-dark)"
-                          />
-                          No
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={newsletterStatus === "submitting"}
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
-                    >
-                      {newsletterStatus === "submitting" ? "Subscribing..." : "Subscribe"}
-                    </button>
-                    {newsletterStatus === "success" && (
-                      <p className="text-sm font-semibold text-(--brown-dark)">
-                        Thanks! You&apos;re on the newsletter list.
-                      </p>
-                    )}
-                    {newsletterStatus === "error" && (
-                      <p className="text-sm font-semibold text-red-700">
-                        Something went wrong. Please try again.
-                      </p>
-                    )}
-                  </form>
-                </div>
-              )}
-              {actionTabs[activeActionIndex ?? -1]?.title === "Volunteer" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Volunteer Form
-                  </h2>
-                  <form className="space-y-4">
-                    <div>
-                      <label className={fieldLabelClassName}>
-                        Name <span className="text-(--orange)">*</span>
-                      </label>
-                      <NameFields />
-                    </div>
-
-                    <div>
-                      <label htmlFor="volunteer-email" className={fieldLabelClassName}>
-                        Email <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="volunteer-email"
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="volunteer-phone" className={fieldLabelClassName}>
-                        Phone Number <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="volunteer-phone"
-                        type="tel"
-                        name="phone"
-                        placeholder="123-456-7890"
-                        autoComplete="tel"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        How would you like to participate in ASOSC activities?{" "}
-                        <span className="text-(--orange)">*</span>
-                      </span>
-                      <div className="space-y-2">
-                        {volunteerInterests.map((interest) => (
-                          <label key={interest} className={checkboxLabelClassName}>
-                            <input
-                              type="checkbox"
-                              name="volunteerInterests"
-                              value={interest}
-                              className="accent-(--brown-dark)"
-                            />
-                            {interest}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="volunteer-comments" className={fieldLabelClassName}>
-                        Comments or Questions
-                      </label>
-                      <textarea
-                        id="volunteer-comments"
-                        name="comments"
-                        rows={4}
-                        className={fieldTextareaClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>Get Notified of Future Events</span>
-                      <label className={checkboxLabelClassName}>
-                        <input
-                          type="checkbox"
-                          name="futureEventsOptIn"
-                          className="accent-(--brown-dark)"
-                        />
-                        I would like to receive email updates regarding future conferences
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
-                    >
-                      Submit
-                    </button>
-                  </form>
-                </div>
-              )}
-              {actionTabs[activeActionIndex ?? -1]?.title === "Donate" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-2 text-lg font-bold text-black sm:text-xl">
-                    Send a Donation
-                  </h2>
-                  <p className="mb-6 text-sm text-black/70">
-                    Your generosity helps us build programs that uplift and empower the African
-                    community in Strathcona County.
-                  </p>
-
-                  <form className="space-y-4">
-                    <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-(--brown-dark)/15">
+              {formSucceeded ? (
+                <div className="guided-success relative z-10 mx-auto w-full max-w-md">
+                  <div className="guided-success__check" aria-hidden="true">
+                    <span className="guided-success__tick" />
+                  </div>
+                  <p className="guided-success__message">{successMessage || "Sent."}</p>
+                  {membershipSuccessCategory && (
+                    <div className="w-full pt-1">
                       <button
                         type="button"
-                        onClick={() => setDonationFrequency("once")}
-                        className={`px-4 py-3 text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${
-                          donationFrequency === "once"
-                            ? "bg-(--hero-cta) text-black"
-                            : "bg-white text-black/75 hover:bg-(--brown-dark)/5"
-                        }`}
+                        onClick={() => void handleDownloadMembershipCard()}
+                        className="mcard-download focus-ring-light"
+                        aria-label="Download your membership card"
                       >
-                        One Time
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDonationFrequency("monthly")}
-                        className={`px-4 py-3 text-sm font-bold uppercase tracking-wide transition-colors duration-200 ${
-                          donationFrequency === "monthly"
-                            ? "bg-(--hero-cta) text-black"
-                            : "bg-white text-black/75 hover:bg-(--brown-dark)/5"
-                        }`}
-                      >
-                        Monthly
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      {donationAmounts.map((amount) => (
-                        <button
-                          key={amount}
-                          type="button"
-                          onClick={() => setDonationAmount(amount)}
-                          className={`rounded-xl border px-4 py-3 text-center font-semibold transition-colors duration-200 ${
-                            donationAmount === amount
-                              ? "border-(--hero-cta) bg-(--hero-cta)/10 text-black"
-                              : "border-(--brown-dark)/15 bg-white text-black hover:bg-(--brown-dark)/5"
-                          }`}
-                        >
-                          ${amount}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div
-                      className={`flex items-center rounded-xl border px-4 py-3 transition-colors duration-200 ${
-                        donationAmount === "custom"
-                          ? "border-(--hero-cta) bg-(--hero-cta)/10"
-                          : "border-(--brown-dark)/15 bg-white"
-                      }`}
-                    >
-                      <span className="mr-1 font-semibold text-black">$</span>
-                      <input
-                        type="number"
-                        name="customAmount"
-                        min="1"
-                        placeholder="Other amount"
-                        value={customAmount}
-                        onChange={(event) => {
-                          setCustomAmount(event.target.value);
-                          setDonationAmount("custom");
-                        }}
-                        onFocus={() => setDonationAmount("custom")}
-                        className="w-full bg-transparent text-black placeholder:text-black/40 focus:outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
-                    >
-                      Donate
-                    </button>
-                  </form>
-                </div>
-              )}
-              {actionTabs[activeActionIndex ?? -1]?.title === "Membership" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Membership Form
-                  </h2>
-                  <form className="space-y-4">
-                    <div>
-                      <label className={fieldLabelClassName}>
-                        Name <span className="text-(--orange)">*</span>
-                      </label>
-                      <NameFields />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-email" className={fieldLabelClassName}>
-                        Email <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="membership-email"
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-phone" className={fieldLabelClassName}>
-                        Phone Number <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="membership-phone"
-                        type="tel"
-                        name="phone"
-                        placeholder="123-456-7890"
-                        autoComplete="tel"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-address" className={fieldLabelClassName}>
-                        Residential Address <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="membership-address"
-                        type="text"
-                        name="address"
-                        autoComplete="street-address"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Age <span className="text-(--orange)">*</span>
-                      </span>
-                      <RadioGroup name="age" options={ageOptions} />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Gender <span className="text-(--orange)">*</span>
-                      </span>
-                      <RadioGroup name="gender" options={genderOptions} />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-country" className={fieldLabelClassName}>
-                        Country of Origin <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="membership-country"
-                        type="text"
-                        name="countryOfOrigin"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-category" className={fieldLabelClassName}>
-                        Membership Category <span className="text-(--orange)">*</span>
-                      </label>
-                      <select
-                        id="membership-category"
-                        name="membershipCategory"
-                        required
-                        defaultValue=""
-                        className={fieldInputClassName}
-                      >
-                        <option value="" disabled>
-                          --- Select Choice ---
-                        </option>
-                        <option value="individual">Individual Membership</option>
-                        <option value="family">Family Membership</option>
-                        <option value="student">Student Membership</option>
-                        <option value="senior">Senior Membership</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="spouse-name" className={fieldLabelClassName}>
-                        Spouse&apos;s Full Name
-                      </label>
-                      <input
-                        id="spouse-name"
-                        type="text"
-                        name="spouseName"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="spouse-email" className={fieldLabelClassName}>
-                        Spouse&apos;s email address
-                      </label>
-                      <input
-                        id="spouse-email"
-                        type="email"
-                        name="spouseEmail"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="spouse-phone" className={fieldLabelClassName}>
-                        Spouse&apos;s phone number
-                      </label>
-                      <input
-                        id="spouse-phone"
-                        type="tel"
-                        name="spousePhone"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="spouse-address" className={fieldLabelClassName}>
-                        Spouse&apos;s residential address, if different from yours
-                      </label>
-                      <input
-                        id="spouse-address"
-                        type="text"
-                        name="spouseAddress"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Does your spouse consent to receive emails and text messages on updates
-                        about ASOSC activities?
-                      </span>
-                      <div className="flex flex-wrap gap-x-6 gap-y-2">
-                        {yesNoOptions.map((option) => (
-                          <label key={option} className={checkboxLabelClassName}>
-                            <input
-                              type="radio"
-                              name="spouseConsent"
-                              value={option}
-                              checked={spouseConsent === option}
-                              onChange={() => setSpouseConsent(option as "Yes" | "No")}
-                              className="accent-(--brown-dark)"
-                            />
-                            {option}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {spouseConsent === "Yes" && (
-                      <div>
-                        <label htmlFor="spouse-text-number" className={fieldLabelClassName}>
-                          Receive text to
-                        </label>
-                        <input
-                          id="spouse-text-number"
-                          type="tel"
-                          name="spouseTextNumber"
-                          placeholder="123-456-7890"
-                          className={fieldInputClassName}
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Do you want to register your children?
-                      </span>
-                      <div className="flex flex-wrap gap-x-6 gap-y-2">
-                        {yesNoOptions.map((option) => (
-                          <label key={option} className={checkboxLabelClassName}>
-                            <input
-                              type="radio"
-                              name="registerChildren"
-                              value={option}
-                              checked={registerChildren === option}
-                              onChange={() => setRegisterChildren(option as "Yes" | "No")}
-                              className="accent-(--brown-dark)"
-                            />
-                            {option}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {registerChildren === "Yes" && (
-                      <>
-                        <div>
-                          <label htmlFor="children-count" className={fieldLabelClassName}>
-                            Number of children
-                          </label>
-                          <select
-                            id="children-count"
-                            name="childrenCount"
-                            defaultValue=""
-                            className={fieldInputClassName}
-                          >
-                            <option value="" disabled>
-                              --- Select Choice ---
-                            </option>
-                            {childrenCountOptions.map((count) => (
-                              <option key={count} value={count}>
-                                {count}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label htmlFor="children-ages" className={fieldLabelClassName}>
-                            Ages of your children
-                          </label>
-                          <input
-                            id="children-ages"
-                            type="text"
-                            name="childrenAges"
-                            placeholder="e.g. 5, 7, 9, 10"
-                            className={fieldInputClassName}
+                        <div ref={membershipCardRef}>
+                          <MembershipCard
+                            categoryTitle={membershipSuccessCategory.title}
+                            price={membershipSuccessCategory.price}
+                            memberName={membershipSuccessName || undefined}
                           />
                         </div>
-                      </>
-                    )}
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        How would you like to participate in ASOSC activities
-                      </span>
-                      <CheckboxGroup
-                        name="membershipParticipation"
-                        options={membershipParticipationOptions}
-                      />
+                      </button>
+                      <p className="mcard-download__hint">Tap your card to save it</p>
                     </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Do you consent to receive emails and text messages on updates about ASOSC
-                        activities? <span className="text-(--orange)">*</span>
-                      </span>
-                      <RadioGroup name="consent" options={yesNoOptions} />
-                    </div>
-
-                    <div>
-                      <label htmlFor="membership-comments" className={fieldLabelClassName}>
-                        Comments
-                      </label>
-                      <p className="mb-1.5 text-xs text-black/60">
-                        Any concerns you desire our feedback on?
-                      </p>
-                      <textarea
-                        id="membership-comments"
-                        name="comments"
-                        rows={4}
-                        className={fieldTextareaClassName}
-                      />
-                    </div>
-
-                    <p className="text-xs text-black/60">
-                      The personal information collected is for ASOSC membership administration
-                      and communication and ASOSC may use automated tools for this purpose.
-                    </p>
-                    <p className="text-xs text-black/60">
-                      Information is collected under the requirement&apos;s of the Society&apos;s
-                      Act of Alberta.
-                    </p>
-                    <p className="text-xs text-black/60">
-                      Questions about this collection may be directed to: info@asosc.ca
-                    </p>
-
-                    <button
-                      type="submit"
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
-                    >
-                      Submit
-                    </button>
-                  </form>
+                  )}
                 </div>
+              ) : (
+                <>
+              {activeTitle === "Newsletter" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={newsletterSteps}
+                  initialValues={newsletterSeed.initialValues}
+                  baselineValues={newsletterSeed.baselineValues}
+                  initialStepIndex={newsletterSeed.initialStepIndex}
+                  info="Receive ASOSC news, events, and community updates by email."
+                  submitLabel="Subscribe"
+                  successMessage="Thanks! You're on the newsletter list."
+                  onSubmit={handleNewsletterSubmit}
+                  {...formGuards("Newsletter")}
+                />
               )}
-              {actionTabs[activeActionIndex ?? -1]?.title === "Vendor" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Vendor Registration Form
-                  </h2>
-                  <form className="space-y-4">
-                    <div>
-                      <label htmlFor="vendor-business-name" className={fieldLabelClassName}>
-                        Business / Vendor Name <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="vendor-business-name"
-                        type="text"
-                        name="businessName"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
 
-                    <div>
-                      <label className={fieldLabelClassName}>
-                        Contact Person <span className="text-(--orange)">*</span>
-                      </label>
-                      <NameFields />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-email" className={fieldLabelClassName}>
-                        Email <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="vendor-email"
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-phone" className={fieldLabelClassName}>
-                        Phone Number <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="vendor-phone"
-                        type="tel"
-                        name="phone"
-                        placeholder="123-456-7890"
-                        autoComplete="tel"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-address" className={fieldLabelClassName}>
-                        Business Address
-                      </label>
-                      <input
-                        id="vendor-address"
-                        type="text"
-                        name="address"
-                        autoComplete="street-address"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-website" className={fieldLabelClassName}>
-                        Website or Social Media
-                      </label>
-                      <input
-                        id="vendor-website"
-                        type="url"
-                        name="website"
-                        placeholder="https://"
-                        className={fieldInputClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-products" className={fieldLabelClassName}>
-                        Products or Services Offered <span className="text-(--orange)">*</span>
-                      </label>
-                      <textarea
-                        id="vendor-products"
-                        name="productsServices"
-                        rows={3}
-                        required
-                        placeholder="Describe what you plan to sell or showcase"
-                        className={fieldTextareaClassName}
-                      />
-                    </div>
-
-                    <div>
-                      <span className={fieldLabelClassName}>
-                        Events You Are Interested In <span className="text-(--orange)">*</span>
-                      </span>
-                      <CheckboxGroup name="vendorEvents" options={vendorEventOptions} />
-                    </div>
-
-                    <div>
-                      <label htmlFor="vendor-comments" className={fieldLabelClassName}>
-                        Additional Comments
-                      </label>
-                      <textarea
-                        id="vendor-comments"
-                        name="comments"
-                        rows={4}
-                        className={fieldTextareaClassName}
-                      />
-                    </div>
-
-                    <p className="text-xs text-black/60">
-                      The personal information collected is for ASOSC vendor coordination and
-                      communication. Questions about this collection may be directed to: info@asosc.ca
-                    </p>
-
-                    <button
-                      type="submit"
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
-                    >
-                      Submit Registration
-                    </button>
-                  </form>
-                </div>
+              {activeTitle === "Volunteer" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={volunteerSteps}
+                  initialValues={volunteerSeed.initialValues}
+                  baselineValues={volunteerSeed.baselineValues}
+                  initialStepIndex={volunteerSeed.initialStepIndex}
+                  info="Share your time and skills with the African community in Strathcona County."
+                  submitLabel="Submit"
+                  successMessage="Thanks for volunteering with ASOSC!"
+                  onSubmit={async (values) => {
+                    await handleGenericSubmit(valuesToPayload(values));
+                  }}
+                  {...formGuards("Volunteer")}
+                />
               )}
-              {actionTabs[activeActionIndex ?? -1]?.title === "Contact" && (
-                <div className="relative z-10 mx-auto max-w-md text-left">
-                  <h2 className="mb-4 text-lg font-bold text-black sm:text-xl">
-                    Contact Us
-                  </h2>
-                  <form className="space-y-4">
-                    <div>
-                      <label className={fieldLabelClassName}>
-                        Name <span className="text-(--orange)">*</span>
-                      </label>
-                      <NameFields />
-                    </div>
 
-                    <div>
-                      <label htmlFor="contact-phone" className={fieldLabelClassName}>
-                        Phone (Optional)
-                      </label>
-                      <input
-                        id="contact-phone"
-                        type="tel"
-                        name="phone"
-                        placeholder="123-456-7890"
-                        autoComplete="tel"
-                        className={fieldInputClassName}
-                      />
-                    </div>
+              {activeTitle === "Donate" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={donateSteps}
+                  initialValues={donateSeed.initialValues}
+                  baselineValues={donateSeed.baselineValues}
+                  initialStepIndex={donateSeed.initialStepIndex}
+                  info="Supports African community programs in Strathcona County."
+                  submitLabel="Donate"
+                  successMessage="Thank you for your generous donation!"
+                  onSubmit={async (values) => {
+                    await handleGenericSubmit(valuesToPayload(values));
+                  }}
+                  {...formGuards("Donate")}
+                />
+              )}
 
-                    <div>
-                      <label htmlFor="contact-email" className={fieldLabelClassName}>
-                        Email <span className="text-(--orange)">*</span>
-                      </label>
-                      <input
-                        id="contact-email"
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        required
-                        className={fieldInputClassName}
-                      />
-                    </div>
+              {activeTitle === "Membership" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={membershipSteps}
+                  initialValues={membershipSeed.initialValues}
+                  baselineValues={membershipSeed.baselineValues}
+                  initialStepIndex={membershipSeed.initialStepIndex}
+                  info="Official ASOSC membership helps sustain community programs year-round."
+                  submitLabel="Submit"
+                  successMessage="Thanks! Your membership application was received."
+                  onSubmit={async (values) => {
+                    await handleGenericSubmit(valuesToPayload(values));
+                  }}
+                  {...formGuards("Membership")}
+                />
+              )}
 
-                    <div>
-                      <label htmlFor="contact-message" className={fieldLabelClassName}>
-                        Comment or Message <span className="text-(--orange)">*</span>
-                      </label>
-                      <textarea
-                        id="contact-message"
-                        name="message"
-                        rows={4}
-                        required
-                        value={contactMessage}
-                        onChange={(event) => setContactMessage(event.target.value)}
-                        className={fieldTextareaClassName}
-                      />
-                    </div>
+              {activeTitle === "Vendor" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={vendorSteps}
+                  initialValues={vendorSeed.initialValues}
+                  baselineValues={vendorSeed.baselineValues}
+                  initialStepIndex={vendorSeed.initialStepIndex}
+                  info="Register to sell food, crafts, or services at ASOSC events."
+                  submitLabel="Submit Registration"
+                  successMessage="Thanks! Your vendor registration was received."
+                  onSubmit={async (values) => {
+                    await handleGenericSubmit(valuesToPayload(values));
+                  }}
+                  {...formGuards("Vendor")}
+                />
+              )}
 
-                    <button
-                      type="submit"
-                      className="hero-cta-btn focus-ring-light inline-flex min-h-14 w-full cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out sm:w-auto"
-                    >
-                      Send Message
-                    </button>
-                  </form>
-                </div>
+              {activeTitle === "Contact" && (
+                <GuidedForm
+                  formKey={formInstanceKey}
+                  steps={contactSteps}
+                  initialValues={contactSeed.initialValues}
+                  baselineValues={contactSeed.baselineValues}
+                  initialStepIndex={contactSeed.initialStepIndex}
+                  info="Send a message to the ASOSC team — we typically reply within a few days."
+                  submitLabel="Send Message"
+                  successMessage="Thanks! Your message was sent."
+                  onSubmit={async (values) => {
+                    await handleGenericSubmit(valuesToPayload(values));
+                  }}
+                  {...formGuards("Contact")}
+                />
+              )}
+                </>
               )}
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-center border-t border-(--brown-dark)/10 px-6 py-10 sm:px-10 sm:py-12">
-              <div className="flex w-full max-w-full items-center gap-2 sm:gap-3">
+            {!formSucceeded && (
+            <div className="flex shrink-0 justify-center px-5 pt-3 pb-[max(1.25rem,var(--safe-bottom))] md:px-8 md:pb-6 md:pt-5">
+              <div className="flex w-full max-w-full items-center gap-2 md:gap-3">
                 <button
                   type="button"
                   onClick={goToPreviousAction}
-                  aria-label="Previous community action"
-                  className="focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                  aria-label={
+                    tabsLocked
+                      ? "Unlock action tabs"
+                      : "Previous community action"
+                  }
+                  className={`focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-opacity duration-200 hover:bg-[#343434] ${
+                    tabsLocked ? "opacity-70" : ""
+                  }`}
                 >
-                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <ChevronLeft className="h-5 w-5" />
                 </button>
 
-                <ExpandableTabs
-                  tabs={actionTabs}
-                  selected={activeActionIndex}
-                  onChange={(index) => {
-                    if (index !== null) setActiveActionIndex(index);
-                  }}
-                  className="min-w-0 flex-1"
-                />
+                <div className="flex min-w-0 flex-1 justify-center">
+                  <ExpandableTabs
+                    tabs={actionTabs}
+                    selected={activeActionIndex}
+                    muted={tabsLocked}
+                    onChange={(index) => {
+                      if (index !== null) requestActionSwitch(index);
+                    }}
+                    className="max-w-full"
+                  />
+                </div>
 
                 <button
                   type="button"
                   onClick={goToNextAction}
-                  aria-label="Next community action"
-                  className="focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-colors hover:bg-[#343434] sm:h-11 sm:w-11"
+                  aria-label={
+                    tabsLocked
+                      ? "Unlock action tabs"
+                      : "Next community action"
+                  }
+                  className={`focus-ring-light flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#2a2a2a] text-(--orange) transition-opacity duration-200 hover:bg-[#343434] ${
+                    tabsLocked ? "opacity-70" : ""
+                  }`}
                 >
-                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
+            </div>
+            )}
             </div>
           </motion.div>
         </div>
