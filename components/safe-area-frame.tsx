@@ -3,13 +3,15 @@
  * (home-indicator) safe-area insets.
  *
  * These are real DOM elements — not body::before/::after pseudo-elements —
- * and each is promoted to its own compositing layer (translateZ(0)). iOS
+ * and each is promoted to its own compositing layer (translate3d). iOS
  * Safari otherwise fails to paint fixed elements into the safe-area region
  * on first frame, leaving stale color (e.g. the dark loading screen) behind
- * the status bar until a scroll/overscroll forces a repaint. A composited
- * real element paints correctly from load and stays above every other layer
- * (loading screen, modals, orientation lock), so the top is always the header
- * color and the bottom is always black — in every state.
+ * the status bar until a scroll/overscroll forces a repaint.
+ *
+ * Must stay outside any filter/blur tree (Join Community blurs other body
+ * children, never these). Top matches --page-chrome; bottom stays black.
+ * The loading screen is also inset from the top so html/body chrome shows
+ * in the notch even before these strips composite.
  */
 export function SafeAreaFrame() {
   return (

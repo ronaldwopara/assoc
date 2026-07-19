@@ -285,18 +285,29 @@ export function JoinCommunityModal({
   useEffect(() => {
     if (!isOpen) return;
     const overlay = overlayRef.current;
-    const targets = [...document.body.children].filter(
-      (el) => el !== overlay && el.tagName !== "SCRIPT",
-    );
+    // Never blur safe-area strips (or the orientation lock): filter on those
+    // fixed edge layers leaves a stale frosted composite in iOS Safari's
+    // notch / home-indicator regions after the modal closes.
+    const targets = [...document.body.children].filter((el) => {
+      if (el === overlay || el.tagName === "SCRIPT") return false;
+      if (!(el instanceof HTMLElement)) return false;
+      return (
+        !el.classList.contains("safe-area-strip") &&
+        !el.classList.contains("orientation-lock")
+      );
+    });
     targets.forEach((el) => el.classList.add("page-blur-target", "is-blurred"));
     return () => {
-      targets.forEach((el) => el.classList.remove("is-blurred"));
+      targets.forEach((el) => {
+        el.classList.remove("is-blurred", "page-blur-target");
+      });
     };
   }, [isOpen]);
 
   const [isDesktop, setIsDesktop] = useState(false);
   const reduceMotion = useReducedMotion();
   const sheetContentRef = useRef<HTMLDivElement>(null);
+  const measureSheetRef = useRef<() => void>(() => {});
   const [sheetHeight, setSheetHeight] = useState<number | "auto">("auto");
   const [heightReady, setHeightReady] = useState(false);
 
@@ -309,11 +320,9 @@ export function JoinCommunityModal({
   }, []);
 
   useLayoutEffect(() => {
-    if (!isOpen) {
-      setSheetHeight("auto");
-      setHeightReady(false);
-      return;
-    }
+    // Reset height only after exit finishes (see onExitComplete) so close
+    // animations are not interrupted by snapping height to "auto".
+    if (!isOpen) return;
 
     const node = sheetContentRef.current;
     if (!node || typeof ResizeObserver === "undefined") return;
@@ -324,11 +333,16 @@ export function JoinCommunityModal({
       return Math.min(vhCap, remCap);
     };
 
+    // offsetHeight ignores CSS transforms (e.g. desktop open scale: 0.94),
+    // so the first lock matches the post-tab-switch height.
     const measure = () => {
-      const next = Math.ceil(node.getBoundingClientRect().height);
-      if (next > 0) setSheetHeight(Math.min(next, maxSheetHeight()));
+      const next = Math.ceil(node.offsetHeight);
+      if (next <= 0) return;
+      const capped = Math.min(next, maxSheetHeight());
+      setSheetHeight((prev) => (prev === capped ? prev : capped));
     };
 
+    measureSheetRef.current = measure;
     measure();
     const readyFrame = requestAnimationFrame(() => setHeightReady(true));
     const observer = new ResizeObserver(measure);
@@ -339,11 +353,21 @@ export function JoinCommunityModal({
     };
   }, [isOpen, activeActionIndex, sessionKey, isDesktop]);
 
+  const resetSheetHeight = () => {
+    setSheetHeight("auto");
+    setHeightReady(false);
+  };
+
+  const handleDialogAnimationComplete = () => {
+    if (isOpen) measureSheetRef.current();
+  };
+
   const dialogMotion = isDesktop
     ? {
-        initial: { opacity: 0, scale: 0.94, y: 24 },
-        animate: { opacity: 1, scale: 1, y: 0 },
-        exit: { opacity: 0, scale: 0.96, y: 16 },
+        // Opacity is handled by the overlay so we don't double-fade.
+        initial: { scale: 0.94, y: 24 },
+        animate: { scale: 1, y: 0 },
+        exit: { scale: 0.96, y: 16 },
       }
     : {
         initial: { y: "100%" },
@@ -440,18 +464,23 @@ export function JoinCommunityModal({
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={resetSheetHeight}>
       {isOpen && (
-        <div
+        <motion.div
+          key="join-community-modal"
           ref={overlayRef}
           className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-end justify-center overflow-x-hidden md:items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{
+            // Mobile stays mounted long enough for the sheet spring to finish.
+            duration: reduceMotion ? 0 : isDesktop ? 0.35 : 0.55,
+            ease: "easeOut",
+          }}
         >
-          <motion.div
+          <div
             className="absolute inset-0 bg-black/30"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
             onClick={onClose}
             aria-hidden="true"
           />
@@ -472,6 +501,7 @@ export function JoinCommunityModal({
             }}
             exit={dialogMotion.exit}
             transition={dialogTransition}
+            onAnimationComplete={handleDialogAnimationComplete}
           >
             <div ref={sheetContentRef} className="flex w-full flex-col">
             <div className="join-modal__header relative shrink-0">
@@ -690,7 +720,7 @@ export function JoinCommunityModal({
             )}
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body,

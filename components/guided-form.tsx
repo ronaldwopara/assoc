@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronDown, Copy, Info } from "lucide-react";
+import { ChevronDown, Copy } from "lucide-react";
 import { isFormDraftDirty } from "@/lib/join-community-drafts";
 import {
   E_TRANSFER_EMAIL,
@@ -1047,9 +1047,8 @@ export function GuidedForm({
                   {currentStep.title}
                 </h2>
                 {currentStep.helper && (
-                  <p className="flex items-start gap-1.5 text-xs text-pretty text-black/55">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    <span>{currentStep.helper}</span>
+                  <p className="text-xs text-pretty text-black/55">
+                    {currentStep.helper}
                   </p>
                 )}
               </div>

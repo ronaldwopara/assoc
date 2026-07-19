@@ -170,14 +170,14 @@ function GalleryModal({
       aria-modal="true"
       aria-label={selectedItem.title}
     >
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-x-hidden sm:px-6 lg:px-10">
       {/* Card */}
       <motion.div
         initial={{ scale: 0.97, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.97, opacity: 0 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="relative mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-2xl max-[629px]:rounded-t-none sm:my-4 sm:max-w-5xl sm:rounded-2xl md:my-8 lg:max-w-6xl"
+        className="relative mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-t-2xl max-[629px]:rounded-t-none sm:my-4 sm:max-w-5xl sm:rounded-2xl md:my-8 lg:max-w-[90rem]"
       >
         {/* Full-bleed media */}
         <AnimatePresence mode="wait">
@@ -212,17 +212,13 @@ function GalleryModal({
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedItem.id}
-            className={`pointer-events-none absolute inset-0 z-50 ${drawerOpen ? "hidden lg:flex" : "flex"} flex-col items-start pl-6 text-left text-white sm:pl-12 lg:pl-16 ${
-              drawerOpen
-                ? "justify-end pb-32 pr-6 lg:pb-36 lg:pr-[calc(28rem+3.5rem+1.5rem)]"
-                : "justify-center pb-28 pr-20 sm:pr-24"
-            }`}
+            className={`pointer-events-none absolute inset-0 z-50 ${drawerOpen ? "hidden lg:flex" : "flex"} flex-col items-start justify-center pb-28 pl-6 pr-20 text-left text-white sm:pl-12 sm:pr-24 lg:pl-16`}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <div className={`pointer-events-auto w-full ${drawerOpen ? "max-w-none" : "max-w-2xl"}`}>
+            <div className="pointer-events-auto w-full max-w-2xl">
               <h2 className="wrap-break-word text-[clamp(1.75rem,4vw,3.25rem)] font-bold uppercase leading-[1.1] tracking-wide drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]">
                 {selectedItem.title}
               </h2>

@@ -43,12 +43,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen antialiased" suppressHydrationWarning>
+        {/* Mount strips first so the notch/home-indicator paint before splash/modals */}
+        <SafeAreaFrame />
         <PreventTextCaret />
         <SkipLink />
         {children}
         <Footer />
         <OrientationLock />
-        <SafeAreaFrame />
       </body>
     </html>
   );

@@ -1,53 +1,31 @@
 "use client";
 
-import { Children, useLayoutEffect, useRef, type ReactNode } from "react";
+import Image from "next/image";
+import { Children, type ReactNode } from "react";
 
 const CARD_BACKGROUNDS = ["var(--hero-cta)", "var(--ink)"] as const;
 
 export function StackedCardBody({
-  videoSrc,
-  videoLabel,
+  imageSrc,
+  imageAlt,
   children,
 }: {
-  videoSrc: string;
-  videoLabel: string;
+  imageSrc: string;
+  imageAlt: string;
   children: ReactNode;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useLayoutEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          void video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      },
-      { threshold: 0.35 },
-    );
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [videoSrc]);
-
   return (
     <div className="stacked-card__layout">
       <div className="stacked-card__content">{children}</div>
       <div className="stacked-card__media">
         <div className="stacked-card__media-frame">
-          <video
-            ref={videoRef}
-            className="stacked-card__video"
-            src={videoSrc}
-            aria-label={videoLabel}
-            muted
-            loop
-            playsInline
-            preload="metadata"
+          <Image
+            className="stacked-card__image"
+            src={imageSrc}
+            alt={imageAlt}
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 420px"
           />
         </div>
       </div>

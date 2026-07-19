@@ -79,8 +79,8 @@ export function AboutContent({ footer }: { footer?: React.ReactNode }) {
 
       <StackedCards>
         <StackedCardBody
-          videoSrc="https://res.cloudinary.com/daldas2e7/video/upload/v1782756282/asosc/videos/african-festival-optimized.mp4"
-          videoLabel="African Festival community celebration"
+          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp"
+          imageAlt="Community members gathered together at an ASOSC event"
         >
           <h3 className="mb-4">Our Mission</h3>
           <ul className="stacked-card__list">
@@ -101,8 +101,8 @@ export function AboutContent({ footer }: { footer?: React.ReactNode }) {
         </StackedCardBody>
 
         <StackedCardBody
-          videoSrc="https://res.cloudinary.com/daldas2e7/video/upload/v1782761786/asosc/videos/black-history-month-optimized.mp4"
-          videoLabel="Black History Month celebration"
+          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp"
+          imageAlt="Group portrait celebrating in vibrant traditional attire"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
           <p className="text-(--orange-light)!">

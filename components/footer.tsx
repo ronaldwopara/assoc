@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Info, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
 import { handleSectionLinkClick } from "@/lib/section-link";
@@ -80,7 +80,6 @@ export function Footer() {
 
         <div className="footer__body">
           <p className="footer__acknowledgment">
-            <Info className="footer__acknowledgment-icon" aria-hidden="true" />
             <span>
               We respectfully acknowledge that the Africans Society of Strathcona
               County operates on Treaty 6 Territory, the traditional lands of many
