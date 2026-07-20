@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { GalleryImage } from "@/lib/gallery-images";
+import { MediaPlaceholder, useMediaLoaded } from "@/components/media-placeholder";
+import { cn } from "@/lib/utils";
 
 type GalleryLightboxProps = {
   images: GalleryImage[];
@@ -13,6 +15,31 @@ type GalleryLightboxProps = {
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
+
+// Keyed by src at the call site so every navigation remounts it: the skeleton
+// resets to loading and the hook's ref reveals instantly if the next image is
+// already cached (a same-element src swap can miss the load event).
+function LightboxImage({ src, alt }: { src: string; alt: string }) {
+  const { loaded, markLoaded, imgRef } = useMediaLoaded();
+
+  return (
+    <MediaPlaceholder loaded={loaded} tone="dark" className="relative max-h-full max-w-full">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        className={cn(
+          "gallery-lightbox__image transition-opacity duration-300 ease-out",
+          !loaded && "opacity-0",
+        )}
+        draggable={false}
+        onLoad={markLoaded}
+        onError={markLoaded}
+      />
+    </MediaPlaceholder>
+  );
+}
 
 export function GalleryLightbox({
   images,
@@ -252,13 +279,7 @@ export function GalleryLightbox({
             cursor: scale > 1 ? "grab" : "default",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image.src}
-            alt={image.alt}
-            className="gallery-lightbox__image"
-            draggable={false}
-          />
+          <LightboxImage key={image.src} src={image.src} alt={image.alt} />
         </div>
       </div>
     </div>,

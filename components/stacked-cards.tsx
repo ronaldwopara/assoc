@@ -1,7 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Children, type ReactNode } from "react";
+import { Children, useState, type ReactNode } from "react";
+import {
+  MediaPlaceholder,
+  type MediaPlaceholderTone,
+} from "@/components/media-placeholder";
+import { cn } from "@/lib/utils";
 
 const CARD_BACKGROUNDS = ["var(--hero-cta)", "var(--ink)"] as const;
 
@@ -9,24 +14,44 @@ export function StackedCardBody({
   imageSrc,
   imageAlt,
   children,
+  mediaTone = "neutral",
+  priority = false,
 }: {
   imageSrc: string;
   imageAlt: string;
   children: ReactNode;
+  mediaTone?: MediaPlaceholderTone;
+  /** Set for a card that renders above the fold (e.g. first card on /about)
+   *  so its image is fetched eagerly instead of Next's lazy default. */
+  priority?: boolean;
 }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <div className="stacked-card__layout">
       <div className="stacked-card__content">{children}</div>
       <div className="stacked-card__media">
         <div className="stacked-card__media-frame">
-          <Image
-            className="stacked-card__image"
-            src={imageSrc}
-            alt={imageAlt}
-            fill
-            unoptimized
-            sizes="(max-width: 768px) 100vw, 420px"
-          />
+          <MediaPlaceholder
+            loaded={imageLoaded}
+            tone={mediaTone}
+            className="absolute inset-0"
+          >
+            <Image
+              className={cn(
+                "stacked-card__image transition-opacity duration-300 ease-out",
+                !imageLoaded && "opacity-0",
+              )}
+              src={imageSrc}
+              alt={imageAlt}
+              fill
+              unoptimized
+              priority={priority}
+              loading={priority ? "eager" : undefined}
+              sizes="(max-width: 768px) 100vw, 420px"
+              onLoad={() => setImageLoaded(true)}
+            />
+          </MediaPlaceholder>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useInView } from "framer-motion";
 import { GalleryLightbox } from "@/components/gallery-lightbox";
 import { GALLERY_CATEGORIES } from "@/lib/gallery-categories";
 import { getGalleryImagesForSelection, type GalleryImage } from "@/lib/gallery-images";
+import { MediaPlaceholder } from "@/components/media-placeholder";
 import { cn } from "@/lib/utils";
 
 const AFRICAN_FESTIVAL_ALBUM_URL =
@@ -83,7 +84,12 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
         <div className="gallery-bento" aria-hidden>
           {Array.from({ length: PREVIEW_TILE_COUNT }, (_, index) => (
             <div key={index} className="gallery-bento__item">
-              <div className="gallery-bento__placeholder" />
+              <MediaPlaceholder
+                loaded={false}
+                tone="light"
+                showSheen={false}
+                className="absolute inset-0 rounded-[0.95rem]"
+              />
             </div>
           ))}
         </div>
@@ -165,6 +171,13 @@ function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
   const isInView = useInView(ref, { once: true });
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
+  // Reveal an already-cached image whose load event fired before this handler
+  // attached (hydration / bfcache / remount), which onLoad alone would miss.
+  const imgRef = React.useCallback((node: HTMLImageElement | null) => {
+    if (!node?.complete) return;
+    if (node.naturalWidth > 0) setIsLoaded(true);
+    else setHasError(true);
+  }, []);
 
   return (
     <button
@@ -174,15 +187,15 @@ function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
       onClick={() => onActivate(image)}
       aria-label={`View ${image.alt}`}
     >
-      <div
-        className={cn("gallery-bento__placeholder", {
-          "opacity-0": isLoaded && !hasError,
-        })}
-        aria-hidden
+      <MediaPlaceholder
+        loaded={isLoaded && !hasError}
+        tone="light"
+        className="absolute inset-0 rounded-[0.95rem]"
       />
       {!hasError && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={imgRef}
           alt=""
           src={image.src}
           className={cn("gallery-bento__image opacity-0 transition-opacity duration-300 ease-out", {

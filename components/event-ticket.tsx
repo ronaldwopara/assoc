@@ -13,10 +13,10 @@ const TICKET_TITLES: Record<string, string> = {
 };
 
 /** Stable fake serial so each ticket always prints the same number. */
-function serialFor(title: string): string {
+function serialFor(seed: string): string {
   let hash = 0;
-  for (let i = 0; i < title.length; i++) {
-    hash = (hash * 31 + title.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
   return String(hash % 100_000_000).padStart(8, "0");
 }
@@ -33,25 +33,34 @@ function EventTicket({ event, year }: { event: UpcomingEvent; year: number }) {
   return (
     <span className="eticket">
       <span className="eticket__sheen" aria-hidden="true" />
-      <span className="eticket__inner">
-        <span className="eticket__title">
-          {displayTitle} {year}
-        </span>
-        <span className="eticket__details">
-          <span className="eticket__date-pill">
-            {event.badge} {year}
-          </span>
-          <span className="eticket__row">
-            <span className="eticket__row-label">When:</span> {event.when}
-          </span>
-          <span className="eticket__row">
-            <span className="eticket__row-label">Where:</span> {event.location}
-          </span>
-        </span>
+
+      <span className="eticket__no eticket__no--left" aria-hidden="true">
+        NO.&nbsp;{serialFor(event.badge + event.when + event.title)}
       </span>
-      <span className="eticket__stub" aria-hidden="true">
-        <span className="eticket__barcode" />
-        <span className="eticket__no">NO. {serialFor(event.title)}</span>
+
+      <span className="eticket__body">
+        <span className="eticket__main">
+          <span className="eticket__title">
+            {displayTitle} {year}
+          </span>
+          <span className="eticket__details">
+            <span className="eticket__date-pill">
+              {event.badge} {year}
+            </span>
+            <span className="eticket__row">
+              <span className="eticket__row-label">When:</span> {event.when}
+            </span>
+            <span className="eticket__row">
+              <span className="eticket__row-label">Where:</span> {event.location}
+            </span>
+          </span>
+        </span>
+        <span className="eticket__perf" aria-hidden="true" />
+        <span className="eticket__barcode" aria-hidden="true" />
+      </span>
+
+      <span className="eticket__no eticket__no--right" aria-hidden="true">
+        NO.&nbsp;{serialFor(event.title)}
       </span>
     </span>
   );

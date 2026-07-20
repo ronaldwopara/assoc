@@ -11,6 +11,8 @@ import {
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ContentBrow } from "@/components/content-brow";
+import { MediaPlaceholder, useMediaLoaded } from "@/components/media-placeholder";
+import { cn } from "@/lib/utils";
 
 interface Testimonial {
   name: string;
@@ -33,6 +35,41 @@ const contentVariants = {
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
 };
+
+function TestimonialPhoto({
+  testimonial,
+  index,
+  style,
+}: {
+  testimonial: Testimonial;
+  index: number;
+  style: CSSProperties;
+}) {
+  const { loaded, markLoaded, imgRef } = useMediaLoaded();
+
+  return (
+    <div className="absolute inset-0" style={style} data-index={index}>
+      <MediaPlaceholder
+        loaded={loaded}
+        tone="light"
+        className="h-full w-full rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={imgRef}
+          src={testimonial.src}
+          alt={testimonial.name}
+          className={cn(
+            "absolute inset-0 h-full w-full rounded-3xl object-cover object-[center_20%] transition-opacity duration-300 ease-out",
+            !loaded && "opacity-0",
+          )}
+          onLoad={markLoaded}
+          onError={markLoaded}
+        />
+      </MediaPlaceholder>
+    </div>
+  );
+}
 
 export function CircularTestimonials({
   testimonials,
@@ -156,12 +193,10 @@ export function CircularTestimonials({
             style={{ perspective: "1000px" }}
           >
             {testimonials.map((testimonial, index) => (
-              <img
+              <TestimonialPhoto
                 key={testimonial.src}
-                src={testimonial.src}
-                alt={testimonial.name}
-                className="absolute inset-0 h-full w-full rounded-3xl object-cover object-[center_20%] shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
-                data-index={index}
+                testimonial={testimonial}
+                index={index}
                 style={getImageStyle(index)}
               />
             ))}

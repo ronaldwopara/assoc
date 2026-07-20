@@ -7,6 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import {
+  MediaPlaceholderImage,
+  MediaPlaceholderVideo,
+} from "@/components/media-placeholder";
+import { cn } from "@/lib/utils";
+import {
   AFRICAN_FESTIVAL_VOLUNTEER_FORM_URL,
   BLACK_HISTORY_MONTH_REGISTER_FORM_URL,
   BLACK_HISTORY_MONTH_VOLUNTEER_FORM_URL,
@@ -77,28 +82,29 @@ function MediaItem({
 }) {
   if (item.type === "video") {
     return (
-      <div className={`${className ?? ""} relative overflow-hidden`}>
-        <video
-          className="h-full w-full object-cover"
-          onClick={onClick}
-          src={item.url}
-          muted
-          loop
-          autoPlay
-          playsInline
-          preload="metadata"
-          aria-hidden={onClick ? undefined : true}
-        />
-      </div>
+      <MediaPlaceholderVideo
+        className="h-full w-full object-cover"
+        wrapperClassName={cn("relative h-full w-full overflow-hidden", className)}
+        onClick={onClick}
+        src={item.url}
+        tone="dark"
+        muted
+        loop
+        autoPlay
+        playsInline
+        preload="metadata"
+        aria-hidden={onClick ? undefined : true}
+      />
     );
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <MediaPlaceholderImage
       src={item.url}
       alt={item.title}
-      className={`${className ?? ""} cursor-pointer object-cover`}
+      tone="light"
+      className={cn("h-full w-full cursor-pointer object-cover", className)}
+      wrapperClassName={cn("relative h-full w-full", className)}
       onClick={onClick}
       loading="lazy"
       decoding="async"

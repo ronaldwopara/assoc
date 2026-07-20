@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { AboutContent, DocumentsSection } from "@/components/page-sections";
-import { AboutSectionShell } from "@/components/about-flags-texture";
+import { AboutSectionShell } from "@/components/about-section-shell";
 import { CircularTestimonials } from "@/components/circular-testimonials";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 
@@ -41,7 +41,7 @@ export default function AboutPage() {
       <Navbar />
       <main id="main-content" className="site-main">
         <AboutSectionShell aria-labelledby="about-heading">
-          <AboutContent />
+          <AboutContent priorityFirstImage />
         </AboutSectionShell>
 
         <section

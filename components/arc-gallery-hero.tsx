@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
+import { MediaPlaceholderImage } from "@/components/media-placeholder";
 
 interface ArcGalleryHeroProps {
   images: string[];
@@ -130,11 +131,13 @@ export function ArcGalleryHero({
                   className="h-full w-full overflow-hidden rounded-2xl bg-black shadow-xl shadow-black/35 ring-1 ring-(--cream-light)/20"
                   style={{ transform: `rotate(${round(angle / 4)}deg)` }}
                 >
-                  <img
+                  <MediaPlaceholderImage
                     src={src}
                     alt=""
-                    className="block h-full w-full object-cover"
+                    tone="dark"
                     draggable={false}
+                    className="block h-full w-full object-cover"
+                    wrapperClassName="h-full w-full"
                   />
                 </div>
               </div>

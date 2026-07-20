@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { MediaPlaceholder } from "@/components/media-placeholder";
+import { cn } from "@/lib/utils";
 
 const SLIDES = [
   { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp", alt: "Community members gathered together at an ASOSC event" },
@@ -18,6 +20,47 @@ const SLIDE_DURATION = 5550;
 // are in SLIDES — the active dot cycles through all 3 positions as slides
 // advance, so it moves on every transition.
 const DOT_COUNT = 3;
+
+function HeroSlide({
+  slide,
+  index,
+  isActive,
+  tick,
+  onFirstLoad,
+}: {
+  slide: (typeof SLIDES)[number];
+  index: number;
+  isActive: boolean;
+  tick: number;
+  onFirstLoad: () => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="hero-carousel-slide" data-active={isActive}>
+      <MediaPlaceholder loaded={loaded} tone="dark" className="absolute inset-0">
+        <Image
+          key={isActive ? `active-${tick}` : `idle-${index}`}
+          src={slide.src}
+          alt={slide.alt}
+          fill
+          priority={index === 0}
+          loading={index === 0 ? undefined : "eager"}
+          unoptimized
+          sizes="100vw"
+          className={cn(
+            "hero-carousel-image transition-opacity duration-300 ease-out",
+            !loaded && "opacity-0",
+          )}
+          onLoad={() => {
+            setLoaded(true);
+            if (index === 0) onFirstLoad();
+          }}
+        />
+      </MediaPlaceholder>
+    </div>
+  );
+}
 
 export function HeroCarousel() {
   const [active, setActive] = useState(0);
@@ -36,6 +79,11 @@ export function HeroCarousel() {
     return () => clearTimeout(id);
   }, [active, paused]);
 
+  const handleFirstLoad = () => {
+    (window as typeof window & { __heroReady?: boolean }).__heroReady = true;
+    window.dispatchEvent(new Event("heroReady"));
+  };
+
   return (
     <div
       className="hero-carousel"
@@ -46,25 +94,14 @@ export function HeroCarousel() {
       aria-label="Photos of ASOSC community events"
     >
       {SLIDES.map((slide, index) => (
-        <div key={slide.src} className="hero-carousel-slide" data-active={index === active}>
-          <Image
-            key={index === active ? `active-${tick}` : `idle-${index}`}
-            src={slide.src}
-            alt={slide.alt}
-            fill
-            priority={index === 0}
-            loading={index === 0 ? undefined : "eager"}
-            unoptimized
-            sizes="100vw"
-            className="hero-carousel-image"
-            onLoad={() => {
-              if (index === 0) {
-                (window as typeof window & { __heroReady?: boolean }).__heroReady = true;
-                window.dispatchEvent(new Event("heroReady"));
-              }
-            }}
-          />
-        </div>
+        <HeroSlide
+          key={slide.src}
+          slide={slide}
+          index={index}
+          isActive={index === active}
+          tick={tick}
+          onFirstLoad={handleFirstLoad}
+        />
       ))}
 
       <div className="hero-carousel-overlay" aria-hidden />

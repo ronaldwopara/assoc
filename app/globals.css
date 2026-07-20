@@ -863,13 +863,98 @@ textarea,
   outline-offset: 2px;
 }
 
-.gallery-bento__placeholder {
+/* ── Media loading placeholder (skeleton + membership sheen) ─────────── */
+.media-placeholder {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Full-bleed layer mode. This base block is unlayered, so it outranks
+   Tailwind's `absolute`/`inset-0` utilities (which live in @layer utilities) —
+   a caller's `className="absolute inset-0"` would otherwise be silently reverted
+   to `position: relative` and collapse to height 0, breaking `fill` images
+   (hero, stacked cards) and skeleton overlays (gallery grid). Re-assert both
+   here with matching (two-class) specificity so the placeholder actually
+   stretches to fill its positioned parent. */
+.media-placeholder.absolute {
   position: absolute;
   inset: 0;
-  border-radius: 0.95rem;
+}
+
+.media-placeholder__base,
+.media-placeholder__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.media-placeholder__base {
+  z-index: 1;
+}
+
+.media-placeholder__sheen {
+  z-index: 2;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.13) 50%,
+    transparent 58%
+  );
+  transform: translateX(-70%);
+  animation: mcard-sheen 7s ease-in-out infinite;
+}
+
+.media-placeholder--light .media-placeholder__base {
   border: 1px solid rgba(251, 191, 36, 0.18);
   background: rgba(0, 0, 0, 0.04);
-  transition: opacity 300ms ease;
+}
+
+.media-placeholder--dark .media-placeholder__base {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.media-placeholder--dark .media-placeholder__sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 58%
+  );
+}
+
+.media-placeholder--neutral .media-placeholder__base {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.media-placeholder--neutral .media-placeholder__sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 58%
+  );
+}
+
+.media-placeholder--loaded .media-placeholder__base,
+.media-placeholder--loaded .media-placeholder__sheen {
+  opacity: 0;
+}
+
+.media-placeholder--no-sheen .media-placeholder__sheen {
+  display: none;
+}
+
+.media-placeholder__media {
+  position: relative;
+  z-index: 0;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-placeholder__sheen {
+    animation: none;
+  }
 }
 
 .gallery-bento__image {
@@ -1824,74 +1909,6 @@ textarea,
 .about-section-shell__content {
   position: relative;
   z-index: 1;
-}
-
-.about-flags-texture {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 4px;
-  z-index: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 3px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.about-flags-texture__row {
-  flex-shrink: 0;
-  overflow: hidden;
-  height: 80px;
-}
-
-.about-flags-texture__track {
-  display: flex;
-  width: max-content;
-  gap: 3px;
-  animation: about-flags-scroll-left linear infinite;
-}
-
-.about-flags-texture__track--reverse {
-  animation-name: about-flags-scroll-right;
-}
-
-.about-flags-texture__flag {
-  display: block;
-  width: 107px;
-  height: 80px;
-  flex-shrink: 0;
-  opacity: 0.9;
-  filter: grayscale(20%) saturate(0.85) brightness(0.95);
-  border-radius: 3px;
-  box-shadow: 0 1px 4px rgba(var(--ink-rgb), 0.12);
-  object-fit: cover;
-}
-
-@keyframes about-flags-scroll-left {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@keyframes about-flags-scroll-right {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .about-flags-texture__track {
-    animation: none;
-    transform: translateX(-25%);
-  }
 }
 
 @media (max-width: 800px) {
@@ -3226,7 +3243,14 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
 .eticket-marquee__item {
   display: block;
   flex-shrink: 0;
-  width: clamp(300px, 82vw, 420px);
+  width: clamp(240px, 62vw, 310px);
+  /* Query container for the ticket. Must live here (the parent), NOT on
+     .eticket: an element's own cqw units resolve against its nearest ANCESTOR
+     container, never itself — so a .eticket that declared container-type AND
+     used cqw for its mask/padding would size those off the viewport instead of
+     its own width. With the container one level up, every cqw inside .eticket
+     measures the ticket, so it scales as one piece (same split as .mcard). */
+  container-type: inline-size;
   text-decoration: none;
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4));
   transition: transform 0.25s ease;
@@ -3236,29 +3260,33 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
   transform: translateY(-5px);
 }
 
-/* Reference-style ticket: cream paper, scalloped ends, inner outline,
-   dashed perforation, vertical barcode stub. */
+/* Reference-style ticket: cream paper, scalloped ends, a single rounded
+   outline enclosing the info + barcode, with serial numbers stamped in the
+   margins outside the outline on both ends. Every dimension is in cqw, read
+   against the .eticket-marquee__item container above, so the whole card scales
+   as one piece as the marquee item narrows within its clamp()ed width. */
 .eticket {
   position: relative;
   display: flex;
+  align-items: stretch;
+  gap: 1.6cqw;
   width: 100%;
   aspect-ratio: 3.1;
+  padding: 0 2.4cqw;
   text-align: left;
-  color: #171310;
-  background: linear-gradient(160deg, #faf4e6 0%, #f0e8d3 100%);
+  color: #1c1712;
+  background: linear-gradient(180deg, #efe9db 0%, #e5dfce 100%);
   overflow: hidden;
-  /* Scalloped left/right edges: two full-size layers, each biting
-     half-circles out of one edge, intersected together. */
   -webkit-mask-image:
-    radial-gradient(circle 0.4rem at 0 50%, transparent 97%, #000),
-    radial-gradient(circle 0.4rem at 100% 50%, transparent 97%, #000);
-  -webkit-mask-size: 100% 1.3rem;
+    radial-gradient(circle 1.5cqw at 0 50%, transparent 97%, #000),
+    radial-gradient(circle 1.5cqw at 100% 50%, transparent 97%, #000);
+  -webkit-mask-size: 100% 4.6cqw;
   -webkit-mask-repeat: repeat-y;
   -webkit-mask-composite: source-in;
   mask-image:
-    radial-gradient(circle 0.4rem at 0 50%, transparent 97%, #000),
-    radial-gradient(circle 0.4rem at 100% 50%, transparent 97%, #000);
-  mask-size: 100% 1.3rem;
+    radial-gradient(circle 1.5cqw at 0 50%, transparent 97%, #000),
+    radial-gradient(circle 1.5cqw at 100% 50%, transparent 97%, #000);
+  mask-size: 100% 4.6cqw;
   mask-repeat: repeat-y;
   mask-composite: intersect;
 }
@@ -3278,105 +3306,125 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
   animation: mcard-sheen 7s ease-in-out infinite;
 }
 
-.eticket__inner {
+/* Vertical serial numbers in the scalloped margins, outside the outline */
+.eticket__no {
+  flex-shrink: 0;
+  align-self: center;
+  writing-mode: vertical-rl;
+  font-size: 1.5cqw;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  color: rgba(28, 20, 14, 0.55);
+}
+
+/* The single rounded outline around the whole ticket face */
+.eticket__body {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: stretch;
+  gap: 2.2cqw;
   flex: 1;
   min-width: 0;
-  margin: 0.7rem 0.55rem 0.7rem 0.85rem;
-  padding: 0.6rem 0.75rem;
-  border: 1.5px solid #171310;
-  border-radius: 0.55rem;
+  margin: 2.4cqw 0;
+  padding: 2cqw 2.6cqw;
+  border: 0.36cqw solid #1c1712;
+  border-radius: 2cqw;
+}
+
+.eticket__main {
+  display: flex;
+  align-items: center;
+  gap: 2.6cqw;
+  flex: 1;
+  min-width: 0;
 }
 
 .eticket__title {
   flex: 1;
   min-width: 0;
-  font-size: clamp(0.92rem, 2.8vw, 1.12rem);
+  font-size: 5cqw;
   font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: 0.01em;
+  line-height: 1.04;
+  letter-spacing: 0.005em;
   text-transform: uppercase;
   overflow-wrap: break-word;
-  color: #171310;
+  color: #1c1712;
 }
 
 .eticket__details {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.28rem;
+  gap: 0.9cqw;
   flex-shrink: 0;
-  max-width: 48%;
+  max-width: 44%;
 }
 
 .eticket__date-pill {
-  padding: 0.18rem 0.55rem;
-  border: 1.5px solid #171310;
+  margin-bottom: 0.4cqw;
+  padding: 0.7cqw 2cqw;
+  border: 0.34cqw solid #1c1712;
   border-radius: 999px;
-  background: #fffdf7;
-  font-size: 0.58rem;
+  background: #f6f1e4;
+  font-size: 2cqw;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .eticket__row {
-  font-size: 0.62rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: rgba(23, 19, 16, 0.82);
+  font-size: 2.15cqw;
+  font-weight: 700;
+  line-height: 1.28;
+  color: #2a241d;
 }
 
 .eticket__row-label {
   display: block;
-  font-size: 0.55rem;
+  font-size: 1.75cqw;
   font-weight: 600;
-  color: rgba(23, 19, 16, 0.5);
+  color: rgba(28, 20, 14, 0.45);
 }
 
-.eticket__stub {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: 3.9rem;
+/* Dashed tear line separating the info from the barcode stub */
+.eticket__perf {
   flex-shrink: 0;
-  margin: 0.7rem 0;
-  padding: 0.35rem 0.45rem;
-  border-left: 2px dashed rgba(23, 19, 16, 0.45);
+  align-self: stretch;
+  width: 0;
+  margin: 0.4cqw 0;
+  border-left: 0.3cqw dashed rgba(28, 20, 14, 0.4);
 }
 
-/* Rotated barcode: horizontal bars stacked vertically. */
+/* Standard horizontal barcode: crisp vertical bars of varied width */
 .eticket__barcode {
-  width: 1.15rem;
-  height: 86%;
+  flex-shrink: 0;
+  align-self: center;
+  width: 10.5cqw;
+  height: 64%;
   background: repeating-linear-gradient(
-    180deg,
-    #24201a 0,
-    #24201a 2px,
-    transparent 2px,
-    transparent 4px,
-    #24201a 4px,
-    #24201a 7px,
-    transparent 7px,
-    transparent 10px
+    90deg,
+    #1c1712 0,
+    #1c1712 0.5cqw,
+    transparent 0.5cqw,
+    transparent 0.95cqw,
+    #1c1712 0.95cqw,
+    #1c1712 1.2cqw,
+    transparent 1.2cqw,
+    transparent 1.65cqw,
+    #1c1712 1.65cqw,
+    #1c1712 2.35cqw,
+    transparent 2.35cqw,
+    transparent 2.75cqw
   );
-  opacity: 0.85;
-}
-
-.eticket__no {
-  writing-mode: vertical-rl;
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgba(23, 19, 16, 0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .eticket__sheen {
+    animation: none;
+  }
+
+  .media-placeholder__sheen {
     animation: none;
   }
 

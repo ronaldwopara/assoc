@@ -4,7 +4,8 @@ import { FileText, Download } from "lucide-react";
 import { ArcGalleryHero } from "@/components/arc-gallery-hero";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
-import { AboutSectionShell } from "@/components/about-flags-texture";
+import { AboutSectionShell } from "@/components/about-section-shell";
+import { MediaPlaceholderImage } from "@/components/media-placeholder";
 import { getGalleryPreviewUrls } from "@/lib/gallery-images";
 
 export { EventsPageContent } from "@/components/events-section";
@@ -70,7 +71,15 @@ function CardBullet({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AboutContent({ footer }: { footer?: React.ReactNode }) {
+export function AboutContent({
+  footer,
+  priorityFirstImage = false,
+}: {
+  footer?: React.ReactNode;
+  /** True when this renders above the fold (the /about page) so the first
+   *  card's image is fetched eagerly rather than lazily. */
+  priorityFirstImage?: boolean;
+}) {
   return (
     <>
       <SectionLogoHeading id="about-heading">
@@ -81,16 +90,18 @@ export function AboutContent({ footer }: { footer?: React.ReactNode }) {
         <StackedCardBody
           imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp"
           imageAlt="Community members gathered together at an ASOSC event"
+          mediaTone="neutral"
+          priority={priorityFirstImage}
         >
           <h3 className="mb-4">Our Mission</h3>
           <ul className="stacked-card__list">
             <CardBullet>
-              To organize community events and initiatives that celebrate
-              African culture
-            </CardBullet>
-            <CardBullet>
               To educate the broader community about the heritage and lived
               realities of Africans
+            </CardBullet>
+            <CardBullet>
+              To organize community events and initiatives that celebrate
+              African culture
             </CardBullet>
             <CardBullet>
               To provide capacity-building opportunities that empower African
@@ -103,6 +114,7 @@ export function AboutContent({ footer }: { footer?: React.ReactNode }) {
         <StackedCardBody
           imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp"
           imageAlt="Group portrait celebrating in vibrant traditional attire"
+          mediaTone="dark"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
           <p className="text-(--orange-light)!">
@@ -271,11 +283,13 @@ export function UpdatesSection() {
                 key={`${file}-${index}`}
                 className="updates-marquee__item h-48 w-48 shrink-0 overflow-hidden rounded-xl border border-(--brown-dark)/10 shadow-lg shadow-black/10 transition-transform duration-300 hover:scale-105 md:h-64 md:w-64 lg:h-72 lg:w-72"
               >
-                <img
+                <MediaPlaceholderImage
                   src={file}
                   alt=""
-                  className="h-full w-full object-cover"
+                  tone="light"
                   loading="eager"
+                  className="h-full w-full object-cover"
+                  wrapperClassName="h-full w-full"
                 />
               </div>
             ))}
@@ -324,11 +338,13 @@ export function SponsorsSection() {
                     className="sponsors-arc__item"
                     style={{ "--arc-angle": `${angle}deg` } as React.CSSProperties}
                   >
-                    <img
+                    <MediaPlaceholderImage
                       src={file}
                       alt=""
-                      className="max-h-full max-w-full object-contain"
+                      tone="light"
                       loading="eager"
+                      className="max-h-full max-w-full object-contain"
+                      wrapperClassName="flex h-full w-full items-center justify-center"
                     />
                   </div>
                 );

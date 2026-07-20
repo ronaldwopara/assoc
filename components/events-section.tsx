@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clock, MapPin } from "lucide-react";
+import { MediaPlaceholderVideo } from "@/components/media-placeholder";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { ContentBrow } from "@/components/content-brow";
 import { eventActionLinks, upcomingEvents } from "@/lib/events-data";
@@ -34,9 +35,11 @@ function EventsList() {
                 </span>
               </div>
 
-              <video
+              <MediaPlaceholderVideo
                 className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
+                wrapperClassName="h-24 w-full shrink-0 rounded-xl sm:h-24 sm:w-36"
                 src={event.videoSrc}
+                tone="dark"
                 muted
                 loop
                 autoPlay
