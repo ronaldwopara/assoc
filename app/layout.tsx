@@ -7,12 +7,14 @@ import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
 import "./globals.css";
 
-// Social share/preview image (prev.jpeg, uploaded to Cloudinary). Delivered as
-// an optimized 1200×630 JPEG — letterboxed (c_pad) so the full portrait is
-// visible with no crop, forced to JPEG (f_jpg) for scraper compatibility, and
-// q_auto compressed. The v… version pins it so scrapers cache a stable URL.
+// Social share/preview image (prev.jpeg, uploaded to Cloudinary). Kept as a
+// full portrait (no crop, no letterbox) so chat previews match the flyer —
+// forced JPEG (f_jpg) for scraper compatibility, q_auto compressed. The v…
+// version pins a stable URL for platform caches.
 const OG_IMAGE =
-  "https://res.cloudinary.com/daldas2e7/image/upload/c_pad,b_rgb:0a0a0a,w_1200,h_630,f_jpg,q_auto/v1784569634/asosc/prev.jpg";
+  "https://res.cloudinary.com/daldas2e7/image/upload/f_jpg,q_auto/v1784569634/asosc/prev.jpg";
+const OG_IMAGE_WIDTH = 1127;
+const OG_IMAGE_HEIGHT = 1600;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://asosc.ca"),
@@ -32,9 +34,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: OG_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: "Africans Society of Strathcona County",
+        width: OG_IMAGE_WIDTH,
+        height: OG_IMAGE_HEIGHT,
+        alt: "Call for Vendors — African Festival in Strathcona County",
       },
     ],
   },
