@@ -4,11 +4,13 @@ import { FeaturedPrograms } from "@/components/featured-programs";
 import { CommunityActionSection } from "@/components/volunteer-section";
 import { AboutSection, GallerySection, SponsorsSection, UpdatesSection } from "@/components/page-sections";
 import { LoadingScreen } from "@/components/loading-screen";
+import { JoinDeepLink } from "@/components/join-deep-link";
 
 export default function Home() {
   return (
     <>
       <LoadingScreen />
+      <JoinDeepLink />
       <Navbar />
       <main id="main-content" className="site-main">
         <HeroSection />

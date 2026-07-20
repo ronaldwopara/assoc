@@ -310,6 +310,11 @@ export function JoinCommunityModal({
   const measureSheetRef = useRef<() => void>(() => {});
   const [sheetHeight, setSheetHeight] = useState<number | "auto">("auto");
   const [heightReady, setHeightReady] = useState(false);
+  // When the on-screen keyboard opens on mobile, the fixed overlay stays sized
+  // to the (unshrunk) layout viewport, so an items-end sheet is anchored behind
+  // the keyboard and leaves a gap. Track the visual viewport and pin the sheet
+  // to it instead. Null = no keyboard overlap / desktop (use default layout).
+  const [kbViewport, setKbViewport] = useState<{ top: number; height: number } | null>(null);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
@@ -318,6 +323,27 @@ export function JoinCommunityModal({
     media.addEventListener("change", updateViewport);
     return () => media.removeEventListener("change", updateViewport);
   }, []);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!isOpen || isDesktop || !vv) {
+      setKbViewport(null);
+      return;
+    }
+    const update = () => {
+      // How much of the layout viewport the keyboard (or other UI) covers.
+      const covered = window.innerHeight - vv.height - vv.offsetTop;
+      setKbViewport(covered > 60 ? { top: vv.offsetTop, height: vv.height } : null);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setKbViewport(null);
+    };
+  }, [isOpen, isDesktop]);
 
   useLayoutEffect(() => {
     // Reset height only after exit finishes (see onExitComplete) so close
@@ -395,6 +421,17 @@ export function JoinCommunityModal({
   const animatedHeight =
     reduceMotion || !heightReady || sheetHeight === "auto" ? "auto" : sheetHeight;
 
+  // With the keyboard up, size the sheet to min(content, space-above-keyboard).
+  // When content fits, it stays content-sized (no bottom gap); when it doesn't,
+  // it's capped to the visible height and the body scrolls internally (header
+  // and footer stay pinned), so the top is never pushed out of view.
+  const keyboardHeight = kbViewport
+    ? Math.min(
+        typeof sheetHeight === "number" ? sheetHeight : kbViewport.height,
+        kbViewport.height,
+      )
+    : null;
+
   const newsletterSeed = getFormSeed("Newsletter");
   const volunteerSeed = getFormSeed("Volunteer");
   const donateSeed = getFormSeed("Donate");
@@ -470,6 +507,11 @@ export function JoinCommunityModal({
           key="join-community-modal"
           ref={overlayRef}
           className="join-modal-overlay fixed inset-0 z-(--z-modal) flex items-end justify-center overflow-x-hidden md:items-center"
+          style={
+            kbViewport
+              ? { top: kbViewport.top, height: kbViewport.height, bottom: "auto" }
+              : undefined
+          }
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -492,18 +534,25 @@ export function JoinCommunityModal({
             className="join-modal relative flex w-full max-w-xl flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
             style={{
               backgroundColor: "var(--cream-light)",
-              maxHeight: isDesktop ? "min(75vh, 40rem)" : "78dvh",
+              maxHeight: isDesktop
+                ? "min(75vh, 40rem)"
+                : kbViewport
+                  ? `${kbViewport.height}px`
+                  : "78dvh",
             }}
             initial={dialogMotion.initial}
             animate={{
               ...dialogMotion.animate,
-              height: animatedHeight,
+              height: keyboardHeight ?? animatedHeight,
             }}
             exit={dialogMotion.exit}
             transition={dialogTransition}
             onAnimationComplete={handleDialogAnimationComplete}
           >
-            <div ref={sheetContentRef} className="flex w-full flex-col">
+            <div
+              ref={sheetContentRef}
+              className={`flex w-full flex-col${kbViewport ? " min-h-0 flex-1" : ""}`}
+            >
             <div className="join-modal__header relative shrink-0">
               <div className="absolute inset-0" style={navbarBackgroundStyle} aria-hidden="true" />
 

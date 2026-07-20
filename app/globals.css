@@ -1963,6 +1963,17 @@ textarea,
 }
 
 /* ── Join community modal ────────────────────────────────────────────── */
+
+/* Solid dark base under the header's nav.webp texture — same pairing as
+   .mobile-nav-panel / .loading-screen__bg. Without it the header shows the
+   modal's cream background (white heading text unreadable) until the 129KB
+   texture finishes loading, which reads as the image "painting in" late.
+   With the base color the header is correct instantly; the texture just adds
+   detail on top when it arrives. */
+.join-modal__header {
+  background-color: rgb(10, 8, 6);
+}
+
 .page-blur-target {
   transition: filter 350ms ease;
 }
