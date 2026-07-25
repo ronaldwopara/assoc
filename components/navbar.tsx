@@ -206,6 +206,12 @@ export function Navbar() {
   useNavbarKeyboard(mobileMenuOpen, closeMobileMenu);
 
   useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("mobileNavOpen", { detail: { open: mobileMenuOpen } }),
+    );
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     const handleHeroCtaPastView = (event: Event) => {
       const { past } = (event as CustomEvent<{ past: boolean }>).detail;
       setShowJoinNav(past);

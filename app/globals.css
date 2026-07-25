@@ -1371,7 +1371,8 @@ textarea,
   line-height: 1.1;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: #ffff;
+  /* --orange-dark reads on #f7f7f7; brand --orange washes out on light chrome */
+  color: var(--orange-dark);
   padding: 0.3em 0;
   transition: color 150ms ease;
 }
@@ -1379,13 +1380,13 @@ textarea,
 @media (hover: hover) and (pointer: fine) {
   .mobile-nav-link:hover,
   .mobile-nav-programs:hover {
-    color: var(--yellow);
+    color: var(--yellow-dark);
   }
 }
 
 .mobile-nav-link:active,
 .mobile-nav-programs:active {
-  color: var(--yellow);
+  color: var(--yellow-dark);
 }
 
 /* Programs trigger — same text style but flex row so chevron is inline */
@@ -1399,7 +1400,7 @@ textarea,
   line-height: 1.1;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--orange-dark);
   padding: 0.3em 0;
   transition: color 150ms ease;
   background: none;
@@ -1413,7 +1414,7 @@ textarea,
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--ink);
   text-align: center;
 }
 
@@ -1430,14 +1431,18 @@ textarea,
 }
 
 
-/* Mobile nav — circular reveal, same glass panel as desktop dropdown */
+/* Mobile nav — circular reveal: header chrome colour + subtle texture overlay
+   (never an opaque background-image — that hid the light fill entirely). */
 .mobile-nav-close {
   position: absolute;
+  z-index: 2;
   top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
   right: max(1rem, env(safe-area-inset-right, 0px));
 }
 
 .mobile-nav-content {
+  position: relative;
+  z-index: 1;
   padding-top: max(5rem, calc(env(safe-area-inset-top, 0px) + var(--navbar-height)));
   padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
   padding-left: max(2rem, env(safe-area-inset-left, 0px));
@@ -1453,10 +1458,18 @@ textarea,
 }
 
 .mobile-nav-panel {
-  background-color: rgba(10, 8, 6, 0.97);
+  background-color: #f7f7f7;
+}
+
+.mobile-nav-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background-image: var(--nav-texture-url);
   background-repeat: repeat;
   background-size: var(--nav-texture-size) var(--nav-texture-size);
+  opacity: 0.1;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

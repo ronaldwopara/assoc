@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, type Variants, AnimatePresence } from "framer-motion";
 import { type Ref, useEffect, useState } from "react";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
@@ -141,7 +141,6 @@ export function MobileNavMenu({
   onJoinCommunityClick,
 }: MobileNavMenuProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const isHome = pathname === "/";
   const [viewportH, setViewportH] = useState(800);
 
@@ -194,7 +193,7 @@ export function MobileNavMenu({
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="mobile-nav-close flex h-11 w-11 items-center justify-center text-(--yellow) focus-ring-light"
+          className="mobile-nav-close flex h-11 w-11 items-center justify-center text-(--orange)"
         >
           <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden>
             <path d="M4 4l18 18M22 4L4 22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
@@ -211,7 +210,7 @@ export function MobileNavMenu({
               <motion.li key={link.label} variants={navItemVariants}>
                 <Link
                   href={link.href}
-                  className="mobile-nav-link focus-ring-light block"
+                  className="mobile-nav-link block"
                   onClick={(event) => {
                     handleSectionLinkClick(event, link.href, isHome);
                     onClose();
@@ -226,7 +225,7 @@ export function MobileNavMenu({
             <motion.li variants={navItemVariants}>
               <button
                 type="button"
-                className="mobile-nav-programs focus-ring-light"
+                className="mobile-nav-programs"
                 onClick={() => { setProgramsOpen(!programsOpen); }}
                 aria-expanded={programsOpen}
               >
@@ -289,7 +288,7 @@ export function MobileNavMenu({
             <motion.li variants={navItemVariants}>
               <Link
                 href={GALLERY_BOTTOM_HREF}
-                className="mobile-nav-link focus-ring-light block"
+                className="mobile-nav-link block"
                 onClick={(event) => {
                   handleSectionLinkClick(event, GALLERY_BOTTOM_HREF, isHome);
                   onClose();
@@ -305,7 +304,7 @@ export function MobileNavMenu({
                 <motion.li key={link.label} variants={navItemVariants}>
                   <Link
                     href={link.href}
-                    className="mobile-nav-link focus-ring-light block"
+                    className="mobile-nav-link block"
                     onClick={(event) => {
                       handleSectionLinkClick(event, link.href, isHome);
                       onClose();
@@ -330,7 +329,6 @@ export function MobileNavMenu({
             </motion.li>
           </motion.ul>
 
-          {/* Bottom logo + org name */}
           <motion.div
             className="flex flex-col items-center gap-2 pb-2 pt-6"
             variants={navItemVariants}
