@@ -2282,13 +2282,6 @@ textarea,
   transition: opacity 150ms ease;
 }
 
-/* Dirty-form guard: first tap on any control just "wakes" it (see
-   join-page-content's requestActionSwitch) rather than switching away
-   immediately, so an accidental tap mid-edit doesn't lose your place. */
-.join-controls--locked {
-  opacity: 0.7;
-}
-
 /* ── Join page forms (GuidedForm / success panel) ────────────────────── */
 
 .join-page .guided-option {

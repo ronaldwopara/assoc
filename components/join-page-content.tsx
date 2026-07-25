@@ -62,13 +62,11 @@ export function JoinPageContent() {
   // are loaded, same as the old modal's `mounted` gate.
   const [draftsReady, setDraftsReady] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
-  const [tabsAwake, setTabsAwake] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
   const [formSucceeded, setFormSucceeded] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [successValues, setSuccessValues] = useState<FormValues | null>(null);
 
-  const locked = formDirty && !tabsAwake;
   const activeSlug = actionSlug ?? "newsletter";
 
   useEffect(() => {
@@ -87,7 +85,6 @@ export function JoinPageContent() {
   }, [formDirty]);
 
   const resetFormState = () => {
-    setTabsAwake(true);
     setFormDirty(false);
     setFormSucceeded(false);
     setSuccessMessage("");
@@ -102,22 +99,11 @@ export function JoinPageContent() {
   };
 
   const requestActionSwitch = (nextSlug: string) => {
-    if (nextSlug === activeSlug) {
-      if (locked) setTabsAwake(true);
-      return;
-    }
-    if (formDirty && !tabsAwake) {
-      setTabsAwake(true);
-      return;
-    }
+    if (nextSlug === activeSlug) return;
     commitSwitch(nextSlug);
   };
 
   const requestReopen = () => {
-    if (formDirty && !tabsAwake) {
-      setTabsAwake(true);
-      return;
-    }
     // Scroll first so collapsing the tall form can't overscroll and flash the footer.
     scrollJoinToTop();
     setHasChosen(false);
@@ -128,10 +114,7 @@ export function JoinPageContent() {
     setFormDirty(dirty);
     if (source === "hydrate") return;
 
-    if (dirty) {
-      setTabsAwake(false);
-      return;
-    }
+    if (dirty) return;
 
     setDrafts((current) => {
       if (!(activeSlug in current)) return current;
@@ -147,7 +130,6 @@ export function JoinPageContent() {
       writeFormDrafts(next);
       return next;
     });
-    if (source === "edit") setTabsAwake(false);
   };
 
   const handleFormCompleted = () => {
@@ -158,7 +140,6 @@ export function JoinPageContent() {
       return next;
     });
     setFormDirty(false);
-    setTabsAwake(false);
   };
 
   const handleFormSuccessChange = (success: boolean, values?: FormValues) => {
@@ -198,7 +179,6 @@ export function JoinPageContent() {
                 <JoinControls
                   key="controls"
                   actionSlug={activeSlug}
-                  locked={locked}
                   onGoTo={requestActionSwitch}
                   onReopen={requestReopen}
                 />

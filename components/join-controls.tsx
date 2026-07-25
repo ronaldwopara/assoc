@@ -10,14 +10,11 @@ const MORPH_TRANSITION = { type: "spring", stiffness: 420, damping: 36, mass: 0.
 
 interface JoinControlsProps {
   actionSlug: string;
-  /** True while a dirty form is guarding against an accidental switch — the
-   *  first tap on any control just "wakes" it instead of switching. */
-  locked: boolean;
   onGoTo: (slug: string) => void;
   onReopen: () => void;
 }
 
-export function JoinControls({ actionSlug, locked, onGoTo, onReopen }: JoinControlsProps) {
+export function JoinControls({ actionSlug, onGoTo, onReopen }: JoinControlsProps) {
   const index = getJoinActionIndex(actionSlug);
   const action = JOIN_ACTIONS[index];
 
@@ -39,8 +36,8 @@ export function JoinControls({ actionSlug, locked, onGoTo, onReopen }: JoinContr
     >
       <button
         type="button"
-        aria-label={locked ? "Unlock action controls" : "Previous action"}
-        className={`join-controls__nav-button focus-ring-light${locked ? " join-controls--locked" : ""}`}
+        aria-label="Previous action"
+        className="join-controls__nav-button focus-ring-light"
         onClick={() => goTo(-1)}
       >
         <ChevronLeft className="join-controls__nav-icon" aria-hidden />
@@ -48,7 +45,7 @@ export function JoinControls({ actionSlug, locked, onGoTo, onReopen }: JoinContr
 
       <button
         type="button"
-        className={`join-controls__label focus-ring-light${locked ? " join-controls--locked" : ""}`}
+        className="join-controls__label focus-ring-light"
         title={action.title}
         aria-label={`${action.title} — choose a different action`}
         onClick={onReopen}
@@ -58,8 +55,8 @@ export function JoinControls({ actionSlug, locked, onGoTo, onReopen }: JoinContr
 
       <button
         type="button"
-        aria-label={locked ? "Unlock action controls" : "Next action"}
-        className={`join-controls__nav-button focus-ring-light${locked ? " join-controls--locked" : ""}`}
+        aria-label="Next action"
+        className="join-controls__nav-button focus-ring-light"
         onClick={() => goTo(1)}
       >
         <ChevronRight className="join-controls__nav-icon" aria-hidden />
