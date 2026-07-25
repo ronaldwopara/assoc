@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Mail, Phone } from "lucide-react";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
+import { joinActionHref } from "@/lib/join-actions";
 import { handleSectionLinkClick } from "@/lib/section-link";
 
 function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -35,15 +36,15 @@ const exploreLinks = [
 
 const companyLinks = [
   { label: "About Us", href: "/#about" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Contact", href: joinActionHref("contact") },
 ];
 
 const getInvolvedLinks = [
   { label: "Events", href: EVENTS_PAGE_PATH },
-  { label: "Volunteer", href: "/#volunteer" },
-  { label: "Donate", href: "/#donate" },
-  { label: "Membership", href: "/#membership" },
-  { label: "Vendor", href: "/#vendor" },
+  { label: "Volunteer", href: joinActionHref("volunteer") },
+  { label: "Donate", href: joinActionHref("donate") },
+  { label: "Membership", href: joinActionHref("membership") },
+  { label: "Vendor", href: joinActionHref("vendor") },
 ];
 
 const connectLinks = [

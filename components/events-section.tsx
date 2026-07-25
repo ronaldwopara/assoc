@@ -1,25 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
 import { MediaPlaceholderVideo } from "@/components/media-placeholder";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { ContentBrow } from "@/components/content-brow";
 import { eventActionLinks, upcomingEvents } from "@/lib/events-data";
-
-const JoinCommunityModal = dynamic(
-  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
-  { ssr: false },
-);
+import { joinActionHref } from "@/lib/join-actions";
 
 function EventsList() {
-  const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false);
-  const hasOpenedJoinModalRef = useRef(false);
-  hasOpenedJoinModalRef.current ||= isVolunteerModalOpen;
-
   return (
-    <>
       <div className="mx-auto mt-12 max-w-4xl">
         {upcomingEvents.map((event) => {
           const actionLink = eventActionLinks[event.title];
@@ -83,13 +73,12 @@ function EventsList() {
                     >
                       Register
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsVolunteerModalOpen(true)}
+                    <Link
+                      href={joinActionHref("volunteer")}
                       className="hero-cta-btn focus-ring-light inline-flex w-full cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
                     >
                       Volunteer
-                    </button>
+                    </Link>
                   </>
                 )}
               </div>
@@ -97,15 +86,6 @@ function EventsList() {
           );
         })}
       </div>
-
-      {hasOpenedJoinModalRef.current && (
-        <JoinCommunityModal
-          isOpen={isVolunteerModalOpen}
-          onClose={() => setIsVolunteerModalOpen(false)}
-          initialAction="Volunteer"
-        />
-      )}
-    </>
   );
 }
 

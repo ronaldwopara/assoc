@@ -236,7 +236,7 @@ function OptionRow({
       onClick={onSelect}
       className={`guided-option focus-ring-light box-border w-full max-w-full rounded-xl border px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ${
         selected
-          ? "border-(--hero-cta) bg-(--hero-cta)/15 text-black"
+          ? "border-(--hero-cta) bg-(--hero-cta)/15 text-(--orange-dark)"
           : "border-(--brown-dark)/15 bg-white text-black hover:bg-(--brown-dark)/5"
       }`}
     >
@@ -626,7 +626,7 @@ function renderField(
                 }}
                 className={`focus-ring-light box-border rounded-lg border px-1.5 py-2 text-center text-sm font-semibold transition-colors duration-150 ${
                   selected
-                    ? "border-(--hero-cta) bg-(--hero-cta)/15 text-black"
+                    ? "border-(--hero-cta) bg-(--hero-cta)/15 text-(--orange-dark)"
                     : "border-(--brown-dark)/15 bg-white text-black hover:bg-(--brown-dark)/5"
                 }`}
               >

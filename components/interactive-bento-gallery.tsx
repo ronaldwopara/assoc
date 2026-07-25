@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
@@ -21,12 +21,7 @@ import {
 } from "@/lib/external-links";
 import type { MediaItemType } from "@/lib/featured-programs-data";
 import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
-
-// Not needed until a CTA is clicked — keep it out of the gallery's initial chunk.
-const JoinCommunityModal = dynamic(
-  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
-  { ssr: false },
-);
+import { joinActionHref } from "@/lib/join-actions";
 
 const ctaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
@@ -396,13 +391,9 @@ export function InteractiveBentoGallery({
   title,
   description,
 }: InteractiveBentoGalleryProps) {
+  const router = useRouter();
   const [selectedItem, setSelectedItem] = useState<MediaItemType | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [joinAction, setJoinAction] = useState<string | null>(null);
-  const [contactMessage, setContactMessage] = useState<string | null>(null);
-  const hasOpenedJoinModalRef = useRef(false);
-  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const scrollYRef = useRef(0);
   const hashRef = useRef("");
 
@@ -487,26 +478,32 @@ export function InteractiveBentoGallery({
     return () => document.removeEventListener("click", handleNavClick, true);
   }, [selectedItem, closeModal]);
 
-  const openRegister = useCallback((programTitle: string) => {
-    setJoinAction("Contact");
-    setContactMessage(`I would like to register for ${programTitle}.`);
-    setIsJoinModalOpen(true);
-  }, []);
+  const openRegister = useCallback(
+    (programTitle: string) => {
+      router.push(
+        joinActionHref("contact", {
+          message: `I would like to register for ${programTitle}.`,
+        }),
+      );
+    },
+    [router],
+  );
 
-  const openVolunteer = useCallback((programTitle: string) => {
-    const volunteerFormUrl = programActionLinks[programTitle]?.find(
-      (actionLink) => actionLink.label === "Volunteer",
-    )?.href;
+  const openVolunteer = useCallback(
+    (programTitle: string) => {
+      const volunteerFormUrl = programActionLinks[programTitle]?.find(
+        (actionLink) => actionLink.label === "Volunteer",
+      )?.href;
 
-    if (volunteerFormUrl) {
-      window.open(volunteerFormUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
+      if (volunteerFormUrl) {
+        window.open(volunteerFormUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
 
-    setJoinAction("Volunteer");
-    setContactMessage(null);
-    setIsJoinModalOpen(true);
-  }, []);
+      router.push(joinActionHref("volunteer"));
+    },
+    [router],
+  );
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -606,15 +603,6 @@ export function InteractiveBentoGallery({
           />,
           document.body,
         )}
-
-      {hasOpenedJoinModalRef.current && (
-        <JoinCommunityModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          initialAction={joinAction}
-          initialContactMessage={contactMessage}
-        />
-      )}
     </div>
   );
 }

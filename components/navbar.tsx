@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
@@ -21,12 +20,7 @@ import {
 import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
 import { handleSectionLinkClick, normalizeLegacyEventsHash } from "@/lib/section-link";
 import { ABOUT_US_LOGO_URL } from "@/components/section-logo-heading";
-
-// Not needed until a CTA is clicked — keep it out of the navbar's initial chunk.
-const JoinCommunityModal = dynamic(
-  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
-  { ssr: false },
-);
+import { joinActionHref } from "@/lib/join-actions";
 
 const NAVBAR_LOGO_URL = ABOUT_US_LOGO_URL;
 
@@ -72,6 +66,13 @@ const galleryDropdown: GalleryProgram[] = getGalleryDropdown();
 const leftLinks = [
   { label: "Home", href: "/#home" },
   { label: "About", href: "/#about" },
+];
+
+// Mobile menu sends "About" to the dedicated /about page (with the board,
+// etc.) rather than just scrolling the home page's About section into view.
+const mobileLeftLinks = [
+  { label: "Home", href: "/#home" },
+  { label: "About", href: "/about" },
 ];
 
 const contactLink = { label: "Contact", href: "/#contact" };
@@ -186,10 +187,6 @@ export function Navbar() {
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const [lampInstant, setLampInstant] = useState(true);
   const [showJoinNav, setShowJoinNav] = useState(false);
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [joinModalAction, setJoinModalAction] = useState<string | null>(null);
-  const hasOpenedJoinModalRef = useRef(false);
-  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
   const navActiveSection = isHome ? activeSection : routeActiveSection(pathname);
   const lampTarget = hoveredNav ?? navActiveSection;
   const shouldShowJoinNav = !isHome || showJoinNav;
@@ -429,7 +426,7 @@ export function Navbar() {
               className="focus-ring relative z-10 col-start-2 row-start-1 cursor-pointer justify-self-center rounded-sm"
               onClick={(event) => handleSectionLinkClick(event, "/#home", isHome)}
             >
-              <Image src={NAVBAR_LOGO_URL} alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-18 w-auto" priority />
+              <Image src={NAVBAR_LOGO_URL} alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-16 w-auto" priority />
             </Link>
 
             {/* Right navigation */}
@@ -459,10 +456,7 @@ export function Navbar() {
                     <motion.button
                       key={link.label}
                       type="button"
-                      onClick={() => {
-                        setJoinModalAction(null);
-                        setIsJoinModalOpen(true);
-                      }}
+                      onClick={() => router.push("/join")}
                       initial={{ opacity: 0, scale: 0.8, x: 16 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       transition={{ type: "spring", stiffness: 350, damping: 22 }}
@@ -480,17 +474,13 @@ export function Navbar() {
                       className="relative"
                       onMouseEnter={() => setHoveredNav(id)}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setJoinModalAction("Contact");
-                          setIsJoinModalOpen(true);
-                        }}
+                      <Link
+                        href={joinActionHref("contact")}
                         className={navLinkClassName}
                         data-active={lampTarget === id ? "true" : undefined}
                       >
                         {link.label}
-                      </button>
+                      </Link>
                       {lampTarget === id && <NavLamp instant={lampInstant} />}
                     </div>
                   );
@@ -532,25 +522,14 @@ export function Navbar() {
         onClose={closeMobileMenu}
         programsOpen={programsOpen}
         setProgramsOpen={setProgramsOpen}
-        leftLinks={leftLinks}
+        leftLinks={mobileLeftLinks}
         rightLinks={rightLinks}
         programs={programsDropdown}
         gallery={galleryDropdown}
         toggleX={togglePos.x}
         toggleY={togglePos.y}
-        onJoinCommunityClick={() => {
-          setJoinModalAction(null);
-          setIsJoinModalOpen(true);
-        }}
+        onJoinCommunityClick={() => router.push("/join")}
       />
-
-      {hasOpenedJoinModalRef.current && (
-        <JoinCommunityModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          initialAction={joinModalAction}
-        />
-      )}
     </header>
   );
 }

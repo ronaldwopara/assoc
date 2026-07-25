@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { AutoFitCardTitle } from "@/components/auto-fit-card-title";
 import { EventTicketMarquee } from "@/components/event-ticket";
 import { MembershipCardMarquee } from "@/components/membership-card-marquee";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
+import { joinActionHref } from "@/lib/join-actions";
 import { cn } from "@/lib/utils";
 import { ContentBrow } from "@/components/content-brow";
-
-// Not needed until a CTA is clicked — keep it out of this section's initial chunk.
-const JoinCommunityModal = dynamic(
-  () => import("@/components/join-community-modal").then((m) => m.JoinCommunityModal),
-  { ssr: false },
-);
 
 const communityActions = [
   {
@@ -25,7 +19,7 @@ const communityActions = [
     title: "Help Build Community With Us",
     body: "Share your time, skills, and energy at ASOSC events, programs, workshops, and community initiatives across Strathcona County.",
     button: "Volunteer With Us",
-    action: "Volunteer",
+    action: "volunteer",
   },
   {
     id: "donate",
@@ -34,7 +28,7 @@ const communityActions = [
     title: "Invest In Programs That Serve Families",
     body: "Your contribution helps fund cultural celebrations, youth programming, wellness sessions, storytelling projects, and community outreach.",
     button: "Donate Today",
-    action: "Donate",
+    action: "donate",
   },
   {
     id: "events",
@@ -53,7 +47,7 @@ const communityActions = [
     title: "Become Part Of The Society",
     body: "Membership helps strengthen our voice, grow our programs, and connect African families, allies, and partners.",
     button: "Become A Member",
-    action: "Membership",
+    action: "membership",
   },
   {
     id: "vendor",
@@ -62,7 +56,7 @@ const communityActions = [
     title: "Register As A Vendor",
     body: "Showcase your business, art, craft and services at ASOSC's festivals and community events.",
     button: "Register",
-    action: "Vendor",
+    action: "vendor",
     theme: "dark",
   },
   {
@@ -72,7 +66,7 @@ const communityActions = [
     title: "Start A Conversation With Us",
     body: "Have a question, partnership idea, or community opportunity? Send us a message and we will connect with you.",
     button: "Contact Us",
-    action: "Contact",
+    action: "contact",
     theme: "dark",
   },
 ] as const;
@@ -83,12 +77,13 @@ interface CommunityActionSectionProps {
   actionId: CommunityActionId;
 }
 
+function communityActionHref(item: (typeof communityActions)[number]): string {
+  if ("linkHref" in item) return item.linkHref;
+  return joinActionHref(item.action);
+}
+
 export function CommunityActionSection({ actionId }: CommunityActionSectionProps) {
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [activeAction, setActiveAction] = useState<string | null>(null);
-  const [membershipCategory, setMembershipCategory] = useState<string | null>(null);
-  const hasOpenedJoinModalRef = useRef(false);
-  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
+  const router = useRouter();
   const item = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
   const isDark = "theme" in item && item.theme === "dark";
 
@@ -138,46 +133,22 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
             <div className="mt-8">
               <MembershipCardMarquee
                 onSelect={(categoryValue) => {
-                  setMembershipCategory(categoryValue);
-                  setActiveAction("Membership");
-                  setIsJoinModalOpen(true);
+                  router.push(joinActionHref("membership", { category: categoryValue }));
                 }}
               />
             </div>
           )}
 
           <div className="mt-8 flex justify-center">
-            {"linkHref" in item && item.linkHref ? (
-              <Link
-                href={item.linkHref}
-                className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
-              >
-                {item.button}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveAction("action" in item ? item.action : null);
-                  setIsJoinModalOpen(true);
-                }}
-                className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
-              >
-                {item.button}
-              </button>
-            )}
+            <Link
+              href={communityActionHref(item)}
+              className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
+            >
+              {item.button}
+            </Link>
           </div>
         </div>
       </section>
-
-      {hasOpenedJoinModalRef.current && (
-        <JoinCommunityModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-          initialAction={activeAction}
-          initialMembershipCategory={membershipCategory}
-        />
-      )}
     </>
   );
 }

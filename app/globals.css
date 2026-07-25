@@ -211,6 +211,14 @@ body::-webkit-scrollbar {
   padding-top: var(--header-height);
 }
 
+/* /about's first section (no hero) — same specificity as the rule above
+   (single class + same pseudo-classes), declared later so it wins for this
+   page only. Clearing just the header height left the heading flush against
+   the navbar with no breathing room. */
+.site-main:not(:has(.hero-section)) > .about-section-shell:first-child {
+  padding-top: calc(var(--header-height) + 2.5rem);
+}
+
 @layer base {
   a {
     text-decoration: none;
@@ -641,12 +649,41 @@ textarea,
   background: rgba(255, 255, 255, 0.02);
   transition:
     background 140ms ease,
-    border-color 140ms ease;
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.program-card:hover {
-  border: 1.5px solid rgba(251, 191, 36, 0.6);
+@media (hover: hover) {
+  .program-card:hover {
+    border-color: rgba(251, 191, 36, 0.6);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.28);
+  }
+}
+
+/* Click / tap press — stronger than hover so the ring reads on mouse & touch.
+   data-pressed holds the flash for ~130ms before the join morph starts. */
+.program-card:active,
+.program-card[data-pressed="true"] {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 0 5px rgba(251, 191, 36, 0.35);
+  transform: scale(0.985);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .program-card {
+    transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .program-card:active,
+  .program-card[data-pressed="true"] {
+    transform: none;
+  }
 }
 
 .program-card__title {
@@ -1516,14 +1553,20 @@ textarea,
 
   /* Scales with viewport height (not just width) so short phones — e.g. an
      iPhone SE's 667px-tall viewport vs. a Pro Max's 932px — get genuinely
-     smaller type instead of both flattening to the same clamp floor. */
+     smaller type instead of both flattening to the same clamp floor.
+     svh, not dvh: dvh tracks the *current* viewport, which shrinks/grows
+     live as the mobile browser's address bar hides and shows while
+     scrolling — since these values drive font-size, that made the headline
+     visibly rewrap mid-scroll. svh is the small (chrome-visible) viewport
+     and stays constant regardless of scroll, so sizing is stable; it's also
+     never larger than dvh, so nothing that fit before can overflow. */
   .hero-headline {
-    font-size: clamp(1.5rem, calc(2.64dvh + 0.59rem), 2.4rem);
+    font-size: clamp(1.5rem, calc(2.64svh + 0.59rem), 2.4rem);
   }
 
   .hero-subheadline {
-    margin-top: clamp(0.5rem, 2.5dvh, 1.25rem);
-    font-size: clamp(0.95rem, calc(1.89dvh + 0.31rem), 1.4rem);
+    margin-top: clamp(0.5rem, 2.5svh, 1.25rem);
+    font-size: clamp(0.95rem, calc(1.89svh + 0.31rem), 1.4rem);
   }
 
   .hero-cta-row {
@@ -2097,92 +2140,164 @@ textarea,
   }
 }
 
-/* ── Join community modal ────────────────────────────────────────────── */
+/* ── Join page (chooser → controls → form, gallery interaction pattern,
+   Join's own dark/orange capsule look) ──────────────────────────────── */
 
-/* Solid dark base under the header's nav.webp texture — same pairing as
-   .mobile-nav-panel. Without it the header shows the
-   texture finishes loading, which reads as the image "painting in" late.
-   With the base color the header is correct instantly; the texture just adds
-   detail on top when it arrives. */
-.join-modal__header {
-  background-color: rgb(10, 8, 6);
+/* Prevent scroll-anchoring from yanking the footer when the tall form
+   collapses back to the picker. */
+.join-page {
+  overflow-anchor: none;
+  /* Keep Framer layout projections from dirtying layout outside this page. */
+  isolation: isolate;
 }
 
-.page-blur-target {
-  transition: filter 350ms ease;
+/* Picker shell paints above the form so the morph isn't covered mid-flight. */
+.join-page__picker {
+  position: relative;
+  z-index: 2;
 }
 
-.page-blur-target.is-blurred {
-  filter: blur(32px);
+.join-page__panel {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.75rem;
 }
 
-
-.join-modal__grain {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px),
-    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px);
-  background-repeat: repeat;
-  background-size: 42px 42px, 57px 57px;
-  opacity: 0.05;
-  mix-blend-mode: multiply;
+/* Taller form surface: short steps still occupy a substantial vertical band. */
+.join-page__panel .max-w-md {
+  max-width: min(40rem, 100%);
+  min-height: min(36rem, 58dvh);
 }
 
-.join-modal__close {
-  color: var(--yellow);
+.join-page__panel .max-w-md > .relative.min-h-0 {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 14rem;
+  padding-bottom: 1.25rem;
 }
 
-.join-modal__close:hover {
-  color: var(--yellow-dark);
+.join-page .guided-fields {
+  /* Keep focus/active borders inside the page padding */
+  box-sizing: border-box;
+  gap: 0.65rem;
 }
 
-.join-modal-overlay {
-  padding:
-    max(0px, var(--safe-top))
-    0
-    max(0px, var(--safe-bottom))
-    0;
+.join-chooser.programs-panel {
+  display: block;
+  width: 100%;
+  max-width: min(42rem, 100%);
+  margin: 0 auto;
+  padding: 0;
+  gap: 0;
+  /* Match programs dropdown chrome (overrides any leftover pill-shell rules). */
+  /* border-radius is on the motion style prop so Framer can morph it. */
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  background: #2a2a2a;
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  box-shadow:
+    0 24px 64px rgba(var(--ink-rgb), 0.55),
+    0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+  /* overflow:hidden clips the shared-layout morph — keep content clipped
+     via the inner grid instead. */
+  overflow: visible;
 }
 
-@media (min-width: 768px) {
-  .join-modal-overlay {
-    padding:
-      max(1.5rem, var(--safe-top))
-      max(1.5rem, var(--safe-right))
-      max(1.5rem, var(--safe-bottom))
-      max(1.5rem, var(--safe-left));
-  }
-
-  .join-modal {
-    box-shadow:
-      0 32px 80px rgba(60, 30, 10, 0.35),
-      0 0 0 1px rgba(251, 191, 36, 0.16);
-  }
+.join-chooser__icon {
+  color: var(--orange);
 }
 
-@media (max-width: 767px) {
-  .join-modal {
-    box-shadow:
-      0 -8px 40px rgba(60, 30, 10, 0.22),
-      0 0 0 1px rgba(251, 191, 36, 0.12);
-  }
+/* Titles stay orange on the join chooser (programs dropdown uses gold). */
+.join-chooser .program-card__title {
+  color: var(--orange);
 }
 
-.join-modal .guided-option {
+/* Legacy pill rules — keep inert so a stale HMR chunk can't restyle cards. */
+.join-chooser__pill {
+  display: contents;
+}
+
+.join-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  /* border-radius is on the motion style prop so Framer can morph it. */
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(42, 42, 42, 0.96);
+  padding: 0.55rem 0.85rem;
+  box-shadow:
+    0 14px 28px rgba(var(--ink-rgb), 0.22),
+    0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+}
+
+.join-controls__nav-button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--orange);
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.join-controls__nav-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.join-controls__nav-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.join-controls__label {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: opacity 150ms ease;
+}
+
+/* Dirty-form guard: first tap on any control just "wakes" it (see
+   join-page-content's requestActionSwitch) rather than switching away
+   immediately, so an accidental tap mid-edit doesn't lose your place. */
+.join-controls--locked {
+  opacity: 0.7;
+}
+
+/* ── Join page forms (GuidedForm / success panel) ────────────────────── */
+
+.join-page .guided-option {
   -webkit-tap-highlight-color: transparent;
 }
 
-.join-modal .guided-field:focus-visible,
-.join-modal .guided-option:focus-visible {
+.join-page .guided-field:focus-visible,
+.join-page .guided-option:focus-visible {
   box-shadow: inset 0 0 0 2px var(--gold);
-}
-
-.join-modal .guided-fields {
-  /* Keep focus/active borders inside the modal padding */
-  box-sizing: border-box;
 }
 
 .guided-priced-select {
@@ -2222,7 +2337,7 @@ textarea,
   font-weight: 650;
   line-height: 1;
   letter-spacing: -0.01em;
-  color: #111;
+  color: var(--orange-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2317,6 +2432,10 @@ textarea,
 .guided-priced-select__option:hover,
 .guided-priced-select__option.is-selected {
   background: rgba(232, 163, 23, 0.1);
+}
+
+.guided-priced-select__option.is-selected .guided-priced-select__option-title {
+  color: var(--orange-dark);
 }
 
 .guided-priced-select__option-title {
@@ -2467,7 +2586,7 @@ textarea,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .join-modal .guided-option {
+  .join-page .guided-option {
     transition: none;
   }
 
@@ -3525,3 +3644,6 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
     transition: none;
   }
 }
+
+
+

@@ -1,13 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-
-// Not needed until a CTA is clicked — keep it out of the hero's initial chunk.
-const JoinCommunityModal = dynamic(
-  () => import("./join-community-modal").then((m) => m.JoinCommunityModal),
-  { ssr: false },
-);
+import { useEffect, useRef } from "react";
+import Link from "next/link";
 
 const HEADLINE = "AFRICANS SOCIETY OF STRATHCONA COUNTY";
 const WORDS = HEADLINE.split(" ");
@@ -22,10 +16,7 @@ const secondaryCtaClassName =
   "hero-cta-btn hero-cta-btn--ghost focus-ring flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide transition duration-200 ease-out";
 
 export function HeroContent() {
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const ctaRef = useRef<HTMLButtonElement>(null);
-  const hasOpenedJoinModalRef = useRef(false);
-  hasOpenedJoinModalRef.current ||= isJoinModalOpen;
+  const ctaRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     const el = ctaRef.current;
@@ -59,26 +50,14 @@ export function HeroContent() {
       </div>
 
       <div className="hero-cta-row pointer-events-auto w-full">
-        <button
-          ref={ctaRef}
-          type="button"
-          onClick={() => setIsJoinModalOpen(true)}
-          className={primaryCtaClassName}
-        >
+        <Link ref={ctaRef} href="/join" className={primaryCtaClassName}>
           Join Our Community
-        </button>
+        </Link>
 
         <a href="#programs" className={secondaryCtaClassName}>
           Explore Our Programs
         </a>
       </div>
-
-      {hasOpenedJoinModalRef.current && (
-        <JoinCommunityModal
-          isOpen={isJoinModalOpen}
-          onClose={() => setIsJoinModalOpen(false)}
-        />
-      )}
     </div>
   );
 }
