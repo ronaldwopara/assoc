@@ -20,7 +20,7 @@ const MAX_SCALE = 4;
 // resets to loading and the hook's ref reveals instantly if the next image is
 // already cached (a same-element src swap can miss the load event).
 function LightboxImage({ src, alt }: { src: string; alt: string }) {
-  const { loaded, markLoaded, imgRef } = useMediaLoaded();
+  const { loaded, markLoaded, imgRef } = useMediaLoaded(src);
 
   return (
     <MediaPlaceholder loaded={loaded} tone="black" className="relative max-h-full max-w-full">

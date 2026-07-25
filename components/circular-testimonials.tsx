@@ -45,7 +45,7 @@ function TestimonialPhoto({
   index: number;
   style: CSSProperties;
 }) {
-  const { loaded, markLoaded, imgRef } = useMediaLoaded();
+  const { loaded, markLoaded, imgRef } = useMediaLoaded(testimonial.src);
 
   return (
     <div className="absolute inset-0" style={style} data-index={index}>

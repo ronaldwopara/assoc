@@ -992,7 +992,8 @@ textarea,
     rgba(255, 255, 255, 0.13) 50%,
     transparent 58%
   );
-  transform: translateX(-70%);
+  /* Park fully off-canvas — -70% left the band peeking at the edge. */
+  transform: translateX(-140%);
   animation: mcard-sheen 7s ease-in-out infinite;
 }
 
@@ -3066,18 +3067,20 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
     rgba(255, 255, 255, 0.13) 50%,
     transparent 58%
   );
-  transform: translateX(-70%);
+  transform: translateX(-140%);
   animation: mcard-sheen 7s ease-in-out infinite;
 }
 
 @keyframes mcard-sheen {
+  /* Hold only while fully off-screen, then sweep across — never park the
+     highlight on the visible surface at the start or end of the loop. */
   0%,
-  52% {
-    transform: translateX(-70%);
+  18% {
+    transform: translateX(-140%);
   }
-  88%,
+  58%,
   100% {
-    transform: translateX(70%);
+    transform: translateX(140%);
   }
 }
 
@@ -3477,7 +3480,7 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
     rgba(255, 255, 255, 0.35) 50%,
     transparent 58%
   );
-  transform: translateX(-70%);
+  transform: translateX(-140%);
   animation: mcard-sheen 7s ease-in-out infinite;
 }
 
@@ -3636,6 +3639,7 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
     transition: none;
   }
 }
+
 
 
 

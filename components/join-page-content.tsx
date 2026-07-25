@@ -32,8 +32,13 @@ const FORM_ENTER = {
 };
 
 function scrollJoinToTop() {
-  // Instant: smooth scroll would race the height collapse and yank the footer.
-  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  // html { scroll-behavior: smooth } can override scrollTo's behavior option in
+  // some browsers — force an instant jump for picker ↔ form transitions.
+  const root = document.documentElement;
+  const previous = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
+  window.scrollTo(0, 0);
+  root.style.scrollBehavior = previous;
 }
 
 export function JoinPageContent() {
@@ -93,6 +98,9 @@ export function JoinPageContent() {
   };
 
   const commitSwitch = (nextSlug: string) => {
+    // Picker sits mid-page after the heading — jump up so the control bar
+    // and form start under the header instead of leaving the viewport mid-chooser.
+    if (!hasChosen) scrollJoinToTop();
     router.replace(joinActionHref(nextSlug), { scroll: false });
     setHasChosen(true);
     resetFormState();

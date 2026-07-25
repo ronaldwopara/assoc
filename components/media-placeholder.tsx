@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useState,
   type ComponentPropsWithoutRef,
   type ReactNode,
@@ -10,6 +11,19 @@ import {
 import { cn } from "@/lib/utils";
 
 export type MediaPlaceholderTone = "cream" | "ink" | "orange" | "black";
+
+/**
+ * URLs that have already produced a decodable frame in this session.
+ * Opening a program remounts a second <video> for the same Cloudinary URL —
+ * without this, the placeholder sheen reappears even though the bytes are
+ * already in the HTTP cache.
+ */
+const warmedMediaUrls = new Set<string>();
+
+function mediaSrcKey(src: string | undefined | null): string | null {
+  if (!src || typeof src !== "string") return null;
+  return src;
+}
 
 /**
  * A plain <img>/<video> only fires onLoad/onLoadedData for a load that finishes
@@ -22,20 +36,53 @@ export type MediaPlaceholderTone = "cream" | "ink" | "orange" | "black";
  * (next/image handles the cached case internally via its own ref, so it does not
  * need this — only bare <img>/<video> elements do.)
  */
-export function useMediaLoaded() {
-  const [loaded, setLoaded] = useState(false);
-  const markLoaded = useCallback(() => setLoaded(true), []);
+export function useMediaLoaded(src?: string | null) {
+  const key = mediaSrcKey(src);
+  const [loaded, setLoaded] = useState(() => (key ? warmedMediaUrls.has(key) : false));
 
-  const imgRef = useCallback((node: HTMLImageElement | null) => {
-    // `complete` is true once the browser has finished trying (success or error),
-    // so this also clears the placeholder for a cached-but-broken image.
-    if (node?.complete) setLoaded(true);
-  }, []);
+  const markLoaded = useCallback(() => {
+    if (key) warmedMediaUrls.add(key);
+    setLoaded(true);
+  }, [key]);
 
-  const videoRef = useCallback((node: HTMLVideoElement | null) => {
-    // HAVE_CURRENT_DATA (2) or greater means a frame is already decodable.
-    if (node && node.readyState >= 2) setLoaded(true);
-  }, []);
+  useEffect(() => {
+    if (key && warmedMediaUrls.has(key)) {
+      setLoaded(true);
+      return;
+    }
+    // New src that hasn't warmed yet — show the placeholder until it loads.
+    if (key) setLoaded(false);
+  }, [key]);
+
+  const imgRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      // `complete` is true once the browser has finished trying (success or error),
+      // so this also clears the placeholder for a cached-but-broken image.
+      if (node?.complete) markLoaded();
+    },
+    [markLoaded],
+  );
+
+  const videoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (!node) return;
+      // HAVE_CURRENT_DATA (2) or greater means a frame is already decodable.
+      if (node.readyState >= 2) {
+        markLoaded();
+        return;
+      }
+      // Warm HTTP cache: readyState can jump a frame after mount without a
+      // second loadeddata if we attached too early — re-check shortly after.
+      const check = () => {
+        if (node.readyState >= 2) markLoaded();
+      };
+      requestAnimationFrame(() => {
+        check();
+        requestAnimationFrame(check);
+      });
+    },
+    [markLoaded],
+  );
 
   return { loaded, markLoaded, imgRef, videoRef };
 }
@@ -90,9 +137,12 @@ export function MediaPlaceholderImage({
   className,
   onLoad,
   onError,
+  src,
   ...props
 }: MediaPlaceholderImageProps) {
-  const { loaded, markLoaded, imgRef } = useMediaLoaded();
+  const { loaded, markLoaded, imgRef } = useMediaLoaded(
+    typeof src === "string" ? src : null,
+  );
 
   return (
     <MediaPlaceholder
@@ -105,6 +155,7 @@ export function MediaPlaceholderImage({
       {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
       <img
         {...props}
+        src={src}
         ref={imgRef}
         className={cn(
           "media-placeholder__media transition-opacity duration-300 ease-out",
@@ -136,10 +187,14 @@ export function MediaPlaceholderVideo({
   showSheen = true,
   className,
   onLoadedData,
+  onCanPlay,
   onError,
+  src,
   ...props
 }: MediaPlaceholderVideoProps) {
-  const { loaded, markLoaded, videoRef } = useMediaLoaded();
+  const { loaded, markLoaded, videoRef } = useMediaLoaded(
+    typeof src === "string" ? src : null,
+  );
 
   return (
     <MediaPlaceholder
@@ -150,6 +205,7 @@ export function MediaPlaceholderVideo({
     >
       <video
         {...props}
+        src={src}
         ref={videoRef}
         className={cn(
           "media-placeholder__media transition-opacity duration-300 ease-out",
@@ -159,6 +215,10 @@ export function MediaPlaceholderVideo({
         onLoadedData={(event) => {
           markLoaded();
           onLoadedData?.(event);
+        }}
+        onCanPlay={(event) => {
+          markLoaded();
+          onCanPlay?.(event);
         }}
         onError={(event) => {
           // A video that errors (or is already buffered) must still clear the

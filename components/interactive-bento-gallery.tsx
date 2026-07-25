@@ -87,7 +87,7 @@ function MediaItem({
         loop
         autoPlay
         playsInline
-        preload="metadata"
+        preload="auto"
         aria-hidden={onClick ? undefined : true}
       />
     );
