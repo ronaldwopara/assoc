@@ -39,7 +39,7 @@ function EventsList() {
                 className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
                 wrapperClassName="h-24 w-full shrink-0 rounded-xl sm:h-24 sm:w-36"
                 src={event.videoSrc}
-                tone="dark"
+                tone="black"
                 muted
                 loop
                 autoPlay

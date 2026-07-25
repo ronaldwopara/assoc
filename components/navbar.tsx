@@ -195,14 +195,9 @@ export function Navbar() {
   const shouldShowJoinNav = !isHome || showJoinNav;
   const [togglePos, setTogglePos] = useState({ x: 0, y: 0 });
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
-  const logoLinkRef = useRef<HTMLAnchorElement>(null);
   const programsCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const galleryCloseTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    // Expose the real navbar logo element so LoadingScreen can measure it exactly
-    (window as Window & { __navLogoEl?: HTMLElement }).__navLogoEl = logoLinkRef.current ?? undefined;
-  }, []);
   const closeMobileMenu = useCallback(() => {
     // Move focus out of the panel before aria-hidden is applied on close.
     toggleButtonRef.current?.focus({ preventScroll: true });
@@ -308,17 +303,17 @@ export function Navbar() {
         <div className="absolute inset-0 overflow-hidden" aria-hidden>
           <NavbarBackground />
         </div>
-        <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 lg:px-8 text-(--ink)">
+        <nav className="relative z-10 mx-auto max-w-7xl overflow-visible px-4 sm:px-6 min-[920px]:px-(--nav-px) text-(--ink)">
           <LayoutGroup id={pathname}>
           <div
-            className="relative flex h-20 items-center justify-between"
+            className="relative grid h-20 grid-cols-[1fr_auto_1fr] items-center"
             onMouseLeave={() => setHoveredNav(null)}
           >
-            {/* Left spacer for mobile balance */}
-            <div className="lg:hidden w-11" />
-
-            {/* Left navigation */}
-            <div className="hidden lg:flex lg:items-center lg:gap-6">
+            {/* Left navigation — an explicit grid column (not an absolutely
+                positioned logo floating over a flex row) so the logo's
+                width is always reserved and nothing can grow into it,
+                at any viewport width. */}
+            <div className="hidden min-[920px]:flex min-[920px]:items-center min-[920px]:gap-(--nav-gap)">
               {leftLinks.map((link) => {
                 const id = hashId(link.href);
                 return (
@@ -424,18 +419,22 @@ export function Navbar() {
               </div>
             </div>
 
-            {/* Center logo */}
+            {/* Center logo — its own grid column (auto width), so it's
+                always truly centered and the side columns can never
+                overlap it, regardless of how wide their content gets
+                (e.g. the nav CTA swapping to the longer "Join Our
+                Community" label). */}
             <Link
-              ref={logoLinkRef}
               href="/#home"
-              className="focus-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-sm"
+              className="focus-ring relative z-10 col-start-2 row-start-1 cursor-pointer justify-self-center rounded-sm"
               onClick={(event) => handleSectionLinkClick(event, "/#home", isHome)}
             >
               <Image src={NAVBAR_LOGO_URL} alt="ASOSC logo" width={128} height={128} className="nav-logo-image h-18 w-auto" priority />
             </Link>
 
             {/* Right navigation */}
-            <div className="hidden lg:ml-auto lg:flex lg:items-center lg:gap-6">
+            <div className="col-start-3 row-start-1 flex items-center justify-end min-[920px]:gap-(--nav-gap)">
+              <div className="hidden min-[920px]:flex min-[920px]:items-center min-[920px]:gap-(--nav-gap)">
               {/* Gallery link */}
               <div
                 className="relative"
@@ -515,13 +514,14 @@ export function Navbar() {
                   </div>
                 );
               })}
-            </div>
+              </div>
 
-            <MobileMenuToggle
-              isOpen={mobileMenuOpen}
-              onToggle={toggleMobileMenu}
-              ref={toggleButtonRef}
-            />
+              <MobileMenuToggle
+                isOpen={mobileMenuOpen}
+                onToggle={toggleMobileMenu}
+                ref={toggleButtonRef}
+              />
+            </div>
           </div>
           </LayoutGroup>
         </nav>

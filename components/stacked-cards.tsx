@@ -14,7 +14,7 @@ export function StackedCardBody({
   imageSrc,
   imageAlt,
   children,
-  mediaTone = "neutral",
+  mediaTone = "orange",
   priority = false,
 }: {
   imageSrc: string;
@@ -47,7 +47,7 @@ export function StackedCardBody({
               fill
               unoptimized
               priority={priority}
-              loading={priority ? "eager" : undefined}
+              loading="eager"
               sizes="(max-width: 768px) 100vw, 420px"
               onLoad={() => setImageLoaded(true)}
             />
@@ -59,11 +59,13 @@ export function StackedCardBody({
 }
 
 /*
- * The first card is position: sticky (see .stacked-card-pin--first): it pins
- * below the navbar while the next card scrolls up over it, and the browser
- * releases it once its bottom edge reaches the container's bottom edge — so
- * it can never spill past the last card or cover content below the section,
- * at any viewport size.
+ * Every card is position: sticky (see .stacked-card-pin): each one pins
+ * below the navbar in turn as the next card scrolls up to cover it, and the
+ * browser releases all of them together once the container's bottom edge
+ * (the last card's bottom) is reached — so they can never spill past the
+ * last card or cover content below the section, at any viewport size.
+ * `--first` only adds the top clearance below the section heading; it isn't
+ * what makes a card sticky (see stacked-card-pin's base rule for that).
  */
 export function StackedCards({ children }: { children: ReactNode }) {
   const items = Children.toArray(children);

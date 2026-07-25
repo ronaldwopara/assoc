@@ -1,4 +1,4 @@
-/** Self-hosted navbar / loading-screen repeat texture (see public/nav.webp). */
+/** Self-hosted navbar repeat texture (see public/nav.webp). */
 export const NAV_TEXTURE_URL = "/nav.webp";
 
 const NAV_TEXTURE_TILE_SIZE = 1254;

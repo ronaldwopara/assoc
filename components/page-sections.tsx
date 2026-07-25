@@ -21,6 +21,8 @@ const UPDATE_IMAGES: string[] = [
 
 const SPONSOR_IMAGES: string[] = [
   `${CLOUDINARY_BASE}/v1782764734/asosc/sponsors/sevus.webp`,
+  `${CLOUDINARY_BASE}/v1784895521/asosc/sponsors/pembina.webp`,
+  `${CLOUDINARY_BASE}/v1784895521/asosc/sponsors/synergy-fa-care-clin.webp`,
   `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/canada.webp`,
   `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/alberta.webp`,
   `${CLOUDINARY_BASE}/v1782764736/asosc/sponsors/strathcona-county.webp`,
@@ -90,7 +92,7 @@ export function AboutContent({
         <StackedCardBody
           imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp"
           imageAlt="Community members gathered together at an ASOSC event"
-          mediaTone="neutral"
+          mediaTone="orange"
           priority={priorityFirstImage}
         >
           <h3 className="mb-4">Our Mission</h3>
@@ -114,7 +116,7 @@ export function AboutContent({
         <StackedCardBody
           imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp"
           imageAlt="Group portrait celebrating in vibrant traditional attire"
-          mediaTone="dark"
+          mediaTone="ink"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
           <p className="text-(--orange-light)!">
@@ -122,6 +124,41 @@ export function AboutContent({
             to the social, economic, and cultural fabric of Strathcona County
             and Alberta.
           </p>
+        </StackedCardBody>
+
+        <StackedCardBody
+          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/3-c.webp"
+          imageAlt="Friends posing together in colourful festival dress"
+          mediaTone="orange"
+        >
+          <h3 className="mb-4">Our Values</h3>
+          <ul className="stacked-card__list">
+            <CardBullet>
+              <strong>Excellence &amp; Innovation:</strong> We hold our
+              programs to a high standard and keep looking for better, more
+              creative ways to serve our community.
+            </CardBullet>
+            <CardBullet>
+              <strong>Community Engagement:</strong> We build with our
+              community, not for it. The people we serve shape what we do
+              and how we do it.
+            </CardBullet>
+            <CardBullet>
+              <strong>Integrity &amp; Accountability:</strong> We are honest
+              about our commitments and answerable for our results, to our
+              members and to those who support us.
+            </CardBullet>
+            <CardBullet>
+              <strong>Inclusion &amp; Belonging:</strong> Everyone is
+              welcome. We build spaces where people feel seen, valued and at
+              home.
+            </CardBullet>
+            <CardBullet>
+              <strong>Cultural Pride:</strong> We celebrate African heritage
+              openly and help the next generation carry it forward with
+              confidence.
+            </CardBullet>
+          </ul>
         </StackedCardBody>
       </StackedCards>
       {footer}
@@ -232,7 +269,8 @@ export function UpdatesSection() {
         <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">
           CBC News Edmonton features the founder of ASOSC, Busayo Disu, on Edmonton AM to discuss
           how Strathcona County is celebrating its first Black History Month,
-          and to talk about her new documentary series, "Our Story, Our Voice."
+          and to talk about her new documentary series, &ldquo;Our Story, Our
+          Voice.&rdquo;
         </p>
 
         <div className="mt-7 overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-black shadow-xl shadow-black/30">
@@ -286,7 +324,7 @@ export function UpdatesSection() {
                 <MediaPlaceholderImage
                   src={file}
                   alt=""
-                  tone="light"
+                  tone="cream"
                   loading="eager"
                   className="h-full w-full object-cover"
                   wrapperClassName="h-full w-full"
@@ -302,6 +340,11 @@ export function UpdatesSection() {
 
 export function SponsorsSection() {
   const images = getSponsorImages();
+  // Original design: 4 logos × 4 loops = 16 slots at 22.5°. Keep that
+  // geometry fixed and cycle the roster through the slots so spacing never
+  // changes when sponsors are added or removed.
+  const ARC_STEP_DEG = 22.5;
+  const ARC_SLOT_COUNT = Math.round(360 / ARC_STEP_DEG);
 
   return (
     <section
@@ -327,29 +370,29 @@ export function SponsorsSection() {
       {images.length > 0 && (
         <div className="sponsors-arc mt-12" aria-hidden="false">
           <div className="sponsors-arc__pivot">
-            {/* Four loops around the circle — tight enough to feel full, loose enough not to overlap. */}
-            {Array.from({ length: 4 }, (_, repeat) =>
-              images.map((file, index) => {
-                const itemIndex = repeat * images.length + index;
-                const angle = itemIndex * (360 / (images.length * 4));
-                return (
-                  <div
-                    key={`${file}-${itemIndex}`}
-                    className="sponsors-arc__item"
-                    style={{ "--arc-angle": `${angle}deg` } as React.CSSProperties}
-                  >
-                    <MediaPlaceholderImage
-                      src={file}
-                      alt=""
-                      tone="light"
-                      loading="eager"
-                      className="max-h-full max-w-full object-contain"
-                      wrapperClassName="flex h-full w-full items-center justify-center"
-                    />
-                  </div>
-                );
-              })
-            )}
+            {Array.from({ length: ARC_SLOT_COUNT }, (_, slot) => {
+              const file = images[slot % images.length];
+              return (
+                <div
+                  key={`${file}-${slot}`}
+                  className="sponsors-arc__item"
+                  style={
+                    {
+                      "--arc-angle": `${slot * ARC_STEP_DEG}deg`,
+                    } as React.CSSProperties
+                  }
+                >
+                  <MediaPlaceholderImage
+                    src={file}
+                    alt=""
+                    tone="cream"
+                    loading="eager"
+                    className="max-h-full max-w-full object-contain"
+                    wrapperClassName="flex h-full w-full items-center justify-center"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

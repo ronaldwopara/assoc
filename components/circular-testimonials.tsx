@@ -51,7 +51,7 @@ function TestimonialPhoto({
     <div className="absolute inset-0" style={style} data-index={index}>
       <MediaPlaceholder
         loaded={loaded}
-        tone="light"
+        tone="black"
         className="h-full w-full rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

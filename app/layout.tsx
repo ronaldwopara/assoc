@@ -3,18 +3,18 @@ import { preload } from "react-dom";
 import { PreventTextCaret } from "@/components/prevent-text-caret";
 import { OrientationLock } from "@/components/orientation-lock";
 import { SafeAreaFrame } from "@/components/safe-area-frame";
+import { ScrollProgress } from "@/components/scroll-progress";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
 import "./globals.css";
 
-// Social share/preview image (prev.jpeg, uploaded to Cloudinary). Kept as a
-// full portrait (no crop, no letterbox) so chat previews match the flyer —
-// forced JPEG (f_jpg) for scraper compatibility, q_auto compressed. The v…
-// version pins a stable URL for platform caches.
+// Social share/preview image — the same logo shown in the header, forced to
+// JPEG (f_jpg) for scraper compatibility, q_auto compressed. The v… version
+// pins a stable URL for platform caches.
 const OG_IMAGE =
-  "https://res.cloudinary.com/daldas2e7/image/upload/f_jpg,q_auto/v1784569634/asosc/prev.jpg";
-const OG_IMAGE_WIDTH = 1127;
-const OG_IMAGE_HEIGHT = 1600;
+  "https://res.cloudinary.com/daldas2e7/image/upload/f_jpg,q_auto/v1782952089/asosc/about-us-logo.webp";
+const OG_IMAGE_WIDTH = 500;
+const OG_IMAGE_HEIGHT = 500;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://asosc.ca"),
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: OG_IMAGE_WIDTH,
         height: OG_IMAGE_HEIGHT,
-        alt: "Call for Vendors — African Festival in Strathcona County",
+        alt: "ASOSC logo",
       },
     ],
   },
@@ -73,6 +73,7 @@ export default function RootLayout({
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         {/* Mount strips first so the notch/home-indicator paint before splash/modals */}
         <SafeAreaFrame />
+        <ScrollProgress />
         <PreventTextCaret />
         <SkipLink />
         {children}

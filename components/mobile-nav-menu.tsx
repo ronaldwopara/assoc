@@ -89,7 +89,7 @@ export function MobileMenuToggle({
     <button
       ref={ref}
       type="button"
-      className="relative flex h-11 w-11 cursor-pointer items-center justify-center text-(--orange) lg:hidden"
+      className="relative flex h-11 w-11 cursor-pointer items-center justify-center text-(--orange) min-[920px]:hidden"
       style={{ zIndex: 52 }}
       onClick={onToggle}
       aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -165,7 +165,7 @@ export function MobileNavMenu({
 
   return (
     <motion.nav
-      className="fixed inset-0 lg:hidden"
+      className="fixed inset-0 min-[920px]:hidden"
       style={{ zIndex: 51, pointerEvents: isOpen ? "auto" : "none" }}
       initial={false}
       animate={isOpen ? "open" : "closed"}

@@ -26,36 +26,31 @@ function HeroSlide({
   index,
   isActive,
   tick,
-  onFirstLoad,
 }: {
   slide: (typeof SLIDES)[number];
   index: number;
   isActive: boolean;
   tick: number;
-  onFirstLoad: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
 
   return (
     <div className="hero-carousel-slide" data-active={isActive}>
-      <MediaPlaceholder loaded={loaded} tone="dark" className="absolute inset-0">
+      <MediaPlaceholder loaded={loaded} tone="ink" className="absolute inset-0">
         <Image
           key={isActive ? `active-${tick}` : `idle-${index}`}
           src={slide.src}
           alt={slide.alt}
           fill
           priority={index === 0}
-          loading={index === 0 ? undefined : "eager"}
+          loading="eager"
           unoptimized
           sizes="100vw"
           className={cn(
             "hero-carousel-image transition-opacity duration-300 ease-out",
             !loaded && "opacity-0",
           )}
-          onLoad={() => {
-            setLoaded(true);
-            if (index === 0) onFirstLoad();
-          }}
+          onLoad={() => setLoaded(true)}
         />
       </MediaPlaceholder>
     </div>
@@ -79,11 +74,6 @@ export function HeroCarousel() {
     return () => clearTimeout(id);
   }, [active, paused]);
 
-  const handleFirstLoad = () => {
-    (window as typeof window & { __heroReady?: boolean }).__heroReady = true;
-    window.dispatchEvent(new Event("heroReady"));
-  };
-
   return (
     <div
       className="hero-carousel"
@@ -100,7 +90,6 @@ export function HeroCarousel() {
           index={index}
           isActive={index === active}
           tick={tick}
-          onFirstLoad={handleFirstLoad}
         />
       ))}
 

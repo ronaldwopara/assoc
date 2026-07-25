@@ -9,7 +9,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 
-export type MediaPlaceholderTone = "light" | "dark" | "neutral";
+export type MediaPlaceholderTone = "cream" | "ink" | "orange" | "black";
 
 /**
  * A plain <img>/<video> only fires onLoad/onLoadedData for a load that finishes
@@ -50,7 +50,7 @@ type MediaPlaceholderProps = {
 
 export function MediaPlaceholder({
   loaded,
-  tone = "light",
+  tone = "cream",
   showSheen = true,
   className,
   children,
@@ -84,7 +84,7 @@ type MediaPlaceholderImageProps = Omit<
 };
 
 export function MediaPlaceholderImage({
-  tone = "light",
+  tone = "cream",
   wrapperClassName,
   showSheen = true,
   className,
@@ -131,7 +131,7 @@ type MediaPlaceholderVideoProps = VideoHTMLAttributes<HTMLVideoElement> & {
 };
 
 export function MediaPlaceholderVideo({
-  tone = "dark",
+  tone = "black",
   wrapperClassName,
   showSheen = true,
   className,

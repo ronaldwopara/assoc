@@ -86,7 +86,7 @@ export function ImageGallery({ program, year }: ImageGalleryProps) {
             <div key={index} className="gallery-bento__item">
               <MediaPlaceholder
                 loaded={false}
-                tone="light"
+                tone="cream"
                 showSheen={false}
                 className="absolute inset-0 rounded-[0.95rem]"
               />
@@ -189,7 +189,7 @@ function AnimatedImage({ image, onActivate }: AnimatedImageProps) {
     >
       <MediaPlaceholder
         loaded={isLoaded && !hasError}
-        tone="light"
+        tone="cream"
         className="absolute inset-0 rounded-[0.95rem]"
       />
       {!hasError && (

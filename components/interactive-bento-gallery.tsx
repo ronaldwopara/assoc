@@ -87,7 +87,7 @@ function MediaItem({
         wrapperClassName={cn("relative h-full w-full overflow-hidden", className)}
         onClick={onClick}
         src={item.url}
-        tone="dark"
+        tone="black"
         muted
         loop
         autoPlay
@@ -102,7 +102,7 @@ function MediaItem({
     <MediaPlaceholderImage
       src={item.url}
       alt={item.title}
-      tone="light"
+      tone="black"
       className={cn("h-full w-full cursor-pointer object-cover", className)}
       wrapperClassName={cn("relative h-full w-full", className)}
       onClick={onClick}

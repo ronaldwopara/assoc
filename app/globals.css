@@ -43,7 +43,21 @@
 
   /* Layout */
   --page-chrome: #f7f7f7;
+
+  /* 0 below 920px, 1 at/above 1024px, linear in between. Lets the desktop
+     header + stacked cards switch on at 920px, while every size/spacing
+     value driven by it still scales up smoothly to the full desktop value
+     by 1024px instead of jumping straight to full size. (Hero uses its own,
+     lower 470px switch point — see its media queries — so it isn't driven
+     by this variable.) Usage: calc(MIN + (MAX - MIN) * var(--tablet-t)). */
+  --tablet-t: clamp(0, calc((100vw - 920px) / 104px), 1);
+
   --navbar-height: 5rem;
+  /* Desktop nav row spacing, fluid 920→1024: continues smoothly from the
+     24px established at the sm: breakpoint (640px) rather than jumping
+     straight to the old lg: fixed values. */
+  --nav-gap: calc(1rem + (1.5rem - 1rem) * var(--tablet-t));
+  --nav-px: calc(1.5rem + (2rem - 1.5rem) * var(--tablet-t));
   /* Use env() directly in layout calcs — iOS WebKit can resolve nested var(--safe-*) to 0 */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -51,13 +65,23 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --header-height: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   --stacked-card-pin-gap: 2rem;
-  --stacked-card-height: 600px;
+  /* Fluid 920→1024: taller at 920px since the text column is narrower
+     there (more line-wraps for the same content), converging to 640px —
+     tall enough for the longest card (5-bullet Values) — by 1024px, where
+     the column is at its widest before the container's 1100px cap. */
+  --stacked-card-height: calc(680px - 40px * var(--tablet-t));
+  --stacked-card-padding: calc(2rem + (3rem - 2rem) * var(--tablet-t));
+  --stacked-card-list-gap: calc(0.625rem + (0.75rem - 0.625rem) * var(--tablet-t));
+  /* Retain a large, readable size — only a modest reduction, since spacing
+     (padding/gap above, line-height below) does most of the work absorbing
+     the narrower column. */
+  --stacked-card-text-size: calc(1.05rem + (1.155rem - 1.05rem) * var(--tablet-t));
+  --stacked-card-text-leading: calc(1.5 + (1.65 - 1.5) * var(--tablet-t));
 
   /* Z-index scale */
   --z-dropdown: 20;
   --z-navbar: 50;
   --z-modal: 100;
-  --z-loading: 200;
   --z-orientation: 300;
 
   --nav-texture-url: url(/nav.webp);
@@ -132,10 +156,41 @@ body::-webkit-scrollbar {
   background: var(--page-chrome);
 }
 
+/* Fades rather than blocks: on notched devices this sits over the live
+   page content (not just the footer), so a solid fill would hide whatever's
+   underneath. Matches the footer's orange rather than a hardcoded black. */
 .safe-area-strip--bottom {
   bottom: 0;
   height: env(safe-area-inset-bottom, 0px);
-  background: #000;
+  background: linear-gradient(to top, color-mix(in srgb, var(--orange) 70%, transparent), transparent);
+}
+
+/* Sits at the seam between .safe-area-strip--top and the header, above the
+   header's own z-index so it always reads on top of the nav texture. */
+.scroll-progress {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: calc(var(--z-navbar) + 1);
+  pointer-events: none;
+}
+
+.scroll-progress__bar {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--gold);
+  will-change: transform;
+  transition: transform 100ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress__bar {
+    transition: none;
+  }
 }
 
 /* Fixed header: texture bleeds into the notch; bar content stays below it */
@@ -905,33 +960,61 @@ textarea,
   animation: mcard-sheen 7s ease-in-out infinite;
 }
 
-.media-placeholder--light .media-placeholder__base {
-  border: 1px solid rgba(251, 191, 36, 0.18);
-  background: rgba(0, 0, 0, 0.04);
+/* Warm cream / soft brown wash — gallery, updates, sponsors, cream sections */
+.media-placeholder--cream .media-placeholder__base {
+  border: 1px solid rgba(240, 143, 59, 0.2);
+  background: rgba(var(--ink-rgb), 0.06);
 }
 
-.media-placeholder--dark .media-placeholder__base {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.media-placeholder--dark .media-placeholder__sheen {
+.media-placeholder--cream .media-placeholder__sheen {
   background: linear-gradient(
     115deg,
     transparent 42%,
-    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 247, 225, 0.55) 50%,
     transparent 58%
   );
 }
 
-.media-placeholder--neutral .media-placeholder__base {
-  background: rgba(0, 0, 0, 0.1);
+/* Deep ink — hero, Vision card, ink frames. Solid, not a faint frost, so it
+   reads as intentional against --ink backgrounds instead of a gray box. */
+.media-placeholder--ink .media-placeholder__base {
+  background: var(--ink);
 }
 
-.media-placeholder--neutral .media-placeholder__sheen {
+.media-placeholder--ink .media-placeholder__sheen {
   background: linear-gradient(
     115deg,
     transparent 42%,
-    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 196, 140, 0.28) 50%,
+    transparent 58%
+  );
+}
+
+/* Soft orange from --hero-cta — Mission card */
+.media-placeholder--orange .media-placeholder__base {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.media-placeholder--orange .media-placeholder__sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 58%
+  );
+}
+
+/* Near-black charcoal — events videos, programs, arc gallery, lightbox */
+.media-placeholder--black .media-placeholder__base {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.media-placeholder--black .media-placeholder__sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.24) 50%,
     transparent 58%
   );
 }
@@ -1422,13 +1505,25 @@ textarea,
   );
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 469px) {
   .hero-content {
-    padding-bottom: calc(var(--hero-dots-offset, 3rem) + 1.25rem);
+    padding-bottom: calc(var(--hero-dots-offset, 3rem) + 0.75rem);
   }
 
   .hero-copy {
     margin-top: auto;
+  }
+
+  /* Scales with viewport height (not just width) so short phones — e.g. an
+     iPhone SE's 667px-tall viewport vs. a Pro Max's 932px — get genuinely
+     smaller type instead of both flattening to the same clamp floor. */
+  .hero-headline {
+    font-size: clamp(1.5rem, calc(2.64dvh + 0.59rem), 2.4rem);
+  }
+
+  .hero-subheadline {
+    margin-top: clamp(0.5rem, 2.5dvh, 1.25rem);
+    font-size: clamp(0.95rem, calc(1.89dvh + 0.31rem), 1.4rem);
   }
 
   .hero-cta-row {
@@ -1436,12 +1531,15 @@ textarea,
     flex-direction: column;
     width: 100%;
     max-width: 24rem;
-    margin-top: clamp(5rem, 20vh, 8.5rem);
+    /* Was clamp(5rem, 20vh, 8.5rem) — on a short viewport 20vh nearly maxed
+       out the clamp on its own, leaving almost no room for the heading/
+       subtext above it and crowding the CTAs against the dots below. */
+    margin-top: clamp(1.25rem, 8vh, 3rem);
     margin-bottom: auto;
   }
 
   .hero-cta-row > * + * {
-    margin-top: 1rem;
+    margin-top: 0.75rem;
   }
 
   .hero-cta-row .hero-cta-btn {
@@ -1449,7 +1547,7 @@ textarea,
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 470px) {
   .hero-section {
     height: min(calc(100dvh - var(--header-height)), 800px);
     --hero-dots-offset: clamp(3.5rem, calc(5vw + 1.75rem), 5.5rem);
@@ -1488,9 +1586,17 @@ textarea,
     margin-top: 0;
   }
 
+  /* auto-fit + a minmax floor at the longer button's natural (single-line)
+     width — ~283px for "Explore Our Programs" — instead of a fixed 2-column
+     grid: below that width there isn't room for two side-by-side columns
+     without wrapping, which (min-height being a floor, not a cap) inflated
+     the button height and broke its proportions. This collapses to a single
+     full-width stacked column exactly where it would otherwise wrap, and
+     expands back to 2-up once both columns fit at their natural width —
+     no hardcoded breakpoint to keep in sync with the button copy. */
   .hero-cta-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
     gap: 1rem;
     width: 100%;
     max-width: 42rem;
@@ -1771,29 +1877,33 @@ textarea,
   z-index: 1;
 }
 
+/*
+ * Sticky pinning: every card sticks below the navbar in turn — each one
+ * scrolls up over whatever's pinned before it (higher z-index, set inline
+ * per card), then itself sticks once its top reaches the pin line, so it
+ * keeps covering the previous card instead of scrolling past it. All pins
+ * share one containing block (.stacked-cards-container), so the browser
+ * releases every stuck card together exactly when the container's bottom
+ * (the last card's bottom) is reached. The container must not have extra
+ * height (min-height/bottom spacing inside the content box) or the cards
+ * would keep sticking past the last one.
+ */
 .stacked-card-pin {
-  position: relative;
+  position: sticky;
+  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
   width: 100%;
   max-width: 1100px;
   flex-shrink: 0;
-}
-
-/*
- * Sticky pinning: the first card sticks below the navbar while the second
- * card scrolls over it. The browser clamps a sticky element inside its
- * container's content box, so the card releases exactly when its bottom
- * aligns with the last card's bottom. The container must not have extra
- * height (min-height/bottom spacing inside the content box) or the card
- * would keep sticking past the last card.
- */
-.stacked-card-pin--first {
-  position: sticky;
-  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  /* Every card needs this, not just the first: padding-top pushes the
+     visible .stacked-card down inside its own sticky box, and every pin's
+     box top lands at the same `top` offset once stuck — so unless the
+     padding matches too, a later card sticks higher than the one before it
+     and never fully overlaps it. */
   padding-top: var(--stacked-card-pin-gap);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stacked-card-pin--first {
+  .stacked-card-pin {
     position: relative;
     top: auto;
   }
@@ -1821,7 +1931,7 @@ textarea,
   min-width: 0;
   flex-direction: column;
   justify-content: center;
-  padding: 3rem;
+  padding: var(--stacked-card-padding);
 }
 
 .stacked-card__media {
@@ -1858,15 +1968,15 @@ textarea,
 }
 
 .stacked-card p {
-  font-size: 1.155rem;
-  line-height: 1.65;
+  font-size: var(--stacked-card-text-size);
+  line-height: var(--stacked-card-text-leading);
   color: rgba(255, 255, 255, 0.92);
 }
 
 .stacked-card__list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--stacked-card-list-gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1876,8 +1986,8 @@ textarea,
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  font-size: 1.155rem;
-  line-height: 1.65;
+  font-size: var(--stacked-card-text-size);
+  line-height: var(--stacked-card-text-leading);
   color: rgba(255, 255, 255, 0.92);
 }
 
@@ -1890,8 +2000,12 @@ textarea,
   background: var(--yellow);
 }
 
+/* Orange-background cards (Mission, Values) need dark text for contrast;
+   the ink-background card (Vision) keeps the white default. */
 #module-home-features-card_1 .stacked-card h3,
-#module-home-features-card_1 .stacked-card__bullet {
+#module-home-features-card_1 .stacked-card__bullet,
+#module-home-features-card_3 .stacked-card h3,
+#module-home-features-card_3 .stacked-card__bullet {
   color: var(--ink);
 }
 
@@ -1911,10 +2025,31 @@ textarea,
   z-index: 1;
 }
 
-@media (max-width: 800px) {
+/* Threshold matches the site's 920px header breakpoint so the side-by-side
+   sticky-pin layout below reads as "desktop" starting at the same width as
+   the navbar, not just ≥1024px. --stacked-card-height, --stacked-card-
+   padding, --stacked-card-list-gap and --stacked-card-text-* scale fluidly
+   across 920–1024 (see :root) so that narrower layout doesn't overflow the
+   fixed card height. */
+@media (max-width: 919px) {
   .stacked-cards-container {
     padding: 2rem 1rem 0;
     gap: 2rem;
+  }
+
+  /* Sticky pin off on mobile: the first card pins at top: var(--navbar-height)
+     and stays glued there while the next card scrolls over it, so any part
+     taller than that visible window (viewport minus header) is permanently
+     below the fold for as long as it's stuck — the next card covers it
+     before that part is ever shown. Column content (heading + bullets +
+     stacked image) is too tall to reliably fit that window across phone
+     sizes, so — same fallback already used for prefers-reduced-motion and
+     the short-landscape query below — drop the pin and let cards stack in
+     normal flow, fully visible, instead of risking a clipped image or (as
+     tried and reverted) clipped text to force-fit them into it. */
+  .stacked-card-pin {
+    position: relative;
+    top: auto;
   }
 
   .stacked-card-pin--first {
@@ -1965,8 +2100,7 @@ textarea,
 /* ── Join community modal ────────────────────────────────────────────── */
 
 /* Solid dark base under the header's nav.webp texture — same pairing as
-   .mobile-nav-panel / .loading-screen__bg. Without it the header shows the
-   modal's cream background (white heading text unreadable) until the 129KB
+   .mobile-nav-panel. Without it the header shows the
    texture finishes loading, which reads as the image "painting in" late.
    With the base color the header is correct instantly; the texture just adds
    detail on top when it arrives. */
@@ -2342,87 +2476,6 @@ textarea,
   }
 }
 
-/* ── Loading / splash screen ─────────────────────────────────────────── */
-.loading-screen {
-  position: fixed;
-  /* Leave the top inset to html/body --page-chrome so the status bar never
-     samples this dark splash (iOS often fails to paint the light strip over
-     it on first frame). Bottom stays covered — matches the black home-
-     indicator strip. */
-  top: env(safe-area-inset-top, 0px);
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: var(--z-loading);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-screen__bg {
-  position: absolute;
-  inset: 0;
-  background-color: rgb(10, 8, 6);
-  background-image: var(--nav-texture-url);
-  background-repeat: repeat;
-  background-size: var(--nav-texture-size) var(--nav-texture-size);
-}
-
-.loading-screen__center {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.loading-screen__logo {
-  display: block; /* eliminate inline baseline gap so wrapper height = image height */
-  height: clamp(80px, 14vw, 140px);
-  width: auto;
-  filter:
-    drop-shadow(0 1rem 1.5rem rgba(0, 0, 0, 0.5))
-    drop-shadow(0 0 2rem rgba(250, 204, 21, 0.22));
-}
-
-.loading-screen__progress-bar {
-  position: absolute;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.08);
-  z-index: 2;
-}
-
-.loading-screen__progress-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--yellow);
-  animation: loading-progress 0.5s linear forwards;
-  box-shadow: 0 0 8px var(--yellow);
-}
-
-@keyframes loading-progress {
-  from { width: 0%; }
-  to { width: 100%; }
-}
-
-.loading-screen__loading-label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--yellow);
-  text-align: center;
-  transition: opacity 0.3s ease;
-}
-
-/* org name uses .mobile-nav-org-name (same as hamburger menu) */
-
 /* ── Footer ───────────────────────────────────────────────────────────── */
 .footer {
   background: var(--orange);
@@ -2788,10 +2841,10 @@ html[data-orientation-lock] body > :not(.orientation-lock) {
 }
 
 /* About pinned cards: only drop the pin in handset landscape once the
-   mobile stacked layout is active (≤800px). Wider viewports keep the
-   desktop side-by-side pin through landscape. */
-@media (orientation: landscape) and (max-height: 500px) and (max-width: 800px) {
-  .stacked-card-pin--first {
+   mobile stacked layout is active (≤919px, matching the query above).
+   Wider viewports keep the desktop side-by-side pin through landscape. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 919px) {
+  .stacked-card-pin {
     position: relative;
     top: auto;
   }

@@ -23,7 +23,7 @@ function LightboxImage({ src, alt }: { src: string; alt: string }) {
   const { loaded, markLoaded, imgRef } = useMediaLoaded();
 
   return (
-    <MediaPlaceholder loaded={loaded} tone="dark" className="relative max-h-full max-w-full">
+    <MediaPlaceholder loaded={loaded} tone="black" className="relative max-h-full max-w-full">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={imgRef}

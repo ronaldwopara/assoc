@@ -43,28 +43,7 @@ export function JoinDeepLink() {
       window.location.pathname + (query ? `?${query}` : "") + window.location.hash;
     window.history.replaceState(null, "", cleaned);
 
-    // The home page shows a loading screen that also locks body scroll. Opening
-    // the modal while it's up would animate the modal behind the splash and make
-    // the two fight over scroll-lock. Wait until the splash element is gone
-    // (immediate on pages without one), with a hard cap as a fallback.
-    if (!document.querySelector(".loading-screen")) {
-      setOpen(true);
-      return;
-    }
-    const interval = window.setInterval(() => {
-      if (!document.querySelector(".loading-screen")) {
-        window.clearInterval(interval);
-        setOpen(true);
-      }
-    }, 120);
-    const cap = window.setTimeout(() => {
-      window.clearInterval(interval);
-      setOpen(true);
-    }, 8000);
-    return () => {
-      window.clearInterval(interval);
-      window.clearTimeout(cap);
-    };
+    setOpen(true);
   }, []);
 
   if (!action) return null;

@@ -134,7 +134,7 @@ export function ArcGalleryHero({
                   <MediaPlaceholderImage
                     src={src}
                     alt=""
-                    tone="dark"
+                    tone="black"
                     draggable={false}
                     className="block h-full w-full object-cover"
                     wrapperClassName="h-full w-full"
