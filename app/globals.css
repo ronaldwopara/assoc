@@ -206,15 +206,14 @@ body::-webkit-scrollbar {
   left: 0;
 }
 
-/* Subpages (no hero): first section clears the full fixed header */
+/* Subpages (no hero): first section clears the fixed header with room to breathe.
+   Header height alone left headings flush against the navbar. */
 .site-main:not(:has(.hero-section)) > .section-shell:first-child {
-  padding-top: var(--header-height);
+  padding-top: calc(var(--header-height) + 2.5rem);
 }
 
-/* /about's first section (no hero) — same specificity as the rule above
-   (single class + same pseudo-classes), declared later so it wins for this
-   page only. Clearing just the header height left the heading flush against
-   the navbar with no breathing room. */
+/* /about's first section (no hero) — same clearance; about-section-shell is a
+   parallel first-child class so it needs its own rule at matching specificity. */
 .site-main:not(:has(.hero-section)) > .about-section-shell:first-child {
   padding-top: calc(var(--header-height) + 2.5rem);
 }

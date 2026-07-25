@@ -812,7 +812,9 @@ export function GuidedForm({
   useEffect(() => {
     if (status === "success") return;
     const el = document.getElementById(headingId);
-    el?.focus();
+    // Keep the user's scroll position — default focus() jumps to the heading
+    // (and the sticky control bar) on every step/form change, especially on mobile.
+    el?.focus({ preventScroll: true });
   }, [safeIndex, formKey, headingId, status]);
 
   useEffect(() => {
