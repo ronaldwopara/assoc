@@ -1,0 +1,663 @@
+/* Membership card, marquees, event tickets */
+
+/* ───────────────────────── Membership card ───────────────────────── */
+
+.mcard {
+  width: 100%;
+  container-type: inline-size;
+}
+
+/* ISO ID-1 proportions; all internal sizing in cqw so the card scales
+   as one piece whether it renders at 260px (marquee) or 420px (success). */
+.mcard__surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  aspect-ratio: 1.586;
+  padding: 5.8cqw 6.4cqw 5.4cqw;
+  border-radius: 5.2cqw;
+  overflow: hidden;
+  text-align: left;
+  color: #f5f0e6;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.13), transparent 46%),
+    radial-gradient(circle at 92% 96%, rgba(255, 255, 255, 0.08), transparent 38%),
+    radial-gradient(circle at 78% 18%, rgba(232, 163, 23, 0.1), transparent 42%),
+    linear-gradient(135deg, #201e1b 0%, #101010 48%, #272522 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 8px 18px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Diagonal ribbon sweep, built from blurred rotated capsules layered
+   right-of-center so the brand text on the left stays legible. */
+.mcard__waves {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.mcard__wave {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(14px);
+}
+
+.mcard__wave--1 {
+  top: -30%;
+  right: -35%;
+  width: 135%;
+  height: 60%;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 62%);
+  transform: rotate(-16deg);
+}
+
+.mcard__wave--2 {
+  top: 8%;
+  right: -45%;
+  width: 150%;
+  height: 46%;
+  background: linear-gradient(120deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 60%);
+  transform: rotate(-16deg);
+}
+
+.mcard__wave--3 {
+  bottom: -32%;
+  right: -30%;
+  width: 140%;
+  height: 62%;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 65%);
+  transform: rotate(-16deg);
+}
+
+.mcard__sheen {
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.13) 50%,
+    transparent 58%
+  );
+  transform: translateX(-140%);
+  animation: mcard-sheen 7s ease-in-out infinite;
+}
+
+@keyframes mcard-sheen {
+  /* Hold only while fully off-screen, then sweep across — never park the
+     highlight on the visible surface at the start or end of the loop. */
+  0%,
+  18% {
+    transform: translateX(-140%);
+  }
+  58%,
+  100% {
+    transform: translateX(140%);
+  }
+}
+
+.mcard__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px);
+  background-repeat: repeat;
+  background-size: 42px 42px, 57px 57px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+.mcard__top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4cqw;
+}
+
+.mcard__brand {
+  display: flex;
+  align-items: center;
+  gap: 2.6cqw;
+  min-width: 0;
+}
+
+.mcard__logo {
+  width: 10.5cqw;
+  height: 10.5cqw;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.mcard__org {
+  font-size: 3.1cqw;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+  color: rgba(245, 240, 230, 0.92);
+}
+
+.mcard__price {
+  flex-shrink: 0;
+  font-size: 4.8cqw;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding-top: 0.6cqw;
+  background: linear-gradient(160deg, #f4cf7a 0%, #e8a317 55%, #c8871a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.mcard__chip-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3.4cqw;
+}
+
+/* EMV chip: gold gradient + bevel + engraved contact lines, all CSS. */
+.mcard__chip {
+  position: relative;
+  display: block;
+  width: 12.6cqw;
+  height: 9.6cqw;
+  border-radius: 1.9cqw;
+  background: linear-gradient(140deg, #f0d489 0%, #d9a93f 45%, #b8842a 80%, #e3bc5c 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.mcard__chip-line {
+  position: absolute;
+  background: rgba(90, 62, 14, 0.55);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.mcard__chip-line--h1 {
+  left: 0;
+  right: 0;
+  top: 32%;
+  height: 1px;
+}
+
+.mcard__chip-line--h2 {
+  left: 0;
+  right: 0;
+  top: 66%;
+  height: 1px;
+}
+
+.mcard__chip-line--v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+}
+
+.mcard__contactless {
+  width: 6.4cqw;
+  height: 6.4cqw;
+  transform: rotate(90deg);
+  color: rgba(245, 240, 230, 0.65);
+}
+
+.mcard__number {
+  position: relative;
+  z-index: 2;
+  font-size: 4.6cqw;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(236, 229, 214, 0.88);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14),
+    0 -1px 1px rgba(0, 0, 0, 0.4);
+}
+
+.mcard__footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4cqw;
+}
+
+.mcard__identity {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+  min-width: 0;
+}
+
+/* Subtle emboss: printed-into-the-plastic look. */
+.mcard__name {
+  max-width: 100%;
+  font-size: 3.3cqw;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ece5d6;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    0 -1px 1px rgba(0, 0, 0, 0.45);
+}
+
+.mcard__type {
+  font-size: 2.2cqw;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(232, 163, 23, 0.9);
+}
+
+.mcard__meta {
+  display: flex;
+  align-items: flex-end;
+  gap: 5cqw;
+  flex-shrink: 0;
+}
+
+.mcard__expiry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.8cqw;
+  flex-shrink: 0;
+}
+
+.mcard__expiry-label {
+  font-size: 2.3cqw;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 230, 0.55);
+}
+
+.mcard__expiry-date {
+  font-size: 3.8cqw;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #ece5d6;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18),
+    0 -1px 1px rgba(0, 0, 0, 0.45);
+}
+
+.mcard__brandmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.6cqw;
+  flex-shrink: 0;
+}
+
+.mcard__brandmark-label {
+  font-size: 2.1cqw;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 230, 0.5);
+}
+
+.mcard__brandmark-word {
+  font-size: 4.6cqw;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-style: italic;
+  background: linear-gradient(160deg, #f4cf7a 0%, #e8a317 55%, #c8871a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Success screen: tap-to-download wrapper ── */
+
+.mcard-download {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.25s ease;
+}
+
+.mcard-download:hover {
+  transform: translateY(-4px) scale(1.015);
+}
+
+.mcard-download:active {
+  transform: translateY(-1px) scale(1.005);
+}
+
+.mcard-download__hint {
+  margin: 0.65rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(17, 17, 17, 0.5);
+}
+
+/* ── Membership section marquee ── */
+
+.mcard-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.mcard-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 1.25rem;
+  padding: 0.75rem 0 1.25rem;
+  animation: mcard-marquee 50s linear infinite;
+}
+
+.mcard-marquee:hover .mcard-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes mcard-marquee {
+  to {
+    transform: translateX(calc(-50% - 0.625rem));
+  }
+}
+
+.mcard-marquee__item {
+  flex-shrink: 0;
+  width: clamp(240px, 62vw, 310px);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.25s ease;
+}
+
+.mcard-marquee__item:hover {
+  transform: translateY(-5px);
+}
+
+/* ── Event ticket marquee ── */
+
+.eticket-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.eticket-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 1.25rem;
+  padding: 0.75rem 0 1.25rem;
+  animation: mcard-marquee 55s linear infinite;
+}
+
+.eticket-marquee:hover .eticket-marquee__track {
+  animation-play-state: paused;
+}
+
+.eticket-marquee__item {
+  display: block;
+  flex-shrink: 0;
+  width: clamp(240px, 62vw, 310px);
+  /* Query container for the ticket. Must live here (the parent), NOT on
+     .eticket: an element's own cqw units resolve against its nearest ANCESTOR
+     container, never itself — so a .eticket that declared container-type AND
+     used cqw for its mask/padding would size those off the viewport instead of
+     its own width. With the container one level up, every cqw inside .eticket
+     measures the ticket, so it scales as one piece (same split as .mcard). */
+  container-type: inline-size;
+  text-decoration: none;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.4));
+  transition: transform 0.25s ease;
+}
+
+.eticket-marquee__item:hover {
+  transform: translateY(-5px);
+}
+
+/* Reference-style ticket: cream paper, scalloped ends, a single rounded
+   outline enclosing the info + barcode, with serial numbers stamped in the
+   margins outside the outline on both ends. Every dimension is in cqw, read
+   against the .eticket-marquee__item container above, so the whole card scales
+   as one piece as the marquee item narrows within its clamp()ed width. */
+.eticket {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 1.6cqw;
+  width: 100%;
+  aspect-ratio: 3.1;
+  padding: 0 2.4cqw;
+  text-align: left;
+  color: #1c1712;
+  background: linear-gradient(180deg, #efe9db 0%, #e5dfce 100%);
+  overflow: hidden;
+  -webkit-mask-image:
+    radial-gradient(circle 1.5cqw at 0 50%, transparent 97%, #000),
+    radial-gradient(circle 1.5cqw at 100% 50%, transparent 97%, #000);
+  -webkit-mask-size: 100% 4.6cqw;
+  -webkit-mask-repeat: repeat-y;
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 1.5cqw at 0 50%, transparent 97%, #000),
+    radial-gradient(circle 1.5cqw at 100% 50%, transparent 97%, #000);
+  mask-size: 100% 4.6cqw;
+  mask-repeat: repeat-y;
+  mask-composite: intersect;
+}
+
+.eticket__sheen {
+  position: absolute;
+  inset: -40%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 58%
+  );
+  transform: translateX(-140%);
+  animation: mcard-sheen 7s ease-in-out infinite;
+}
+
+/* Vertical serial numbers in the scalloped margins, outside the outline */
+.eticket__no {
+  flex-shrink: 0;
+  align-self: center;
+  writing-mode: vertical-rl;
+  font-size: 1.5cqw;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  color: rgba(28, 20, 14, 0.55);
+}
+
+/* The single rounded outline around the whole ticket face */
+.eticket__body {
+  display: flex;
+  align-items: stretch;
+  gap: 2.2cqw;
+  flex: 1;
+  min-width: 0;
+  margin: 2.4cqw 0;
+  padding: 2cqw 2.6cqw;
+  border: 0.36cqw solid #1c1712;
+  border-radius: 2cqw;
+}
+
+.eticket__main {
+  display: flex;
+  align-items: center;
+  gap: 2.6cqw;
+  flex: 1;
+  min-width: 0;
+}
+
+.eticket__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 5cqw;
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+  color: #1c1712;
+}
+
+.eticket__details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9cqw;
+  flex-shrink: 0;
+  max-width: 44%;
+}
+
+.eticket__date-pill {
+  margin-bottom: 0.4cqw;
+  padding: 0.7cqw 2cqw;
+  border: 0.34cqw solid #1c1712;
+  border-radius: 999px;
+  background: #f6f1e4;
+  font-size: 2cqw;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.eticket__row {
+  font-size: 2.15cqw;
+  font-weight: 700;
+  line-height: 1.28;
+  color: #2a241d;
+}
+
+.eticket__row-label {
+  display: block;
+  font-size: 1.75cqw;
+  font-weight: 600;
+  color: rgba(28, 20, 14, 0.45);
+}
+
+/* Dashed tear line separating the info from the barcode stub */
+.eticket__perf {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 0;
+  margin: 0.4cqw 0;
+  border-left: 0.3cqw dashed rgba(28, 20, 14, 0.4);
+}
+
+/* Standard horizontal barcode: crisp vertical bars of varied width */
+.eticket__barcode {
+  flex-shrink: 0;
+  align-self: center;
+  width: 10.5cqw;
+  height: 64%;
+  background: repeating-linear-gradient(
+    90deg,
+    #1c1712 0,
+    #1c1712 0.5cqw,
+    transparent 0.5cqw,
+    transparent 0.95cqw,
+    #1c1712 0.95cqw,
+    #1c1712 1.2cqw,
+    transparent 1.2cqw,
+    transparent 1.65cqw,
+    #1c1712 1.65cqw,
+    #1c1712 2.35cqw,
+    transparent 2.35cqw,
+    transparent 2.75cqw
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eticket__sheen {
+    animation: none;
+  }
+
+  .media-placeholder__sheen {
+    animation: none;
+  }
+
+  .eticket-marquee__track {
+    animation: none;
+  }
+
+  .eticket-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .eticket-marquee__item {
+    transition: none;
+  }
+
+  .mcard__sheen {
+    animation: none;
+  }
+
+  .mcard-marquee__track {
+    animation: none;
+  }
+
+  .mcard-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .mcard-download,
+  .mcard-marquee__item {
+    transition: none;
+  }
+}
+

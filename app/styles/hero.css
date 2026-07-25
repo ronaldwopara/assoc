@@ -1,0 +1,290 @@
+/* Hero image carousel */
+
+/* ── Hero image carousel ─────────────────────────────────────────────── */
+.hero-section {
+  --hero-dots-offset: clamp(2.75rem, calc(4.5vw + 1.25rem), 4.25rem);
+}
+
+.hero-carousel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ink);
+  /* Keeps dot position where it was when the bottom wave was present */
+  --hero-dots-offset: clamp(2.75rem, calc(4.5vw + 1.25rem), 4.25rem);
+}
+
+.hero-carousel-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+
+.hero-carousel-slide[data-active="true"] {
+  opacity: 1;
+  z-index: 1;
+}
+
+.hero-carousel-image {
+  object-fit: cover;
+  filter: brightness(0.96) saturate(1.02) contrast(1.03);
+  transform-origin: center center;
+  animation: hero-ken-burns 14s ease-out forwards;
+}
+
+.hero-carousel-slide:nth-child(even) .hero-carousel-image {
+  animation-name: hero-ken-burns-alt;
+}
+
+@keyframes hero-ken-burns {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(-1.5%, -1%, 0);
+  }
+}
+
+@keyframes hero-ken-burns-alt {
+  from {
+    transform: scale(1.12) translate3d(1.5%, 1%, 0);
+  }
+  to {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+.hero-carousel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 10, 8, 0.12) 0%,
+    rgba(12, 10, 8, 0.08) 38%,
+    rgba(12, 10, 8, 0.52) 70%,
+    rgba(12, 10, 8, 0.76) 100%
+  );
+}
+
+@media (max-width: 469px) {
+  .hero-content {
+    padding-bottom: calc(var(--hero-dots-offset, 3rem) + 0.75rem);
+  }
+
+  .hero-copy {
+    margin-top: auto;
+  }
+
+  /* Scales with viewport height (not just width) so short phones — e.g. an
+     iPhone SE's 667px-tall viewport vs. a Pro Max's 932px — get genuinely
+     smaller type instead of both flattening to the same clamp floor.
+     svh, not dvh: dvh tracks the *current* viewport, which shrinks/grows
+     live as the mobile browser's address bar hides and shows while
+     scrolling — since these values drive font-size, that made the headline
+     visibly rewrap mid-scroll. svh is the small (chrome-visible) viewport
+     and stays constant regardless of scroll, so sizing is stable; it's also
+     never larger than dvh, so nothing that fit before can overflow. */
+  .hero-headline {
+    font-size: clamp(1.5rem, calc(2.64svh + 0.59rem), 2.4rem);
+  }
+
+  .hero-subheadline {
+    margin-top: clamp(0.5rem, 2.5svh, 1.25rem);
+    font-size: clamp(0.95rem, calc(1.89svh + 0.31rem), 1.4rem);
+  }
+
+  .hero-cta-row {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 24rem;
+    /* Was clamp(5rem, 20vh, 8.5rem) — on a short viewport 20vh nearly maxed
+       out the clamp on its own, leaving almost no room for the heading/
+       subtext above it and crowding the CTAs against the dots below. */
+    margin-top: clamp(1.25rem, 8vh, 3rem);
+    margin-bottom: auto;
+  }
+
+  .hero-cta-row > * + * {
+    margin-top: 0.75rem;
+  }
+
+  .hero-cta-row .hero-cta-btn {
+    width: 100%;
+  }
+}
+
+@media (min-width: 470px) {
+  .hero-section {
+    height: min(calc(100dvh - var(--header-height)), 800px);
+    --hero-dots-offset: clamp(3.5rem, calc(5vw + 1.75rem), 5.5rem);
+  }
+
+  .hero-carousel-image {
+    object-position: center 38%;
+  }
+
+  .hero-carousel-overlay {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(8, 6, 4, 0.86) 0%,
+        rgba(8, 6, 4, 0.72) 22%,
+        rgba(8, 6, 4, 0.48) 36%,
+        rgba(8, 6, 4, 0.18) 46%,
+        transparent 56%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(12, 10, 8, 0.22) 0%,
+        rgba(12, 10, 8, 0.08) 32%,
+        rgba(12, 10, 8, 0.4) 68%,
+        rgba(12, 10, 8, 0.68) 100%
+      );
+  }
+
+  .hero-content {
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: calc(var(--hero-dots-offset) + 1.5rem);
+  }
+
+  .hero-copy {
+    margin-top: 0;
+  }
+
+  /* auto-fit + a minmax floor at the longer button's natural (single-line)
+     width — ~283px for "Explore Our Programs" — instead of a fixed 2-column
+     grid: below that width there isn't room for two side-by-side columns
+     without wrapping, which (min-height being a floor, not a cap) inflated
+     the button height and broke its proportions. This collapses to a single
+     full-width stacked column exactly where it would otherwise wrap, and
+     expands back to 2-up once both columns fit at their natural width —
+     no hardcoded breakpoint to keep in sync with the button copy. */
+  .hero-cta-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 1rem;
+    width: 100%;
+    max-width: 42rem;
+    margin-top: clamp(2.5rem, 4vh, 3.75rem);
+    margin-bottom: 0;
+  }
+
+  .hero-cta-row > * + * {
+    margin-top: 0;
+  }
+
+  .hero-cta-row .hero-cta-btn {
+    display: flex;
+    width: 100%;
+    min-height: 3.5rem;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .hero-headline {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.55),
+      0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .hero-subheadline {
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.7),
+      0 2px 14px rgba(0, 0, 0, 0.55),
+      0 4px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  .hero-cta-btn--ghost {
+    background-color: rgba(0, 0, 0, 0.42);
+    border-color: rgba(255, 255, 255, 0.95);
+  }
+
+  .hero-cta-btn--ghost:hover {
+    background-color: rgba(0, 0, 0, 0.55);
+  }
+}
+
+.hero-carousel-grain {
+  position: absolute;
+  inset: -10%;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px);
+  background-repeat: repeat;
+  background-size: 42px 42px, 57px 57px;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  animation: hero-grain-shift 9s steps(8) infinite;
+}
+
+@keyframes hero-grain-shift {
+  0% { transform: translate(0, 0); }
+  12.5% { transform: translate(-3%, 2%); }
+  25% { transform: translate(2%, -2%); }
+  37.5% { transform: translate(-2%, 3%); }
+  50% { transform: translate(3%, 1%); }
+  62.5% { transform: translate(-1%, -3%); }
+  75% { transform: translate(1%, 2%); }
+  87.5% { transform: translate(-3%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+.hero-carousel-dots {
+  position: absolute;
+  left: 50%;
+  bottom: var(--hero-dots-offset);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  transform: translateX(-50%);
+}
+
+.hero-carousel-dot {
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background: rgba(251, 191, 36, 0.45);
+  cursor: pointer;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.45s ease, box-shadow 0.45s ease;
+}
+
+.hero-carousel-dot:hover {
+  background: rgba(251, 191, 36, 0.75);
+}
+
+.hero-carousel-dot[data-active="true"] {
+  width: 0.8rem;
+  height: 0.8rem;
+  background: var(--hero-cta);
+  box-shadow:
+    0 0 0 4px rgba(255, 106, 26, 0.25),
+    0 0 0 1px rgba(250, 245, 235, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-carousel-image {
+    animation: none;
+  }
+
+  .hero-carousel-grain {
+    animation: none;
+    opacity: 0.04;
+  }
+
+  .hero-carousel-slide {
+    transition: opacity 0.4s ease;
+  }
+}
+

@@ -1,0 +1,450 @@
+/* Join page chooser, controls, GuidedForm */
+
+/* ── Join page (chooser → controls → form, gallery interaction pattern,
+   Join's own dark/orange capsule look) ──────────────────────────────── */
+
+/* Prevent scroll-anchoring from yanking the footer when the tall form
+   collapses back to the picker. */
+.join-page {
+  overflow-anchor: none;
+  /* Keep Framer layout projections from dirtying layout outside this page. */
+  isolation: isolate;
+}
+
+/* Picker shell paints above the form so the morph isn't covered mid-flight. */
+.join-page__picker {
+  position: relative;
+  z-index: 2;
+}
+
+.join-page__panel {
+  position: relative;
+  z-index: 1;
+  margin-top: 1.75rem;
+}
+
+/* Taller form surface: short steps still occupy a substantial vertical band. */
+.join-page__panel .max-w-md {
+  max-width: min(40rem, 100%);
+  min-height: min(36rem, 58dvh);
+}
+
+.join-page__panel .max-w-md > .relative.min-h-0 {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 14rem;
+  padding-bottom: 1.25rem;
+}
+
+.join-page .guided-fields {
+  /* Keep focus/active borders inside the page padding */
+  box-sizing: border-box;
+  gap: 0.65rem;
+}
+
+.join-chooser.programs-panel {
+  display: block;
+  width: 100%;
+  max-width: min(42rem, 100%);
+  margin: 0 auto;
+  padding: 0;
+  gap: 0;
+  /* Match programs dropdown chrome (overrides any leftover pill-shell rules). */
+  /* border-radius is on the motion style prop so Framer can morph it. */
+  border: 1px solid rgba(251, 191, 36, 0.18);
+  background: #2a2a2a;
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  box-shadow:
+    0 24px 64px rgba(var(--ink-rgb), 0.55),
+    0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+  /* overflow:hidden clips the shared-layout morph — keep content clipped
+     via the inner grid instead. */
+  overflow: visible;
+}
+
+.join-chooser__icon {
+  color: var(--orange);
+}
+
+/* Titles stay orange on the join chooser (programs dropdown uses gold). */
+.join-chooser .program-card__title {
+  color: var(--orange);
+}
+
+/* Legacy pill rules — keep inert so a stale HMR chunk can't restyle cards. */
+.join-chooser__pill {
+  display: contents;
+}
+
+.join-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  /* border-radius is on the motion style prop so Framer can morph it. */
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(42, 42, 42, 0.96);
+  padding: 0.55rem 0.85rem;
+  box-shadow:
+    0 14px 28px rgba(var(--ink-rgb), 0.22),
+    0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+}
+
+.join-controls__nav-button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--orange);
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.join-controls__nav-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.join-controls__nav-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.join-controls__label {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  transition: opacity 150ms ease;
+}
+
+/* ── Join page forms (GuidedForm / success panel) ────────────────────── */
+
+.join-page .guided-option {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.join-page .guided-field:focus-visible,
+.join-page .guided-option:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+.guided-priced-select {
+  position: relative;
+  width: 100%;
+}
+
+.guided-priced-select__trigger {
+  display: flex;
+  width: 100%;
+  min-height: 2.5rem;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid rgba(232, 163, 23, 0.45);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--hero-cta, #e8a317);
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    background 130ms ease;
+}
+
+.guided-priced-select__trigger:hover {
+  border-color: rgba(232, 163, 23, 0.7);
+  background: #fff;
+}
+
+.guided-priced-select__value {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  padding: 0.55rem 0.6rem 0.55rem 0.75rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--orange-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guided-priced-select__value--placeholder {
+  color: rgba(17, 17, 17, 0.4);
+  font-weight: 550;
+}
+
+.guided-priced-select__price {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0.55rem 0.55rem;
+  border-left: 1px solid rgba(232, 163, 23, 0.28);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--hero-cta, #e8a317);
+  white-space: nowrap;
+  background: rgba(232, 163, 23, 0.14);
+}
+
+.guided-priced-select__caret {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  border-left: 1px solid rgba(232, 163, 23, 0.28);
+  color: var(--hero-cta, #e8a317);
+}
+
+.guided-priced-select__caret-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  transition: transform 180ms ease;
+}
+
+.guided-priced-select__caret-icon.is-open {
+  transform: rotate(180deg);
+}
+
+.guided-priced-select__popover {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.75rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  background: #fffdf8;
+  box-shadow:
+    0 16px 36px rgba(60, 30, 10, 0.16),
+    0 0 0 1px rgba(251, 191, 36, 0.08);
+}
+
+.guided-priced-select__popover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 4.75rem;
+  z-index: 1;
+  width: 1px;
+  background: rgba(232, 163, 23, 0.28);
+  pointer-events: none;
+}
+
+.guided-priced-select__option {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: stretch;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid rgba(232, 163, 23, 0.14);
+  background: transparent;
+  color: var(--hero-cta, #e8a317);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: background 130ms ease;
+}
+
+.guided-priced-select__option:last-child {
+  border-bottom: none;
+}
+
+.guided-priced-select__option:hover,
+.guided-priced-select__option.is-selected {
+  background: rgba(232, 163, 23, 0.1);
+}
+
+.guided-priced-select__option.is-selected .guided-priced-select__option-title {
+  color: var(--orange-dark);
+}
+
+.guided-priced-select__option-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 0.75rem 0.7rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.guided-priced-select__option-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0.7rem 0.5rem;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--hero-cta, #e8a317);
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.guided-priced-select__option.is-selected .guided-priced-select__option-price {
+  background: rgba(232, 163, 23, 0.18);
+}
+
+.guided-payment {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-top: 0.35rem;
+}
+
+.guided-payment__amount {
+  margin: 0;
+  font-size: clamp(2.25rem, 8vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #111;
+  text-align: left;
+}
+
+.guided-payment__etransfer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(232, 163, 23, 0.28);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.guided-payment__etransfer-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.55);
+}
+
+.guided-payment__etransfer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guided-payment__etransfer-email {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111;
+  word-break: break-all;
+}
+
+.guided-payment__copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  background: rgba(232, 163, 23, 0.12);
+  color: #111;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.guided-payment__etransfer-hint {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: rgba(17, 17, 17, 0.5);
+}
+
+.guided-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1.75rem 0.5rem 2rem;
+}
+
+.guided-success__check {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+
+.guided-success__tick {
+  display: block;
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  width: 13px;
+  height: 22px;
+  border: solid #fff;
+  border-width: 0 4px 4px 0;
+  transform: rotate(45deg);
+  border-radius: 1px;
+}
+
+.guided-success__message {
+  margin: 0;
+  max-width: 18rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #111;
+  text-align: center;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .join-page .guided-option {
+    transition: none;
+  }
+
+  .guided-priced-select__caret-icon {
+    transition: none;
+  }
+}
+

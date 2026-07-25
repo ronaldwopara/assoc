@@ -1,0 +1,149 @@
+/* Updates marquee + sponsors arc */
+
+/* ── Updates image marquee ───────────────────────────────────────────── */
+.updates-marquee {
+  width: 100%;
+  overflow: hidden;
+  mask: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+.updates-marquee__track {
+  display: flex;
+  width: max-content;
+  gap: 1.5rem;
+  animation: updates-scroll 80s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.updates-marquee:hover .updates-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes updates-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .updates-marquee__track {
+    animation: none;
+  }
+}
+
+/* ── Sponsors arc ────────────────────────────────────────────────────────
+ * Gallery-style rotating arc: cards sit on a circle whose pivot is far
+ * below the section (long radius => shallow curve). The pivot spins
+ * slowly, so cards travel along the visible arc; anything outside the
+ * container is clipped and the side mask fades the edges.
+ */
+.sponsors-arc {
+  --arc-radius: 520px;
+  --arc-peak: 105px; /* height of the arc apex above the section bottom */
+  position: relative;
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  mask: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(
+    90deg,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+}
+
+.sponsors-arc__pivot {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--arc-radius) - var(--arc-peak));
+  width: 0;
+  height: 0;
+  animation: sponsors-arc-spin 90s linear infinite;
+}
+
+@keyframes sponsors-arc-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.sponsors-arc__item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10.75rem;
+  height: 8.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.1rem;
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(var(--ink-rgb), 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translate(-50%, -50%) rotate(var(--arc-angle, 0deg))
+    translateY(calc(var(--arc-radius) * -1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sponsors-arc__pivot {
+    animation: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .sponsors-arc {
+    --arc-radius: 800px;
+    --arc-peak: 220px;
+    height: 330px;
+  }
+
+  .sponsors-arc__item {
+    width: 15.5rem;
+    height: 11.5rem;
+    padding: 1.45rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sponsors-arc {
+    --arc-radius: 1180px;
+    --arc-peak: 260px;
+    height: 380px;
+  }
+
+  .sponsors-arc__item {
+    width: 18rem;
+    height: 13.25rem;
+    padding: 1.7rem;
+  }
+}
+

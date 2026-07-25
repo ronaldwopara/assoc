@@ -1,0 +1,546 @@
+/* Design tokens, base resets, chrome, section shells */
+
+@theme {
+  --color-black: #2f2b28;
+
+  /* Body & paragraph copy enlarged ~15.5% (a 10% bump, then 5% larger again):
+     the shared text scale is bumped proportionally (line-heights are unitless
+     ratios, so they scale too). Large display headings use their own
+     clamp()-based sizes rather than these tokens, so they stay fixed. */
+  --text-xs: 0.86625rem;
+  --text-sm: 1.010625rem;
+  --text-base: 1.155rem;
+  --text-lg: 1.299375rem;
+  --text-xl: 1.44375rem;
+  --text-2xl: 1.7325rem;
+  --text-3xl: 2.165625rem;
+  --text-4xl: 2.59875rem;
+}
+
+:root {
+  color-scheme: light;
+  --font-root-directory: "Avenir Next";
+  --ink: #2f2b28;
+  --ink-rgb: 47, 43, 40;
+
+  --orange: #f08f3b;
+  --orange-dark: #c66518;
+  --orange-light: #f08f3b;
+  --gold: #f08f3b;
+  --gold-dark: #c66518;
+  --yellow: #facc15;
+  --yellow-dark: #eab308;
+  --brown: #92400e;
+  --brown-dark: #78350f;
+  --terracotta: #823513;
+  --cream: #f3e8d8;
+  --cream-light: #faf5eb;
+
+  /* Hero & CTA — edit these; buttons use .hero-cta-btn → var(--hero-cta) */
+  --hero-cta: #f08f3b;
+  --hero-cta-hover: #f08f3b;
+  --hero-overlay: rgba(var(--ink-rgb), 0.5);
+
+  /* Layout */
+  --page-chrome: #f7f7f7;
+
+  /* 0 below 920px, 1 at/above 1024px, linear in between. Lets the desktop
+     header + stacked cards switch on at 920px, while every size/spacing
+     value driven by it still scales up smoothly to the full desktop value
+     by 1024px instead of jumping straight to full size. (Hero uses its own,
+     lower 470px switch point — see its media queries — so it isn't driven
+     by this variable.) Usage: calc(MIN + (MAX - MIN) * var(--tablet-t)). */
+  --tablet-t: clamp(0, calc((100vw - 920px) / 104px), 1);
+
+  --navbar-height: 5rem;
+  /* Desktop nav row spacing, fluid 920→1024: continues smoothly from the
+     24px established at the sm: breakpoint (640px) rather than jumping
+     straight to the old lg: fixed values. */
+  --nav-gap: calc(1rem + (1.5rem - 1rem) * var(--tablet-t));
+  --nav-px: calc(1.5rem + (2rem - 1.5rem) * var(--tablet-t));
+  /* Use env() directly in layout calcs — iOS WebKit can resolve nested var(--safe-*) to 0 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --header-height: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  --stacked-card-pin-gap: 2rem;
+  /* Fluid 920→1024: taller at 920px since the text column is narrower
+     there (more line-wraps for the same content), converging to 640px —
+     tall enough for the longest card (5-bullet Values) — by 1024px, where
+     the column is at its widest before the container's 1100px cap. */
+  --stacked-card-height: calc(680px - 40px * var(--tablet-t));
+  --stacked-card-padding: calc(2rem + (3rem - 2rem) * var(--tablet-t));
+  --stacked-card-list-gap: calc(0.625rem + (0.75rem - 0.625rem) * var(--tablet-t));
+  /* Retain a large, readable size — only a modest reduction, since spacing
+     (padding/gap above, line-height below) does most of the work absorbing
+     the narrower column. */
+  --stacked-card-text-size: calc(1.05rem + (1.155rem - 1.05rem) * var(--tablet-t));
+  --stacked-card-text-leading: calc(1.5 + (1.65 - 1.5) * var(--tablet-t));
+
+  /* Z-index scale */
+  --z-dropdown: 20;
+  --z-navbar: 50;
+  --z-modal: 100;
+  --z-orientation: 300;
+
+  --nav-texture-url: url(/nav.webp);
+  --nav-texture-size: 1254px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-height);
+  scrollbar-width: none;
+  /* Prevent Chrome's mobile text-autosizer from re-boosting font size after first
+     paint — that boost/un-boost cycle is what reflows headings across line counts. */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  /* Light page chrome so mobile browser bars / overscroll don't sample dark ink */
+  background: var(--page-chrome);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page-chrome);
+  color: var(--ink);
+  font-family: var(--font-root-directory, "Avenir Next"), "Segoe UI", sans-serif;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe-area strips: pinned to the viewport edges so the notch/status-bar and
+   home-indicator regions always read a fixed color, independent of scroll
+   position, the loading screen, modals, or whatever section is underneath.
+   Real DOM elements (see SafeAreaFrame), each promoted to its own compositing
+   layer with translateZ(0) — iOS Safari otherwise fails to paint fixed
+   elements into the safe-area region until a scroll/overscroll forces a
+   repaint, which is what caused the top to start black and "correct itself"
+   on overscroll. Sits above every other layer (z 400 > loading 200 >
+   orientation 300 > modal 100). Never apply filter/backdrop-filter here —
+   that corrupts the unsafe-region composite on iOS. */
+.safe-area-strip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.safe-area-strip--top {
+  top: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--page-chrome);
+}
+
+/* Fades rather than blocks: on notched devices this sits over the live
+   page content (not just the footer), so a solid fill would hide whatever's
+   underneath. Matches the footer's orange rather than a hardcoded black. */
+.safe-area-strip--bottom {
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(to top, color-mix(in srgb, var(--orange) 70%, transparent), transparent);
+}
+
+/* Sits at the seam between .safe-area-strip--top and the header, above the
+   header's own z-index so it always reads on top of the nav texture. */
+.scroll-progress {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: calc(var(--z-navbar) + 1);
+  pointer-events: none;
+}
+
+.scroll-progress__bar {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--gold);
+  will-change: transform;
+  transition: transform 100ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress__bar {
+    transition: none;
+  }
+}
+
+/* Fixed header: texture bleeds into the notch; bar content stays below it */
+.site-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Pull navbar texture up behind the status bar / notch */
+.site-header__backdrop {
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Subpages (no hero): first section clears the fixed header with room to breathe.
+   Header height alone left headings flush against the navbar. */
+.site-main:not(:has(.hero-section)) > .section-shell:first-child {
+  padding-top: calc(var(--header-height) + 2.5rem);
+}
+
+/* /about's first section (no hero) — same clearance; about-section-shell is a
+   parallel first-child class so it needs its own rule at matching specificity. */
+.site-main:not(:has(.hero-section)) > .about-section-shell:first-child {
+  padding-top: calc(var(--header-height) + 2.5rem);
+}
+
+@layer base {
+  a {
+    text-decoration: none;
+  }
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+::selection {
+  background: rgba(var(--ink-rgb), 0.35);
+  color: var(--gold);
+}
+
+/* Don't show the text-insertion (I-beam) cursor over plain content —
+   only actual editable fields should look typeable. */
+h1, h2, h3, h4, h5, h6,
+p, span, div, li, blockquote, label, dt, dd, td, th, figcaption {
+  cursor: default;
+}
+
+/* Hide the blinking text caret on static page content */
+html,
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  caret-color: transparent;
+}
+
+input,
+textarea,
+select,
+[contenteditable]:not([contenteditable="false"]),
+a {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable="false"]) {
+  caret-color: auto;
+}
+
+/* Shared focus style for interactive controls */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px rgba(var(--ink-rgb), 0.4);
+}
+
+.focus-ring-light:focus-visible {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px var(--cream-light);
+}
+
+.hero-cta-btn {
+  background-color: var(--hero-cta);
+}
+
+.hero-cta-btn:hover {
+  background-color: var(--hero-cta-hover);
+}
+
+.hero-cta-btn:active {
+  transform: scale(0.98);
+}
+
+/* Hero — primary filled CTA (slightly deeper orange for ink text contrast) */
+.hero-cta-btn--primary {
+  background-color: #e88732;
+  color: var(--ink);
+}
+
+.hero-cta-btn--primary:hover {
+  background-color: #d97706;
+}
+
+/* Hero — secondary ghost CTA */
+.hero-cta-btn--ghost {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  color: #fff;
+}
+
+.hero-cta-btn--ghost:hover {
+  background-color: rgba(0, 0, 0, 0.45);
+  border-color: #fff;
+}
+
+.hero-cta-btn--ghost:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cta-btn:active,
+  .hero-cta-btn--ghost:active {
+    transform: none;
+  }
+}
+
+@property --ring-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.gold-ring {
+  position: relative;
+}
+
+.gold-ring::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  padding: 2px;
+  background: conic-gradient(from var(--ring-angle), transparent 0deg, var(--yellow) 25deg, var(--yellow-dark) 55deg, transparent 100deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: gold-ring-spin 12s linear infinite;
+}
+
+@keyframes gold-ring-spin {
+  to { --ring-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-ring::before {
+    animation: none;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: max(1rem, var(--safe-top));
+  left: max(1rem, var(--safe-left));
+  z-index: 100;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border-radius: 0.375rem;
+  background: var(--cream-light);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px var(--cream-light);
+}
+
+/* Programs section text */
+#programs .section-heading { color: var(--orange-light); }
+#programs .section-lead { color: var(--orange-light); }
+
+/* Events section text */
+#events .section-heading { color: var(--orange-light); }
+#events .section-lead { color: var(--orange-light); }
+
+/* Documents section heading */
+#documents-heading { color: var(--orange); }
+
+#gallery .section-lead { color: var(--orange); }
+
+/* Section typography */
+.section-heading {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.section-lead {
+  margin-top: 1.5rem;
+  max-width: 42rem;
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.section-shell {
+  scroll-margin-top: var(--header-height);
+  padding: 5rem 1.5rem;
+}
+
+/* Featured programs — separated tiles in one rectangular block */
+.programs-bento-frame {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+}
+
+.programs-bento-grid {
+  display: grid;
+  width: 100%;
+  /* gap set via Tailwind on the element so it always applies */
+  padding: 0;
+  border-radius: 1.25rem;
+}
+
+.programs-bento-tile {
+  position: relative;
+  min-height: 12rem;
+  overflow: hidden;
+  border: 1.5px solid var(--orange);
+  border-radius: 0.875rem;
+  cursor: pointer;
+  background-color: var(--ink);
+  box-shadow: 0 8px 24px rgba(120, 53, 15, 0.12);
+  transition:
+    filter 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.programs-bento-tile:hover {
+  border-color: var(--orange-light);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 32px rgba(120, 53, 15, 0.18);
+}
+
+.programs-bento-tile:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 0 0 4px var(--cream-light);
+  z-index: 1;
+}
+
+@media (min-width: 640px) {
+  .programs-bento-frame {
+    max-width: calc(60rem + 10px);
+    margin-inline: auto;
+    aspect-ratio: 3 / 4;
+    max-height: min(85rem, 100vh);
+    overflow: hidden;
+  }
+
+  .programs-bento-grid {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    padding: 0;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 8fr 5.5fr 5.5fr 10fr 10fr;
+    grid-template-areas:
+      "story story youth youth"
+      "story story celebration celebration"
+      "bhm bhm celebration celebration"
+      "bhm bhm wellness wellness"
+      "festival festival festival festival";
+  }
+
+  .programs-bento-tile {
+    min-height: 0;
+    height: 100%;
+    border-radius: 1rem;
+  }
+
+  .programs-bento-tile--story {
+    grid-area: story;
+    border-radius: 1rem;
+  }
+
+  .programs-bento-tile--youth {
+    grid-area: youth;
+  }
+
+  .programs-bento-tile--festival {
+    grid-area: festival;
+  }
+
+  .programs-bento-tile--bhm {
+    grid-area: bhm;
+  }
+
+  .programs-bento-tile--wellness {
+    grid-area: wellness;
+  }
+
+  .programs-bento-tile--celebration {
+    grid-area: celebration;
+  }
+}
+
+@media (min-width: 640px) {
+  .section-shell {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-shell {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+

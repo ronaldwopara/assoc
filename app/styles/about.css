@@ -1,0 +1,234 @@
+/* About stacked cards, flags texture, arc gallery */
+
+/* ── About stacked cards ─────────────────────────────────────────────── */
+.stacked-cards-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4.5rem;
+  padding: 4rem 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Sticky pinning: every card sticks below the navbar in turn — each one
+ * scrolls up over whatever's pinned before it (higher z-index, set inline
+ * per card), then itself sticks once its top reaches the pin line, so it
+ * keeps covering the previous card instead of scrolling past it. All pins
+ * share one containing block (.stacked-cards-container), so the browser
+ * releases every stuck card together exactly when the container's bottom
+ * (the last card's bottom) is reached. The container must not have extra
+ * height (min-height/bottom spacing inside the content box) or the cards
+ * would keep sticking past the last one.
+ */
+.stacked-card-pin {
+  position: sticky;
+  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  width: 100%;
+  max-width: 1100px;
+  flex-shrink: 0;
+  /* Every card needs this, not just the first: padding-top pushes the
+     visible .stacked-card down inside its own sticky box, and every pin's
+     box top lands at the same `top` offset once stuck — so unless the
+     padding matches too, a later card sticks higher than the one before it
+     and never fully overlaps it. */
+  padding-top: var(--stacked-card-pin-gap);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stacked-card-pin {
+    position: relative;
+    top: auto;
+  }
+}
+
+.stacked-card {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  height: var(--stacked-card-height);
+  border-radius: 2.25rem;
+  color: #fff;
+  overflow: hidden;
+}
+
+.stacked-card__layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.stacked-card__content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--stacked-card-padding);
+}
+
+.stacked-card__media {
+  flex-shrink: 0;
+  width: min(42%, 420px);
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 2rem 2rem 2rem 0;
+}
+
+.stacked-card__media-frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(var(--ink-rgb), 0.18);
+  clip-path: polygon(14% 0, 100% 0, 100% 86%, 86% 100%, 0 100%, 0 14%);
+}
+
+.stacked-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stacked-card h3 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.stacked-card p {
+  font-size: var(--stacked-card-text-size);
+  line-height: var(--stacked-card-text-leading);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.stacked-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stacked-card-list-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stacked-card__bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: var(--stacked-card-text-size);
+  line-height: var(--stacked-card-text-leading);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.stacked-card__bullet-dot {
+  margin-top: 0.5rem;
+  height: 0.5rem;
+  width: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--yellow);
+}
+
+/* Orange-background cards (Mission, Values) need dark text for contrast;
+   the ink-background card (Vision) keeps the white default. */
+#module-home-features-card_1 .stacked-card h3,
+#module-home-features-card_1 .stacked-card__bullet,
+#module-home-features-card_3 .stacked-card h3,
+#module-home-features-card_3 .stacked-card__bullet {
+  color: var(--ink);
+}
+
+.about-section__cta {
+  margin-top: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── About flags texture ─────────────────────────────────────────────── */
+.about-section-shell {
+  position: relative;
+}
+
+.about-section-shell__content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Threshold matches the site's 920px header breakpoint so the side-by-side
+   sticky-pin layout below reads as "desktop" starting at the same width as
+   the navbar, not just ≥1024px. --stacked-card-height, --stacked-card-
+   padding, --stacked-card-list-gap and --stacked-card-text-* scale fluidly
+   across 920–1024 (see :root) so that narrower layout doesn't overflow the
+   fixed card height. */
+@media (max-width: 919px) {
+  .stacked-cards-container {
+    padding: 2rem 1rem 0;
+    gap: 2rem;
+  }
+
+  /* Sticky pin off on mobile: the first card pins at top: var(--navbar-height)
+     and stays glued there while the next card scrolls over it, so any part
+     taller than that visible window (viewport minus header) is permanently
+     below the fold for as long as it's stuck — the next card covers it
+     before that part is ever shown. Column content (heading + bullets +
+     stacked image) is too tall to reliably fit that window across phone
+     sizes, so — same fallback already used for prefers-reduced-motion and
+     the short-landscape query below — drop the pin and let cards stack in
+     normal flow, fully visible, instead of risking a clipped image or (as
+     tried and reverted) clipped text to force-fit them into it. */
+  .stacked-card-pin {
+    position: relative;
+    top: auto;
+  }
+
+  .stacked-card-pin--first {
+    padding-top: 1.25rem;
+  }
+
+  .stacked-card {
+    max-width: calc(100vw - 2rem);
+    height: auto;
+    min-height: 400px;
+  }
+
+  .stacked-card__layout {
+    flex-direction: column;
+  }
+
+  .stacked-card__content {
+    padding: 2rem;
+  }
+
+  .stacked-card__media {
+    width: 100%;
+    height: 280px;
+    padding: 0 2rem 2rem;
+  }
+}
+
+/* ── Arc gallery ──────────────────────────────────────────────────────── */
+@keyframes arc-gallery-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.arc-gallery__pivot {
+  animation: arc-gallery-fade-in 0.8s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arc-gallery__pivot {
+    animation: none;
+  }
+}
+

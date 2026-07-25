@@ -1,0 +1,229 @@
+/* Mobile landscape lock + layout fallbacks */
+
+/* ── Mobile landscape lock ───────────────────────────────────────────────
+ * Gate phone landscape. JS toggles --active / data-orientation-lock when the
+ * short side is ≤ 550px and width > height. Removed when back in portrait.
+ * Graphic is pure HTML + CSS (no SVG).
+ */
+.orientation-lock {
+  --orientation-phone: #f08f3b;
+  --orientation-arrow: #ffc996;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-orientation);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--page-chrome);
+  color: var(--ink);
+  text-align: center;
+}
+
+.orientation-lock--active,
+html[data-orientation-lock] .orientation-lock {
+  display: flex !important;
+}
+
+.orientation-lock__graphic {
+  position: relative;
+  width: 9rem;
+  height: 9rem;
+  margin-bottom: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Phone + arrows share this rotation */
+.orientation-lock__spin {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  animation: orientation-phone-spin 2.2s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
+}
+
+.orientation-lock__phone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.85rem;
+  height: 4.75rem;
+  margin: -2.375rem 0 0 -1.425rem;
+  border: 0.3rem solid var(--orientation-phone);
+  border-radius: 0.6rem;
+  background: transparent;
+}
+
+.orientation-lock__home {
+  position: absolute;
+  left: 50%;
+  bottom: 0.38rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  margin-left: -0.24rem;
+  border-radius: 50%;
+  background: var(--orientation-phone);
+}
+
+.orientation-lock__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.orientation-lock__desc {
+  margin: 0;
+  max-width: 18rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: rgba(var(--ink-rgb), 0.72);
+}
+
+@keyframes orientation-phone-spin {
+  0%,
+  12% {
+    transform: rotate(0deg);
+  }
+  42%,
+  58% {
+    transform: rotate(90deg);
+  }
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orientation-lock__spin {
+    animation: none;
+    transform: rotate(0deg);
+  }
+}
+
+html[data-orientation-lock],
+html[data-orientation-lock] body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html[data-orientation-lock] body > :not(.orientation-lock) {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Pre-hydration CSS fallback */
+@media (orientation: landscape) and (max-height: 550px) {
+  .orientation-lock {
+    display: flex !important;
+  }
+
+  html:not([data-orientation-lock]),
+  html:not([data-orientation-lock]) body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html:not([data-orientation-lock]) body > :not(.orientation-lock) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ── Mobile landscape layout fallbacks ───────────────────────────────────
+ * Real phones in landscape report a short max-height (~360-430px) regardless
+ * of width, unlike tablets/desktop landscape. Targeting max-height instead
+ * of width keeps these fixes from reaching anything but handset landscape.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Hero: headline + subhead + CTAs were taller than the available
+     (100dvh - navbar) space, so the section's overflow-hidden clipped the
+     headline's top line under the navbar and crowded the CTAs off-screen. */
+  .hero-headline {
+    margin-top: 0;
+    font-size: clamp(1.25rem, 4.5vw, 2rem);
+    line-height: 1.15;
+  }
+
+  .hero-subheadline {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .hero-copy {
+    margin-top: 0;
+  }
+
+  .hero-cta-row {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  .hero-cta-row > * + * {
+    margin-top: 0.5rem;
+  }
+
+  #home .hero-cta-row .hero-cta-btn--primary,
+  #home .hero-cta-row .hero-cta-btn--ghost {
+    min-height: 2.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  /* Programs bento mosaic: a fixed aspect-ratio combined with a 100vh cap
+     forced the whole grid down to the viewport height, crushing rows to a
+     few dozen pixels and clipping/overlapping tile text. The mosaic's
+     fr-based row tracks need a definite container height to size sanely, so
+     rather than just removing the height cap (which collapses the fr rows
+     to ~0), fall back to the same single-column, content-sized layout used
+     below the sm breakpoint. */
+  .programs-bento-frame {
+    max-height: none;
+    aspect-ratio: auto;
+    overflow: visible;
+  }
+
+  .programs-bento-grid {
+    display: flex;
+    flex-direction: column;
+    position: static;
+    height: auto;
+  }
+
+  .programs-bento-tile {
+    width: 100%;
+    height: auto !important;
+    min-height: 9rem;
+  }
+}
+
+/* About pinned cards: only drop the pin in handset landscape once the
+   mobile stacked layout is active (≤919px, matching the query above).
+   Wider viewports keep the desktop side-by-side pin through landscape. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 919px) {
+  .stacked-card-pin {
+    position: relative;
+    top: auto;
+  }
+
+  .stacked-cards-container {
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  .stacked-card {
+    min-height: 0;
+  }
+
+  .stacked-card__media {
+    height: 160px;
+  }
+
+  .stacked-card__content {
+    padding: 1.5rem;
+  }
+}
+
