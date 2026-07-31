@@ -6,6 +6,7 @@ import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-m
 import { JoinChooser } from "@/components/join-chooser";
 import { JoinControls } from "@/components/join-controls";
 import { JoinFormPanel } from "@/components/join-form-panel";
+import { PageBackLink } from "@/components/page-back-link";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import type { FormValues } from "@/components/guided-form";
 import {
@@ -160,6 +161,8 @@ export function JoinPageContent() {
 
   return (
     <div className="join-page mx-auto w-full max-w-5xl px-4 pt-2 sm:pt-3">
+      <PageBackLink className="mb-2 sm:mb-3" />
+
       {!hasChosen && (
         <div className="mx-auto max-w-5xl px-1 pb-6 text-center sm:px-2 sm:pb-8">
           <SectionLogoHeading id="join-page-heading" as="h1">

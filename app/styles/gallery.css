@@ -131,6 +131,11 @@
   overflow: hidden;
 }
 
+.gallery-controls__years-list {
+  display: flex;
+  min-width: 0;
+}
+
 .gallery-controls__year-pill {
   flex-shrink: 0;
   min-height: 1.75rem;
@@ -162,6 +167,60 @@
 .gallery-controls__years-toggle-icon {
   width: 0.8rem;
   height: 0.8rem;
+}
+
+/* Scoped size-up for reuse outside the compact public nav chip context (the
+   /upgrade admin year picker sits beside normal-sized buttons, not a small
+   navbar strip). */
+.upgrade-year-picker .gallery-controls__year-pill {
+  min-height: 2.5rem;
+  min-width: 3.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.upgrade-year-picker .gallery-controls__years-toggle {
+  width: 2.25rem;
+}
+
+.upgrade-year-picker .gallery-controls__years-toggle-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Mobile only — while the year list is open, the years take over the whole
+   control tab (program title + prev/next hide) and wrap into rows instead of
+   overflowing, with the caret centered beside the wrapped block. */
+@media (max-width: 639px) {
+  .gallery-controls[data-years-open="true"] .gallery-controls__program {
+    display: none;
+  }
+
+  .gallery-controls[data-years-open="true"] .gallery-controls__years {
+    flex: 1 1 auto;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 1.25rem;
+    padding: 0.375rem 0.5rem;
+    overflow: visible;
+  }
+
+  .gallery-controls[data-years-open="true"] .gallery-controls__years-list {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .gallery-controls[data-years-open="true"] .gallery-controls__year-pill {
+    border-left: none;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .gallery-controls[data-years-open="true"] .gallery-controls__years-toggle {
+    border-left: none;
+  }
 }
 
 /* Gallery bento — uniform 2×3 landscape grid (all programs match) */

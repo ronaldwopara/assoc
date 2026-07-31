@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
 import {
-  GALLERY_CATEGORIES,
-  gallerySelectionForProgram,
-  getGalleryCategoryIndex,
-  type GallerySelection,
-} from "@/lib/gallery-categories";
+  cmsToCategories,
+  resolveYearForProgramCms,
+} from "@/lib/gallery-cms/helpers";
+import type { GallerySelection } from "@/lib/gallery-categories";
 
 // Spring (not bezier) so a rapid re-toggle interrupts smoothly instead of snapping.
 const MORPH_TRANSITION = { type: "spring", stiffness: 500, damping: 40, mass: 0.7 } as const;
@@ -23,21 +23,30 @@ interface GalleryFiltersProps {
 }
 
 export function GalleryFilters({ selection, onSelect, onReopen }: GalleryFiltersProps) {
+  const cms = useGalleryCms();
+  const categories = cmsToCategories(cms);
   const [yearsOpen, setYearsOpen] = useState(false);
-  const programIndex = getGalleryCategoryIndex(selection.program);
-  const category = GALLERY_CATEGORIES[programIndex];
-  const hasMultipleYears = category.years.length > 1;
+  const programIndex = Math.max(
+    0,
+    categories.findIndex((item) => item.slug === selection.program),
+  );
+  const category = categories[programIndex] ?? categories[0];
+  const hasMultipleYears = (category?.years.length ?? 0) > 1;
 
   useEffect(() => {
     setYearsOpen(false);
-  }, [category.slug]);
+  }, [category?.slug]);
+
+  if (!category) return null;
 
   const goToProgram = (direction: -1 | 1) => {
     const nextIndex =
-      (programIndex + direction + GALLERY_CATEGORIES.length) %
-      GALLERY_CATEGORIES.length;
-    const next = GALLERY_CATEGORIES[nextIndex];
-    onSelect(gallerySelectionForProgram(next.slug, selection.year));
+      (programIndex + direction + categories.length) % categories.length;
+    const next = categories[nextIndex];
+    onSelect({
+      program: next.slug,
+      year: resolveYearForProgramCms(cms, next.slug, selection.year),
+    });
   };
 
   const activeYear =
@@ -50,6 +59,7 @@ export function GalleryFilters({ selection, onSelect, onReopen }: GalleryFilters
       layout
       transition={MORPH_TRANSITION}
       className="gallery-controls"
+      data-years-open={yearsOpen ? "true" : undefined}
       role="group"
       aria-label="Gallery program and year"
     >
@@ -86,31 +96,36 @@ export function GalleryFilters({ selection, onSelect, onReopen }: GalleryFilters
         transition={MORPH_TRANSITION}
         className="gallery-controls__years"
       >
-        <AnimatePresence initial={false} mode="popLayout">
-          {visibleYears.map(({ year }) => {
-            const isActive = selection.year === year;
+        <div className="gallery-controls__years-list">
+          <AnimatePresence initial={false} mode="popLayout">
+            {visibleYears.map(({ year }) => {
+              const isActive = selection.year === year;
 
-            return (
-              <motion.button
-                key={`${category.slug}-${year}`}
-                type="button"
-                className="gallery-year-pill gallery-controls__year-pill focus-ring-light cursor-pointer"
-                data-active={isActive ? "true" : undefined}
-                aria-pressed={isActive}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: EXIT_TRANSITION }}
-                transition={ENTER_TRANSITION}
-                onClick={() => {
-                  onSelect(gallerySelectionForProgram(category.slug, year));
-                  setYearsOpen(false);
-                }}
-              >
-                {year}
-              </motion.button>
-            );
-          })}
-        </AnimatePresence>
+              return (
+                <motion.button
+                  key={`${category.slug}-${year}`}
+                  type="button"
+                  className="gallery-year-pill gallery-controls__year-pill focus-ring-light cursor-pointer"
+                  data-active={isActive ? "true" : undefined}
+                  aria-pressed={isActive}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: EXIT_TRANSITION }}
+                  transition={ENTER_TRANSITION}
+                  onClick={() => {
+                    onSelect({
+                      program: category.slug,
+                      year: resolveYearForProgramCms(cms, category.slug, year),
+                    });
+                    setYearsOpen(false);
+                  }}
+                >
+                  {year}
+                </motion.button>
+              );
+            })}
+          </AnimatePresence>
+        </div>
 
         <AnimatePresence initial={false}>
           {hasMultipleYears && (

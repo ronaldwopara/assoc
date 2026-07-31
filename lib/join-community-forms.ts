@@ -94,11 +94,10 @@ const emailStep = (id = "email", helper = "We'll send updates and confirmations 
   ],
 });
 
-const phoneStep = (id = "phone", optional = false, helper = "For urgent updates and event reminders."): GuidedStep => ({
+const phoneStep = (id = "phone", helper = "For urgent updates and event reminders."): GuidedStep => ({
   id,
-  title: optional ? "Phone number (optional)" : "What's your phone number?",
+  title: "What's your phone number?",
   helper,
-  optional,
   fields: [
     {
       type: "text",
@@ -116,6 +115,8 @@ const nameStep = (title = "What's your name?", helper = "We'll use this to perso
   helper,
   fields: [{ type: "name" }],
 });
+
+const hasSpouse = (values: FormValues) => values.includeSpouse === "Yes";
 
 export const newsletterSteps: GuidedStep[] = [
   nameStep(),
@@ -142,14 +143,14 @@ export const volunteerSteps: GuidedStep[] = [
   emailStep(),
   phoneStep(),
   {
-    id: "interests-a",
+    id: "interests",
     title: "How would you like to participate?",
     helper: "Select all that apply.",
     fields: [
       {
         type: "choice",
         name: "volunteerInterests",
-        options: volunteerInterests.slice(0, 4),
+        options: volunteerInterests,
         multiple: true,
       },
     ],
@@ -159,29 +160,15 @@ export const volunteerSteps: GuidedStep[] = [
         : "Select at least one option.",
   },
   {
-    id: "interests-b",
-    title: "Any other ways to participate?",
-    helper: "Optional — select all that apply.",
-    optional: true,
-    fields: [
-      {
-        type: "choice",
-        name: "volunteerInterests",
-        options: volunteerInterests.slice(4),
-        multiple: true,
-      },
-    ],
-  },
-  {
     id: "comments",
     title: "Anything else you'd like to share?",
     helper: "Share your skills, availability, or any questions you have.",
-    optional: true,
     fields: [
       {
         type: "textarea",
         name: "comments",
         rows: 2,
+        optional: true,
       },
     ],
   },
@@ -226,7 +213,7 @@ export const donateSteps: GuidedStep[] = [
 export const membershipSteps: GuidedStep[] = [
   nameStep("What's your name?", "Required for official ASOSC membership records."),
   emailStep("email", "We'll send your membership confirmation and updates here."),
-  phoneStep("phone", false, "For membership verification and urgent community alerts."),
+  phoneStep("phone", "For membership verification and urgent community alerts."),
   {
     id: "address",
     title: "What's your residential address?",
@@ -248,7 +235,7 @@ export const membershipSteps: GuidedStep[] = [
   {
     id: "gender",
     title: "Gender",
-    helper: "Optional demographic info for program planning.",
+    helper: "Helps with program planning and reporting.",
     fields: [{ type: "choice", name: "gender", options: genderOptions }],
   },
   {
@@ -271,18 +258,23 @@ export const membershipSteps: GuidedStep[] = [
     ],
   },
   {
+    id: "include-spouse",
+    title: "Would you like to include a spouse on your membership?",
+    helper: "If yes, we'll collect their contact details next.",
+    fields: [{ type: "choice", name: "includeSpouse", options: yesNoOptions }],
+  },
+  {
     id: "spouse-name",
     title: "Spouse's full name",
     helper: "Include your spouse in your family membership.",
-    optional: true,
+    when: hasSpouse,
     fields: [{ type: "text", name: "spouseName" }],
   },
   {
     id: "spouse-email",
     title: "Spouse's email address",
     helper: "We'll send event invites and updates to both of you.",
-    optional: true,
-    when: (values) => Boolean(String(values.spouseName ?? "").trim()),
+    when: hasSpouse,
     fields: [
       {
         type: "text",
@@ -295,8 +287,7 @@ export const membershipSteps: GuidedStep[] = [
     id: "spouse-phone",
     title: "Spouse's phone number",
     helper: "For direct contact with your spouse about ASOSC activities.",
-    optional: true,
-    when: (values) => Boolean(String(values.spouseName ?? "").trim()),
+    when: hasSpouse,
     fields: [
       {
         type: "text",
@@ -308,24 +299,22 @@ export const membershipSteps: GuidedStep[] = [
   {
     id: "spouse-address",
     title: "Spouse's address (if different)",
-    helper: "Only needed if your spouse lives at a different address.",
-    optional: true,
-    when: (values) => Boolean(String(values.spouseName ?? "").trim()),
+    helper: "Enter their address, or the same address if you share one.",
+    when: hasSpouse,
     fields: [{ type: "text", name: "spouseAddress" }],
   },
   {
     id: "spouse-consent",
     title: "May we email and text your spouse about ASOSC activities?",
     helper: "We respect your family's communication preferences.",
-    when: (values) => Boolean(String(values.spouseName ?? "").trim()),
+    when: hasSpouse,
     fields: [{ type: "choice", name: "spouseConsent", options: yesNoOptions }],
   },
   {
     id: "spouse-text",
     title: "Receive spouse text messages at",
     helper: "Confirm the best number for text reminders.",
-    when: (values) =>
-      Boolean(String(values.spouseName ?? "").trim()) && values.spouseConsent === "Yes",
+    when: (values) => hasSpouse(values) && values.spouseConsent === "Yes",
     fields: [
       {
         type: "text",
@@ -368,32 +357,22 @@ export const membershipSteps: GuidedStep[] = [
     ],
   },
   {
-    id: "participation-a",
+    id: "participation",
     title: "How would you like to participate?",
-    optional: true,
     helper: "Select all that apply.",
     fields: [
       {
         type: "choice",
         name: "membershipParticipation",
-        options: membershipParticipationOptions.slice(0, 4),
+        options: membershipParticipationOptions,
         multiple: true,
       },
     ],
-  },
-  {
-    id: "participation-b",
-    title: "Any other ways to get involved?",
-    optional: true,
-    helper: "Select all that apply.",
-    fields: [
-      {
-        type: "choice",
-        name: "membershipParticipation",
-        options: membershipParticipationOptions.slice(4),
-        multiple: true,
-      },
-    ],
+    validate: (values) =>
+      Array.isArray(values.membershipParticipation) &&
+      values.membershipParticipation.length > 0
+        ? null
+        : "Select at least one option.",
   },
   {
     id: "consent",
@@ -405,12 +384,12 @@ export const membershipSteps: GuidedStep[] = [
     id: "comments",
     title: "Any comments or concerns?",
     helper: "Questions or feedback? We're here to help.",
-    optional: true,
     fields: [
       {
         type: "textarea",
         name: "comments",
         rows: 2,
+        optional: true,
       },
       {
         type: "note",
@@ -434,17 +413,15 @@ export const vendorSteps: GuidedStep[] = [
   {
     id: "business",
     title: "Business or organization name",
-    helper: "Your official business name, if you have one.",
-    optional: true,
+    helper: "Your official business name, or your own name if you don't have one.",
     fields: [{ type: "text", name: "businessName" }],
   },
   emailStep("email", "Primary contact for vendor coordination and approvals."),
-  phoneStep("phone", false, "For last-minute updates and day-of-event communication."),
+  phoneStep("phone", "For last-minute updates and day-of-event communication."),
   {
     id: "website",
     title: "Website or social media handle",
     helper: "Helps us promote your booth to event attendees.",
-    optional: true,
     fields: [
       {
         type: "text",
@@ -482,8 +459,7 @@ export const vendorSteps: GuidedStep[] = [
   {
     id: "culture",
     title: "Do your offerings represent a specific African culture or region?",
-    optional: true,
-    helper: "If yes, please specify.",
+    helper: "If yes, please specify. If not, write None.",
     fields: [
       {
         type: "textarea",
@@ -527,20 +503,19 @@ export const vendorSteps: GuidedStep[] = [
   {
     id: "license",
     title: "Do you have a business license?",
-    helper: "Not required, but helpful for insurance and record-keeping.",
+    helper: "Helps with insurance and record-keeping.",
     fields: [{ type: "choice", name: "businessLicense", options: yesNoOptions }],
   },
   {
     id: "insurance",
     title: "Do you carry liability insurance?",
-    helper: "Recommended but not mandatory for vendor participation.",
+    helper: "Tell us whether you currently carry coverage.",
     fields: [{ type: "choice", name: "liabilityInsurance", options: yesNoOptions }],
   },
   {
     id: "hear-about",
     title: "How did you hear about this opportunity?",
     helper: "Helps us understand which outreach efforts work best.",
-    optional: true,
     fields: [
       {
         type: "choice-with-other",
@@ -555,12 +530,12 @@ export const vendorSteps: GuidedStep[] = [
     id: "comments",
     title: "Additional comments or special requests",
     helper: "Dietary restrictions, accessibility needs, or setup questions.",
-    optional: true,
     fields: [
       {
         type: "textarea",
         name: "comments",
         rows: 2,
+        optional: true,
       },
     ],
   },
@@ -598,7 +573,7 @@ export const vendorSteps: GuidedStep[] = [
 
 export const contactSteps: GuidedStep[] = [
   nameStep("What's your name?", "So we know who to address in our reply."),
-  phoneStep("phone", true, "Optional — in case we need to follow up by phone."),
+  phoneStep("phone", "In case we need to follow up by phone."),
   emailStep("email", "We'll respond to your message at this address."),
   {
     id: "message",

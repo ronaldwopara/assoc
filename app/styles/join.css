@@ -26,7 +26,7 @@
 /* Taller form surface: short steps still occupy a substantial vertical band. */
 .join-page__panel .max-w-md {
   max-width: min(40rem, 100%);
-  min-height: min(36rem, 58dvh);
+  min-height: min(25.2rem, 40.6dvh);
 }
 
 .join-page__panel .max-w-md > .relative.min-h-0 {
@@ -34,8 +34,8 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-height: 14rem;
-  padding-bottom: 1.25rem;
+  min-height: 9.8rem;
+  padding-bottom: 0.875rem;
 }
 
 .join-page .guided-fields {
@@ -238,7 +238,8 @@
   position: fixed;
   z-index: calc(var(--z-modal) + 2);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 4.75rem;
+  grid-template-columns: minmax(0, max-content) 4.75rem;
+  width: max-content;
   overflow: hidden;
   border-radius: 1rem;
   border: 1px solid rgba(232, 163, 23, 0.35);

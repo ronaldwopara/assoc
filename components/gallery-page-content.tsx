@@ -6,25 +6,26 @@ import { AnimatePresence, motion } from "framer-motion";
 import { GalleryChooser } from "@/components/gallery-chooser";
 import { GalleryFilters } from "@/components/gallery-filters";
 import { ImageGallery } from "@/components/image-gallery";
-import {
-  gallerySelectionFromSearchParams,
-  type GallerySelection,
-} from "@/lib/gallery-categories";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
+import { selectionFromSearchParams } from "@/lib/gallery-cms/helpers";
+import type { GallerySelection } from "@/lib/gallery-categories";
 
 const FADE_TRANSITION = { duration: 0.18, ease: [0.165, 0.84, 0.44, 1] as const };
 
 export function GalleryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const cms = useGalleryCms();
   const [hasChosen, setHasChosen] = useState(false);
 
   const selection = useMemo(
     () =>
-      gallerySelectionFromSearchParams(
+      selectionFromSearchParams(
+        cms,
         searchParams.get("program"),
         searchParams.get("year"),
       ),
-    [searchParams],
+    [cms, searchParams],
   );
 
   const handleSelect = useCallback(

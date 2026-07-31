@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ContentBrow } from "@/components/content-brow";
 import { FileText, Download } from "lucide-react";
@@ -6,7 +8,8 @@ import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { StackedCardBody, StackedCards } from "@/components/stacked-cards";
 import { AboutSectionShell } from "@/components/about-section-shell";
 import { MediaPlaceholderImage } from "@/components/media-placeholder";
-import { getGalleryPreviewUrls } from "@/lib/gallery-images";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
+import { getGalleryPreviewUrlsFromCms } from "@/lib/gallery-cms/helpers";
 
 export { EventsPageContent } from "@/components/events-section";
 
@@ -186,7 +189,8 @@ export function AboutSection() {
 }
 
 export function GallerySection() {
-  const galleryImages = getGalleryPreviewUrls();
+  const cms = useGalleryCms();
+  const galleryImages = getGalleryPreviewUrlsFromCms(cms);
 
   return <ArcGalleryHero images={galleryImages} />;
 }

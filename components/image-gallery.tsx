@@ -3,40 +3,15 @@
 import React from "react";
 import { useInView } from "framer-motion";
 import { GalleryLightbox } from "@/components/gallery-lightbox";
-import { GALLERY_CATEGORIES } from "@/lib/gallery-categories";
-import { getGalleryImagesForSelection, type GalleryImage } from "@/lib/gallery-images";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
+import {
+  cmsToCategories,
+  getAlbumUrl,
+  getImagesForSelection,
+} from "@/lib/gallery-cms/helpers";
+import type { GalleryImage } from "@/lib/gallery-images";
 import { MediaPlaceholder } from "@/components/media-placeholder";
 import { cn } from "@/lib/utils";
-
-const AFRICAN_FESTIVAL_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipMjTmDXrlT0oB55zdjvAP4nRnuDFGv3Sd1v7uRyZZCdsDEKbBbpvarV79JolyPNQQ?key=QVZOZTMxWUVCdXRNVWVIUFFmZGlPd2tjdUFiVDh3";
-const BLACK_HISTORY_MONTH_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipMFMS-3m6HBsbaC__yDGCUTPjoJyk_PQDFSO1bt6SAWuGWVDxYj_wnlEQ_iKsjCog?key=Sk9yTTMtbzB6UFNzUjBnbFAzTzN0MFlJSENycFVn";
-const BLACK_HISTORY_MONTH_2025_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipOZzdsANnX0qoKW_LCKFfxniQZZaQjm7z1pOpGavfahqyBIcNgMio_sESkxEMQkCg?key=cl80U3BPNFJ6VzVsMHF0WVRwSHU1dm1kQjZJdmNB";
-const BLACK_HISTORY_MONTH_2022_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipMuqrtcE50Z11leAES8XzxZnpMK3HVcHtEjuKNMXSYURAwiolGPon93bXSJnZWtHA?key=TEdFZk9td05mM0F0Y2hQRzhMZ0lWaF9udHVFRkNn";
-const AFRICAN_SUMMER_BBQ_2024_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipNdCzMh1qKAhBNN7nirvTHglhTPxhalg4itGsLnqeNJ2F9pyzZW1wgQzCs14Hd6vA?key=aDZqS3hSel9IUTdmdkExcWZ2R3VOZVBjeVMtQUFR";
-const AFRICAN_SUMMER_BBQ_2023_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipMg2THI6p5J7B1M4hShpd1gMBVubIXZRlNybzw46N6jUpJsqpfkt8_V6jbYeAn5lg?key=UlMtVVQ2enZGMXZRRnJ1amZkSFVYUjJteG51MTlR";
-const AFRICAN_SUMMER_BBQ_2022_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipPF8q3MlrmlSfFzT8D3Q3nh0wto6RphKudDzhcgqJVarRWU4kp4vLH751QsA-lDGw?key=UUE2elVFZlFwakxiMnkxMXJ6YmhQS0haSWhicUxR";
-const END_OF_YEAR_PARTY_2025_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipNDqcwea4ouL9CbzIWcQWE1Li3OLL25PmrDC46e7wzYJe4aTvxdTM7wmfPmrY8pcA?key=NmM2OTRSQTVWazNvcnpCc1RqMDFDZk55RTR6MkJn";
-const END_OF_YEAR_PARTY_2024_ALBUM_URL =
-  "https://photos.google.com/share/AF1QipPROAi5aMzptLRQFzenlNGfNXMbiO17_H2or7BXTFZ3eBAVCl8cnNXTLwXjgs9ukw?key=NWZMNUEzUHhQMzA0eXFnQm1KOUs5dG5SUEsxekNR";
-const GALLERY_ALBUM_URLS: Partial<Record<string, string>> = {
-  "african-festival": AFRICAN_FESTIVAL_ALBUM_URL,
-  "black-history-month": BLACK_HISTORY_MONTH_ALBUM_URL,
-  "black-history-month:2025": BLACK_HISTORY_MONTH_2025_ALBUM_URL,
-  "black-history-month:2022": BLACK_HISTORY_MONTH_2022_ALBUM_URL,
-  "african-summer-bbq:2024": AFRICAN_SUMMER_BBQ_2024_ALBUM_URL,
-  "african-summer-bbq:2023": AFRICAN_SUMMER_BBQ_2023_ALBUM_URL,
-  "african-summer-bbq:2022": AFRICAN_SUMMER_BBQ_2022_ALBUM_URL,
-  "end-of-year-party:2025": END_OF_YEAR_PARTY_2025_ALBUM_URL,
-  "end-of-year-party:2024": END_OF_YEAR_PARTY_2024_ALBUM_URL,
-};
 
 /** Collapsed preview always shows a neat 2×3 landscape grid (matches gallery reference). */
 const PREVIEW_TILE_COUNT = 6;
@@ -47,12 +22,14 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ program, year }: ImageGalleryProps) {
-  const images = getGalleryImagesForSelection(program, year);
-  const albumUrl = GALLERY_ALBUM_URLS[`${program}:${year}`] ?? GALLERY_ALBUM_URLS[program];
+  const cms = useGalleryCms();
+  const images = getImagesForSelection(cms, program, year);
+  const albumUrl = getAlbumUrl(cms, program, year);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [lightboxIndex, setLightboxIndex] = React.useState<number | null>(null);
   const categoryLabel =
-    GALLERY_CATEGORIES.find((item) => item.slug === program)?.program ?? "Gallery";
+    cmsToCategories(cms).find((item) => item.slug === program)?.program ??
+    "Gallery";
 
   React.useEffect(() => {
     setIsExpanded(false);

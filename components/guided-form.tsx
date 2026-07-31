@@ -18,6 +18,8 @@ import {
   getPaymentDisplayAmount,
   getStripeCheckoutUrl,
 } from "@/lib/payment-links";
+import { verifyRecaptchaToken } from "@/lib/recaptcha";
+import { RecaptchaField } from "@/components/recaptcha-field";
 
 export const guidedFieldInputClassName =
   "guided-field focus-ring-light box-border w-full max-w-full rounded-xl border border-(--brown-dark)/15 bg-white px-3.5 py-2.5 text-black placeholder:text-black/40 focus:outline-none";
@@ -62,6 +64,7 @@ export type GuidedField =
       name: string;
       placeholder?: string;
       rows?: number;
+      optional?: boolean;
     }
   | {
       type: "select";
@@ -112,7 +115,6 @@ export type GuidedStep = {
   id: string;
   title: string;
   helper?: string;
-  optional?: boolean;
   when?: (values: FormValues) => boolean;
   validate?: (values: FormValues) => string | null;
   fields: GuidedField[];
@@ -156,7 +158,6 @@ function isValidEmail(value: string): boolean {
 
 export function defaultValidate(step: GuidedStep, values: FormValues): string | null {
   if (step.validate) return step.validate(values);
-  if (step.optional) return null;
 
   for (const field of step.fields) {
     if (field.type === "note" || field.type === "payment") continue;
@@ -207,7 +208,10 @@ export function defaultValidate(step: GuidedStep, values: FormValues): string | 
       field.type === "priced-select"
     ) {
       const value = asString(values[field.name]).trim();
-      if (!value) return "This field is required.";
+      if (!value) {
+        if (field.type === "textarea" && field.optional) continue;
+        return "This field is required.";
+      }
       if (field.type === "text" && field.inputType === "email" && !isValidEmail(value)) {
         return "Please enter a valid email address.";
       }
@@ -273,9 +277,12 @@ function PricedSelectField({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(
-    null,
-  );
+  const [coords, setCoords] = useState<{
+    top: number;
+    bottom: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
@@ -292,6 +299,7 @@ function PricedSelectField({
       if (!rect) return;
       setCoords({
         top: rect.top,
+        bottom: rect.bottom,
         left: rect.left,
         width: rect.width,
       });
@@ -366,12 +374,13 @@ function PricedSelectField({
                 aria-label="Membership categories"
                 style={{
                   left: coords.left,
-                  width: coords.width,
-                  bottom: `calc(${window.innerHeight - coords.top}px + 0.4rem)`,
+                  minWidth: Math.min(coords.width, 220),
+                  maxWidth: coords.width,
+                  top: `calc(${coords.bottom}px + 0.4rem)`,
                 }}
-                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
                 {field.options.map((option) => {
@@ -764,6 +773,8 @@ export function GuidedForm({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
 
   valuesRef.current = values;
 
@@ -793,6 +804,8 @@ export function GuidedForm({
     setError(null);
     setStatus("idle");
     setSubmitError(null);
+    setCaptchaToken(null);
+    setCaptchaResetSignal((n) => n + 1);
     const dirty = isFormDraftDirty(initialValues, initialStepIndex, nextBaseline, 0);
     onDirtyChangeRef.current?.(dirty, "hydrate");
     if (dirty) {
@@ -864,12 +877,20 @@ export function GuidedForm({
     setStatus("submitting");
     setSubmitError(null);
     try {
+      if (!captchaToken) {
+        throw new Error("Please complete the reCAPTCHA.");
+      }
+      await verifyRecaptchaToken(captchaToken);
       await onSubmit(nextValues);
       onSuccessChangeRef.current?.(true, nextValues);
       setStatus("success");
-    } catch {
+    } catch (error) {
       setStatus("error");
-      setSubmitError("Something went wrong. Please try again.");
+      setSubmitError(
+        error instanceof Error ? error.message : "Something went wrong. Please try again.",
+      );
+      setCaptchaToken(null);
+      setCaptchaResetSignal((n) => n + 1);
       onSuccessChangeRef.current?.(false);
     }
   };
@@ -894,15 +915,6 @@ export function GuidedForm({
 
   const handleContinue = () => advanceFrom(safeIndex);
 
-  const handleSkip = () => {
-    if (!currentStep?.optional) return;
-    if (isLast) {
-      void submitValues(valuesRef.current);
-      return;
-    }
-    goTo(safeIndex + 1, 1);
-  };
-
   const handleBack = () => {
     if (isFirst) return;
     goTo(safeIndex - 1, -1);
@@ -914,32 +926,9 @@ export function GuidedForm({
   };
 
   const isSatisfied = currentStep ? defaultValidate(currentStep, values) === null : false;
-  const optionalHasContent = currentStep
-    ? currentStep.fields.some((field) => {
-        if (field.type === "note") return false;
-        if (field.type === "payment") return true;
-        if (field.type === "name") {
-          return (
-            Boolean(asString(values[field.firstNameKey ?? "firstName"]).trim()) ||
-            Boolean(asString(values[field.lastNameKey ?? "lastName"]).trim())
-          );
-        }
-        if (field.type === "donation-amount") {
-          return Boolean(asString(values[field.amountKey ?? "donationAmount"]));
-        }
-        if (field.type === "choice" || field.type === "choice-with-other") {
-          return field.multiple
-            ? asStringArray(values[field.name]).length > 0
-            : Boolean(asString(values[field.name]));
-        }
-        return Boolean(asString(values[field.name]).trim());
-      })
-    : false;
-
   const canProceed = Boolean(
-    currentStep && isSatisfied && (!currentStep.optional || optionalHasContent || isLast),
+    currentStep && isSatisfied && (!isLast || Boolean(captchaToken)),
   );
-  const showSkip = Boolean(currentStep?.optional) && !isLast;
 
   if (status === "success") {
     return null;
@@ -956,12 +945,20 @@ export function GuidedForm({
   const payVerb = paymentKind === "membership" ? "Subscribe" : "Donate";
 
   const handlePayCard = () => {
+    if (!captchaToken) {
+      setSubmitError("Please complete the reCAPTCHA.");
+      return;
+    }
     const url = getStripeCheckoutUrl(paymentKind, values);
     if (url) window.open(url, "_blank", "noopener,noreferrer");
     setValue("paymentMethod", "card");
   };
 
   const handlePayEtransfer = () => {
+    if (!captchaToken) {
+      setSubmitError("Please complete the reCAPTCHA.");
+      return;
+    }
     if (showEtransferPanel) {
       void submitValues({ ...valuesRef.current, paymentMethod: "etransfer" });
       return;
@@ -970,6 +967,10 @@ export function GuidedForm({
   };
 
   const handleConfirmPayment = () => {
+    if (!captchaToken) {
+      setSubmitError("Please complete the reCAPTCHA.");
+      return;
+    }
     const method = asString(values.paymentMethod);
     void submitValues({ ...valuesRef.current, paymentMethod: method });
   };
@@ -1003,15 +1004,12 @@ export function GuidedForm({
     "hero-cta-btn focus-ring-light inline-flex min-h-8 items-center justify-center px-5 py-1.5 text-xs font-semibold tracking-wide text-black transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:px-6 sm:text-sm";
 
   return (
-    <div className="relative z-10 mx-auto flex w-full max-w-md flex-col overflow-hidden text-left">
+    <div className="relative z-10 mx-auto flex w-full max-w-md flex-col overflow-x-hidden text-left">
       <div className="shrink-0">
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <p className="text-xs font-semibold tracking-wide text-black/55" aria-live="polite">
             Step {safeIndex + 1} of {activeSteps.length}
           </p>
-          {currentStep.optional && (
-            <span className="text-xs font-medium text-black/45">Optional</span>
-          )}
         </div>
         <div
           className="h-1 overflow-hidden rounded-full bg-(--brown-dark)/10"
@@ -1068,11 +1066,6 @@ export function GuidedForm({
                   {error}
                 </p>
               )}
-              {submitError && (
-                <p className="text-sm font-semibold text-red-700" role="alert">
-                  {submitError}
-                </p>
-              )}
 
               <button type="submit" className="sr-only" tabIndex={-1} disabled={!canProceed}>
                 {isLast ? submitLabel : "Continue"}
@@ -1082,6 +1075,20 @@ export function GuidedForm({
         </AnimatePresence>
       </div>
 
+      {isLast && (
+        <RecaptchaField
+          onChange={setCaptchaToken}
+          resetSignal={captchaResetSignal}
+          className="shrink-0 pt-3"
+        />
+      )}
+
+      {submitError && (
+        <p className="shrink-0 pt-2 text-sm font-semibold text-red-700" role="alert">
+          {submitError}
+        </p>
+      )}
+
       <div className="relative flex shrink-0 items-center gap-2 pt-3">
         {isPaymentStep ? (
           <div className="flex w-full flex-col gap-2">
@@ -1090,16 +1097,16 @@ export function GuidedForm({
                 <button
                   type="button"
                   onClick={handlePayCard}
-                  disabled={status === "submitting"}
-                  className={`${primaryButtonClassName} w-full cursor-pointer`}
+                  disabled={!captchaToken || status === "submitting"}
+                  className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
                 >
                   {payVerb} – Card
                 </button>
                 <button
                   type="button"
                   onClick={handlePayEtransfer}
-                  disabled={status === "submitting"}
-                  className="focus-ring-light inline-flex min-h-8 w-full cursor-pointer items-center justify-center rounded-xl border border-(--orange)/30 bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-(--orange)/5 sm:min-h-9 sm:text-sm"
+                  disabled={!captchaToken || status === "submitting"}
+                  className={`focus-ring-light inline-flex min-h-8 w-full items-center justify-center rounded-xl border border-(--orange)/30 bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-(--orange)/5 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:text-sm ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
                 >
                   {payVerb} – e-Transfer
                 </button>
@@ -1109,8 +1116,8 @@ export function GuidedForm({
               <button
                 type="button"
                 onClick={handleConfirmPayment}
-                disabled={status === "submitting"}
-                className={`${primaryButtonClassName} w-full cursor-pointer`}
+                disabled={!captchaToken || status === "submitting"}
+                className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
               >
                 {status === "submitting" ? "Sending..." : "I've completed the payment"}
               </button>
@@ -1119,8 +1126,8 @@ export function GuidedForm({
               <button
                 type="button"
                 onClick={handleConfirmPayment}
-                disabled={status === "submitting"}
-                className={`${primaryButtonClassName} w-full cursor-pointer`}
+                disabled={!captchaToken || status === "submitting"}
+                className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
               >
                 {status === "submitting" ? "Sending..." : "I've sent it"}
               </button>
@@ -1162,15 +1169,6 @@ export function GuidedForm({
           </div>
         ) : (
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-            {showSkip && (
-              <button
-                type="button"
-                onClick={handleSkip}
-                className="focus-ring-light inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl px-3 text-sm font-semibold text-black/60 transition-colors hover:bg-(--brown-dark)/5"
-              >
-                Skip
-              </button>
-            )}
             <button
               type="button"
               onClick={handleContinue}

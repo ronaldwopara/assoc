@@ -2,6 +2,7 @@ import { Navbar } from "@/components/navbar";
 import { AboutContent, DocumentsSection } from "@/components/page-sections";
 import { AboutSectionShell } from "@/components/about-section-shell";
 import { CircularTestimonials } from "@/components/circular-testimonials";
+import { PageBackLink } from "@/components/page-back-link";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 
 const CLOUDINARY_BASE =
@@ -41,6 +42,9 @@ export default function AboutPage() {
       <Navbar />
       <main id="main-content" className="site-main">
         <AboutSectionShell aria-labelledby="about-heading">
+          <div className="mx-auto mb-2 max-w-5xl px-4 sm:mb-3 sm:px-6">
+            <PageBackLink />
+          </div>
           <AboutContent priorityFirstImage />
         </AboutSectionShell>
 

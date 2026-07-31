@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
 import {
-  GALLERY_CATEGORIES,
-  gallerySelectionForProgram,
-  type GallerySelection,
-} from "@/lib/gallery-categories";
+  cmsToCategories,
+  resolveYearForProgramCms,
+} from "@/lib/gallery-cms/helpers";
+import type { GallerySelection } from "@/lib/gallery-categories";
 
 // Spring (not bezier) so a rapid re-toggle interrupts smoothly instead of snapping.
 const MORPH_TRANSITION = { type: "spring", stiffness: 500, damping: 40, mass: 0.7 } as const;
@@ -15,6 +16,9 @@ interface GalleryChooserProps {
 }
 
 export function GalleryChooser({ onSelect }: GalleryChooserProps) {
+  const cms = useGalleryCms();
+  const categories = cmsToCategories(cms);
+
   return (
     <motion.div
       layoutId="gallery-shell"
@@ -24,7 +28,7 @@ export function GalleryChooser({ onSelect }: GalleryChooserProps) {
       role="group"
       aria-label="Choose a gallery program and year"
     >
-      {GALLERY_CATEGORIES.map((category) => (
+      {categories.map((category) => (
         <div key={category.slug} className="gallery-chooser__group">
           <h3 className="gallery-chooser__heading">{category.program}</h3>
           <div className="gallery-chooser__years">
@@ -33,7 +37,12 @@ export function GalleryChooser({ onSelect }: GalleryChooserProps) {
                 key={`${category.slug}-${year}`}
                 type="button"
                 className="gallery-year-pill gallery-chooser__year-pill focus-ring-light cursor-pointer"
-                onClick={() => onSelect(gallerySelectionForProgram(category.slug, year))}
+                onClick={() =>
+                  onSelect({
+                    program: category.slug,
+                    year: resolveYearForProgramCms(cms, category.slug, year),
+                  })
+                }
               >
                 {year}
               </button>

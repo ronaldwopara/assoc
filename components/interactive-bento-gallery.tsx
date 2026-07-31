@@ -288,7 +288,7 @@ function GalleryModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                className="flex flex-1 flex-col overflow-y-auto p-8 pb-4 lg:p-10 lg:pb-6"
+                className="scrollbar-panel flex flex-1 flex-col overflow-y-auto p-8 pb-4 lg:p-10 lg:pb-6"
               >
                 <h2
                   className="font-bold leading-[1.05] tracking-tight"

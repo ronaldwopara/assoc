@@ -8,15 +8,27 @@ import { useEffect, useRef, useState } from "react";
  * of the chrome rather than floating content. Driven via transform (not
  * width) and rAF-throttled so it doesn't add scroll-jank.
  *
- * Hidden while the Featured Programs "Learn More" overlay is open, and while
- * the mobile hamburger panel is open — those surfaces lock body scroll and
- * shouldn't show page progress.
+ * Desktop (≥920px) uses the themed scrollbar instead — this bar is hidden
+ * there. Also hidden while the Featured Programs "Learn More" overlay is
+ * open, and while the mobile hamburger panel is open — those surfaces lock
+ * body scroll and shouldn't show page progress.
  */
+const DESKTOP_MQ = "(min-width: 920px)";
+
 export function ScrollProgress() {
   const barRef = useRef<HTMLDivElement>(null);
   const [galleryHidden, setGalleryHidden] = useState(false);
   const [mobileNavHidden, setMobileNavHidden] = useState(false);
-  const hidden = galleryHidden || mobileNavHidden;
+  const [isDesktop, setIsDesktop] = useState(false);
+  const hidden = isDesktop || galleryHidden || mobileNavHidden;
+
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_MQ);
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     const onGalleryOpen = (event: Event) => {

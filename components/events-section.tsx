@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
 import { MediaPlaceholderVideo } from "@/components/media-placeholder";
+import { PageBackLink } from "@/components/page-back-link";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { ContentBrow } from "@/components/content-brow";
 import { eventActionLinks, upcomingEvents } from "@/lib/events-data";
@@ -96,6 +97,9 @@ export function EventsPageContent() {
       aria-labelledby="events-page-heading"
     >
       <div className="relative z-10">
+        <div className="mx-auto mb-2 max-w-3xl px-4 sm:mb-3 sm:px-6">
+          <PageBackLink theme="dark" />
+        </div>
         <div className="mx-auto max-w-3xl text-center">
           <SectionLogoHeading
             id="events-page-heading"

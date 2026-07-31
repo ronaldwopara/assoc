@@ -120,9 +120,72 @@ body {
   font-family: var(--font-root-directory, "Avenir Next"), "Segoe UI", sans-serif;
 }
 
+/* Mobile / tablet: keep native chrome scrollbars hidden (progress bar instead). */
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
+}
+
+/* Desktop (≥ navbar breakpoint): thin orange scrollbar always visible. */
+@media (min-width: 920px) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--orange) transparent;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    height: 6px;
+  }
+
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track,
+  .scrollbar-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb,
+  .scrollbar-panel::-webkit-scrollbar-thumb {
+    background: var(--orange);
+    border-radius: 999px;
+    min-height: 4.5rem;
+  }
+
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover,
+  .scrollbar-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--orange-dark);
+  }
+
+  .scrollbar-panel {
+    scrollbar-width: thin;
+    scrollbar-color: var(--orange) transparent;
+  }
+
+  /* Dark overflow panels: cream thumb so orange CTAs/tabs don't collide. */
+  .scrollbar-panel--dark {
+    scrollbar-color: color-mix(in srgb, var(--cream-light) 55%, transparent) transparent;
+  }
+
+  .scrollbar-panel--dark::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--cream-light) 55%, transparent);
+  }
+
+  .scrollbar-panel--dark::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--cream-light) 75%, transparent);
+  }
+
+  .scrollbar-panel::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scroll-progress {
+    display: none;
+  }
 }
 
 /* Safe-area strips: pinned to the viewport edges so the notch/status-bar and
@@ -282,6 +345,42 @@ textarea,
 
 .focus-ring-light:focus-visible {
   box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px var(--cream-light);
+}
+
+/* Subpage escape hatch — left-aligned under the fixed header so users
+   don't have to rely on the browser back button or the logo. */
+.page-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: -0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--orange);
+  cursor: pointer;
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+.page-back-link:hover {
+  color: var(--orange-dark);
+}
+
+.page-back-link--dark {
+  color: var(--orange);
+}
+
+.page-back-link--dark:hover {
+  color: var(--orange-light);
+}
+
+.page-back-link__icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
 }
 
 .hero-cta-btn {

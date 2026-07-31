@@ -200,7 +200,7 @@ export function MobileNavMenu({
           </svg>
         </button>
 
-        <div className="mobile-nav-content flex h-full flex-col justify-between overflow-y-auto">
+        <div className="scrollbar-panel mobile-nav-content flex h-full flex-col justify-between overflow-y-auto">
           <motion.ul
             className="m-0 list-none p-0"
             variants={navListVariants}

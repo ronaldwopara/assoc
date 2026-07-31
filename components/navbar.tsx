@@ -10,7 +10,8 @@ import {
   MobileNavMenu,
   type GalleryProgram,
 } from "@/components/mobile-nav-menu";
-import { getGalleryDropdown } from "@/lib/gallery-categories";
+import { useGalleryCms } from "@/components/gallery-cms-provider";
+import { cmsToCategories } from "@/lib/gallery-cms/helpers";
 import { getEventsNavHref } from "@/lib/events-nav";
 import {
   GALLERY_BOTTOM_HASH,
@@ -60,8 +61,6 @@ const programsDropdown = [
     href: "/#wellness",
   },
 ];
-
-const galleryDropdown: GalleryProgram[] = getGalleryDropdown();
 
 const leftLinks = [
   { label: "Home", href: "/#home" },
@@ -176,6 +175,10 @@ export function Navbar() {
   const router = useRouter();
   const isHome = pathname === "/";
   const eventsNavHref = getEventsNavHref(isHome);
+  const cms = useGalleryCms();
+  const galleryDropdown: GalleryProgram[] = cmsToCategories(cms).map(
+    ({ program, years }) => ({ program, years }),
+  );
   const rightLinks = [
     { label: "Events", href: eventsNavHref },
     contactLink,

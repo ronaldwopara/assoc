@@ -6,6 +6,8 @@ import { SafeAreaFrame } from "@/components/safe-area-frame";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
+import { GalleryCmsProvider } from "@/components/gallery-cms-provider";
+import { getGalleryCmsData } from "@/lib/gallery-cms";
 import "./globals.css";
 
 // Social share/preview image — the same logo shown in the header, forced to
@@ -53,7 +55,7 @@ export const viewport: Viewport = {
   themeColor: "#f7f7f7",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -61,6 +63,7 @@ export default function RootLayout({
   // Warm the shared nav texture at low priority so the Join modal header and
   // mobile-nav panel don't wait on a cold 129KB fetch when first opened.
   preload("/nav.webp", { as: "image", fetchPriority: "low" });
+  const galleryCms = await getGalleryCmsData();
 
   return (
     <html
@@ -76,7 +79,7 @@ export default function RootLayout({
         <ScrollProgress />
         <PreventTextCaret />
         <SkipLink />
-        {children}
+        <GalleryCmsProvider data={galleryCms}>{children}</GalleryCmsProvider>
         <Footer />
         <OrientationLock />
       </body>
