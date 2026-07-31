@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import sharp from "sharp";
 
 const GALLERY_PREVIEW_QUALITY = 75;
 const GALLERY_PREVIEW_MAX_WIDTH = 1600;
@@ -32,6 +31,11 @@ export async function uploadImageToCloudinary(options: {
 }): Promise<{ secureUrl: string; width: number; height: number }> {
   const { cloudName, apiKey, apiSecret } = requireCloudinary();
 
+  // Lazy-loaded: sharp pulls in a native binary. A top-level import here
+  // would bundle it into every route that transitively imports this module
+  // (including the root layout, via getGalleryCmsData) — this function is
+  // the only thing that actually needs it.
+  const sharp = (await import("sharp")).default;
   const inputBuffer = Buffer.from(await options.file.arrayBuffer());
   let pipeline = sharp(inputBuffer).rotate();
   const meta = await pipeline.metadata();

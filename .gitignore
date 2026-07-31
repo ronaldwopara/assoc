@@ -16,3 +16,4 @@ next-env.d.ts
 public/.originals/
 .env
 .env*.local
+.vercel
