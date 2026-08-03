@@ -19,6 +19,9 @@ import { JOIN_ACTIONS, JOIN_SUCCESS_MESSAGES, joinActionFromSlug } from "@/lib/j
 const NEWSLETTER_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbzVF8QsexivXYnaGj6pvzThDl3sMTauPGAfzVuXOStQ1kYH8bXV2PyTmAMFKmF9lt3NWA/exec";
 
+const VENDOR_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbyeLzT4WE8mlM-Ya4fTdPH1xG0lWN0P3OFjBjexNXkM5MdyMBK5CMxJQC4am4DxQxoq_w/exec";
+
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
     try {
@@ -73,6 +76,10 @@ async function handleNewsletterSubmit(values: FormValues) {
     strathconaResident: String(values.strathconaResident ?? ""),
   };
   await postToAppsScript(NEWSLETTER_ENDPOINT, payload);
+}
+
+async function handleVendorSubmit(values: FormValues) {
+  await postToAppsScript(VENDOR_ENDPOINT, valuesToPayload(values));
 }
 
 async function handleGenericSubmit(_values: FormValues) {
@@ -132,9 +139,7 @@ const FORM_CONFIG: Record<
     steps: vendorSteps,
     info: "Register to sell food, crafts, or services at ASOSC events.",
     submitLabel: "Submit Registration",
-    onSubmit: async (values) => {
-      await handleGenericSubmit(valuesToPayload(values));
-    },
+    onSubmit: handleVendorSubmit,
   },
   contact: {
     steps: contactSteps,
