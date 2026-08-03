@@ -28,6 +28,9 @@ const VOLUNTEER_ENDPOINT =
 const CONTACT_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbwE4D-Q446q9jXgjHjJD-q07EVRWg6DSvEvGpKKZIGHXszFIdpc3f243jbYNWd6YA/exec";
 
+const MEMBERSHIP_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbwuoS6A1wa0QL-hG1vsdhXzPl8sCX6sUdvb4q2DLWpYoSldMxKiKQB9TJ1OzAEip9yH_w/exec";
+
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
     try {
@@ -96,6 +99,10 @@ async function handleContactSubmit(values: FormValues) {
   await postToAppsScript(CONTACT_ENDPOINT, valuesToPayload(values));
 }
 
+async function handleMembershipSubmit(values: FormValues) {
+  await postToAppsScript(MEMBERSHIP_ENDPOINT, valuesToPayload(values));
+}
+
 async function handleGenericSubmit(_values: FormValues) {
   // Endpoints for remaining forms can be wired the same way as newsletter.
   await Promise.resolve();
@@ -143,9 +150,7 @@ const FORM_CONFIG: Record<
     steps: membershipSteps,
     info: "Official ASOSC membership helps sustain community programs year-round.",
     submitLabel: "Submit",
-    onSubmit: async (values) => {
-      await handleGenericSubmit(valuesToPayload(values));
-    },
+    onSubmit: handleMembershipSubmit,
   },
   vendor: {
     steps: vendorSteps,
