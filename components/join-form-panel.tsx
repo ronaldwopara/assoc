@@ -22,6 +22,9 @@ const NEWSLETTER_ENDPOINT =
 const VENDOR_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyeLzT4WE8mlM-Ya4fTdPH1xG0lWN0P3OFjBjexNXkM5MdyMBK5CMxJQC4am4DxQxoq_w/exec";
 
+const VOLUNTEER_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbyRP0rWt41S-vFPL9ItxnR_8hZninBTCrFHbyF7h04VjlpRCZjpE0BeD-a6tiufsv2eqg/exec";
+
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
     try {
@@ -82,6 +85,10 @@ async function handleVendorSubmit(values: FormValues) {
   await postToAppsScript(VENDOR_ENDPOINT, valuesToPayload(values));
 }
 
+async function handleVolunteerSubmit(values: FormValues) {
+  await postToAppsScript(VOLUNTEER_ENDPOINT, valuesToPayload(values));
+}
+
 async function handleGenericSubmit(_values: FormValues) {
   // Endpoints for remaining forms can be wired the same way as newsletter.
   await Promise.resolve();
@@ -115,9 +122,7 @@ const FORM_CONFIG: Record<
     steps: volunteerSteps,
     info: "Share your time and skills with the African community in Strathcona County.",
     submitLabel: "Submit",
-    onSubmit: async (values) => {
-      await handleGenericSubmit(valuesToPayload(values));
-    },
+    onSubmit: handleVolunteerSubmit,
   },
   donate: {
     steps: donateSteps,
