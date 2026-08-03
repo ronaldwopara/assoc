@@ -31,6 +31,9 @@ const CONTACT_ENDPOINT =
 const MEMBERSHIP_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbwuoS6A1wa0QL-hG1vsdhXzPl8sCX6sUdvb4q2DLWpYoSldMxKiKQB9TJ1OzAEip9yH_w/exec";
 
+const DONATE_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbyYYW2jiGaGMXQd3j5iOJ4-0wlL5YhhowODwzyH3mvgLeWquQRU-fvlOKwxnWzKiLG-/exec";
+
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
     try {
@@ -103,9 +106,8 @@ async function handleMembershipSubmit(values: FormValues) {
   await postToAppsScript(MEMBERSHIP_ENDPOINT, valuesToPayload(values));
 }
 
-async function handleGenericSubmit(_values: FormValues) {
-  // Endpoints for remaining forms can be wired the same way as newsletter.
-  await Promise.resolve();
+async function handleDonateSubmit(values: FormValues) {
+  await postToAppsScript(DONATE_ENDPOINT, valuesToPayload(values));
 }
 
 const FORM_DEFAULTS: Record<string, FormValues> = {
@@ -142,9 +144,7 @@ const FORM_CONFIG: Record<
     steps: donateSteps,
     info: "Supports African community programs in Strathcona County.",
     submitLabel: "Donate",
-    onSubmit: async (values) => {
-      await handleGenericSubmit(valuesToPayload(values));
-    },
+    onSubmit: handleDonateSubmit,
   },
   membership: {
     steps: membershipSteps,
