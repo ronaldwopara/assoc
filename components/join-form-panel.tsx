@@ -25,6 +25,9 @@ const VENDOR_ENDPOINT =
 const VOLUNTEER_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyRP0rWt41S-vFPL9ItxnR_8hZninBTCrFHbyF7h04VjlpRCZjpE0BeD-a6tiufsv2eqg/exec";
 
+const CONTACT_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbwE4D-Q446q9jXgjHjJD-q07EVRWg6DSvEvGpKKZIGHXszFIdpc3f243jbYNWd6YA/exec";
+
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {
     try {
@@ -89,6 +92,10 @@ async function handleVolunteerSubmit(values: FormValues) {
   await postToAppsScript(VOLUNTEER_ENDPOINT, valuesToPayload(values));
 }
 
+async function handleContactSubmit(values: FormValues) {
+  await postToAppsScript(CONTACT_ENDPOINT, valuesToPayload(values));
+}
+
 async function handleGenericSubmit(_values: FormValues) {
   // Endpoints for remaining forms can be wired the same way as newsletter.
   await Promise.resolve();
@@ -150,9 +157,7 @@ const FORM_CONFIG: Record<
     steps: contactSteps,
     info: "Send a message to the ASOSC team — we typically reply within a few days.",
     submitLabel: "Send Message",
-    onSubmit: async (values) => {
-      await handleGenericSubmit(valuesToPayload(values));
-    },
+    onSubmit: handleContactSubmit,
   },
 };
 
