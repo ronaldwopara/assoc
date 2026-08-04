@@ -15,11 +15,10 @@ export const GOOGLE_OAUTH_SCOPES = [
 
 export const GOOGLE_OAUTH_STATE_COOKIE = "asosc_google_oauth_state";
 
-type StoredGoogleTokens = {
+type StoredGoogleAccount = {
+  id: string;
+  email: string;
   refreshToken: string;
-  accessToken?: string;
-  expiryDate?: number;
-  email?: string;
   scope?: string;
   updatedAt: string;
 };
@@ -30,7 +29,21 @@ type EncryptedBlob = {
   ciphertext: string;
 };
 
-type CloudinaryTokenRecord = {
+type CloudinaryAccountRecord = {
+  id: string;
+  email: EncryptedBlob;
+  refreshToken: EncryptedBlob;
+  scope?: string;
+  updatedAt: string;
+};
+
+type CloudinaryTokenStoreV2 = {
+  v: 2;
+  accounts: CloudinaryAccountRecord[];
+};
+
+/** Legacy single-account blob (pre multi-account + email encryption). */
+type CloudinaryTokenRecordV1 = {
   v: 1;
   email?: string;
   scope?: string;
@@ -49,6 +62,10 @@ function requireEnv(name: string): string {
 
 function tokenEncryptionKey() {
   return createHash("sha256").update(requireEnv("GOOGLE_TOKEN_SECRET")).digest();
+}
+
+function accountIdForEmail(email: string) {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 16);
 }
 
 function encryptSecret(plaintext: string): EncryptedBlob {
@@ -75,6 +92,64 @@ function decryptSecret(blob: EncryptedBlob): string {
     decipher.final(),
   ]);
   return plaintext.toString("utf8");
+}
+
+function decodeStore(raw: unknown): StoredGoogleAccount[] {
+  if (!raw || typeof raw !== "object") return [];
+
+  const record = raw as CloudinaryTokenStoreV2 | CloudinaryTokenRecordV1;
+
+  if (record.v === 2 && Array.isArray(record.accounts)) {
+    return record.accounts.map((account) => ({
+      id: account.id,
+      email: decryptSecret(account.email),
+      refreshToken: decryptSecret(account.refreshToken),
+      scope: account.scope,
+      updatedAt: account.updatedAt,
+    }));
+  }
+
+  if (record.v === 1 && record.refreshToken) {
+    const email = record.email?.trim();
+    if (!email) return [];
+    return [
+      {
+        id: accountIdForEmail(email),
+        email,
+        refreshToken: decryptSecret(record.refreshToken),
+        scope: record.scope,
+        updatedAt: record.updatedAt,
+      },
+    ];
+  }
+
+  return [];
+}
+
+async function loadAccounts(): Promise<StoredGoogleAccount[]> {
+  try {
+    const url = await fetchGoogleTokensJsonUrl();
+    if (!url) return [];
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return [];
+    return decodeStore(await res.json());
+  } catch {
+    return [];
+  }
+}
+
+async function persistAccounts(accounts: StoredGoogleAccount[]) {
+  const store: CloudinaryTokenStoreV2 = {
+    v: 2,
+    accounts: accounts.map((account) => ({
+      id: account.id,
+      email: encryptSecret(account.email),
+      refreshToken: encryptSecret(account.refreshToken),
+      scope: account.scope,
+      updatedAt: account.updatedAt,
+    })),
+  };
+  await uploadGoogleTokensJson(JSON.stringify(store));
 }
 
 export function getGoogleOAuthConfig() {
@@ -162,75 +237,53 @@ export async function fetchGoogleAccountEmail(accessToken: string) {
   return payload.email;
 }
 
+/** Upsert one Google account; other linked accounts are kept. */
 export async function saveGoogleTokens(tokens: {
   refreshToken: string;
-  accessToken?: string;
-  expiryDate?: number;
-  email?: string;
+  email: string;
   scope?: string;
 }) {
-  const existing = await readGoogleTokens();
-  const refreshToken = tokens.refreshToken || existing?.refreshToken || "";
-  if (!refreshToken) {
+  const email = tokens.email.trim().toLowerCase();
+  if (!email) {
+    throw new Error("Google account email is required.");
+  }
+  if (!tokens.refreshToken) {
     throw new Error("No refresh token returned. Reconnect with prompt=consent.");
   }
 
-  const next: StoredGoogleTokens = {
-    refreshToken,
-    // Access tokens are short-lived; do not persist them to Cloudinary.
-    email: tokens.email ?? existing?.email,
-    scope: tokens.scope ?? existing?.scope,
-    expiryDate: tokens.expiryDate ?? existing?.expiryDate,
+  const id = accountIdForEmail(email);
+  const existing = await loadAccounts();
+  const nextAccount: StoredGoogleAccount = {
+    id,
+    email,
+    refreshToken: tokens.refreshToken,
+    scope: tokens.scope,
     updatedAt: new Date().toISOString(),
   };
 
-  const record: CloudinaryTokenRecord = {
-    v: 1,
-    email: next.email,
-    scope: next.scope,
-    updatedAt: next.updatedAt,
-    expiryDate: next.expiryDate,
-    refreshToken: encryptSecret(next.refreshToken),
-  };
-
-  await uploadGoogleTokensJson(JSON.stringify(record));
-  return next;
+  const accounts = [...existing.filter((account) => account.id !== id), nextAccount];
+  await persistAccounts(accounts);
+  return nextAccount;
 }
 
-export async function readGoogleTokens(): Promise<StoredGoogleTokens | null> {
-  try {
-    const url = await fetchGoogleTokensJsonUrl();
-    if (!url) return null;
-
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-
-    const record = (await res.json()) as CloudinaryTokenRecord;
-    if (record.v !== 1 || !record.refreshToken) return null;
-
-    return {
-      refreshToken: decryptSecret(record.refreshToken),
-      email: record.email,
-      scope: record.scope,
-      expiryDate: record.expiryDate,
-      updatedAt: record.updatedAt,
-    };
-  } catch {
-    return null;
-  }
+export async function listGoogleAccounts(): Promise<StoredGoogleAccount[]> {
+  return loadAccounts();
 }
 
 export async function getGoogleConnectionStatus() {
-  const tokens = await readGoogleTokens();
-  if (!tokens?.refreshToken) {
-    return { connected: false as const };
+  const accounts = await listGoogleAccounts();
+  if (accounts.length === 0) {
+    return { connected: false as const, count: 0, accounts: [] as const };
   }
 
   return {
     connected: true as const,
-    email: tokens.email ?? null,
-    updatedAt: tokens.updatedAt,
-    fingerprint: createHash("sha256").update(tokens.refreshToken).digest("hex").slice(0, 12),
+    count: accounts.length,
+    accounts: accounts.map((account) => ({
+      email: account.email,
+      updatedAt: account.updatedAt,
+      fingerprint: createHash("sha256").update(account.refreshToken).digest("hex").slice(0, 12),
+    })),
   };
 }
 

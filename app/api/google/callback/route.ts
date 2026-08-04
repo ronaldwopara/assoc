@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   exchangeCodeForTokens,
   fetchGoogleAccountEmail,
+  getGoogleConnectionStatus,
   GOOGLE_OAUTH_STATE_COOKIE,
   oauthStateCookieOptions,
   saveGoogleTokens,
@@ -62,18 +63,19 @@ export async function GET(request: Request) {
     }
 
     const email = await fetchGoogleAccountEmail(tokens.accessToken);
-    await saveGoogleTokens({
+    const saved = await saveGoogleTokens({
       refreshToken: tokens.refreshToken,
-      accessToken: tokens.accessToken,
-      expiryDate: tokens.expiryDate,
       email,
       scope: tokens.scope,
     });
 
+    const status = await getGoogleConnectionStatus();
+    const count = status.count;
+
     const response = new NextResponse(
       htmlPage(
         "Google connected",
-        `<h1>Google connected</h1><p>Connected as <code>${email}</code>. You can close this tab.</p>`,
+        `<h1>Google connected</h1><p>Connected as <code>${saved.email}</code>.</p><p>${count} account${count === 1 ? "" : "s"} linked. Sign in with the other inbox and open connect again to add it. You can close this tab.</p>`,
       ),
       { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
     );
