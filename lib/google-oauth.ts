@@ -1,6 +1,8 @@
-import { createHash, randomBytes } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import {
+  fetchGoogleTokensJsonUrl,
+  uploadGoogleTokensJson,
+} from "@/lib/gallery-cms/cloudinary";
 
 export const GOOGLE_OAUTH_SCOPES = [
   "openid",
@@ -13,8 +15,6 @@ export const GOOGLE_OAUTH_SCOPES = [
 
 export const GOOGLE_OAUTH_STATE_COOKIE = "asosc_google_oauth_state";
 
-const TOKEN_PATH = path.join(process.cwd(), ".data", "google-tokens.json");
-
 type StoredGoogleTokens = {
   refreshToken: string;
   accessToken?: string;
@@ -24,12 +24,57 @@ type StoredGoogleTokens = {
   updatedAt: string;
 };
 
+type EncryptedBlob = {
+  iv: string;
+  tag: string;
+  ciphertext: string;
+};
+
+type CloudinaryTokenRecord = {
+  v: 1;
+  email?: string;
+  scope?: string;
+  updatedAt: string;
+  expiryDate?: number;
+  refreshToken: EncryptedBlob;
+};
+
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
     throw new Error(`${name} is not configured`);
   }
   return value;
+}
+
+function tokenEncryptionKey() {
+  return createHash("sha256").update(requireEnv("GOOGLE_TOKEN_SECRET")).digest();
+}
+
+function encryptSecret(plaintext: string): EncryptedBlob {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", tokenEncryptionKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    iv: iv.toString("base64"),
+    tag: tag.toString("base64"),
+    ciphertext: ciphertext.toString("base64"),
+  };
+}
+
+function decryptSecret(blob: EncryptedBlob): string {
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    tokenEncryptionKey(),
+    Buffer.from(blob.iv, "base64"),
+  );
+  decipher.setAuthTag(Buffer.from(blob.tag, "base64"));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(blob.ciphertext, "base64")),
+    decipher.final(),
+  ]);
+  return plaintext.toString("utf8");
 }
 
 export function getGoogleOAuthConfig() {
@@ -124,30 +169,52 @@ export async function saveGoogleTokens(tokens: {
   email?: string;
   scope?: string;
 }) {
-  await mkdir(path.dirname(TOKEN_PATH), { recursive: true });
-
   const existing = await readGoogleTokens();
-  const next: StoredGoogleTokens = {
-    refreshToken: tokens.refreshToken || existing?.refreshToken || "",
-    accessToken: tokens.accessToken ?? existing?.accessToken,
-    expiryDate: tokens.expiryDate ?? existing?.expiryDate,
-    email: tokens.email ?? existing?.email,
-    scope: tokens.scope ?? existing?.scope,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (!next.refreshToken) {
+  const refreshToken = tokens.refreshToken || existing?.refreshToken || "";
+  if (!refreshToken) {
     throw new Error("No refresh token returned. Reconnect with prompt=consent.");
   }
 
-  await writeFile(TOKEN_PATH, JSON.stringify(next, null, 2), "utf8");
+  const next: StoredGoogleTokens = {
+    refreshToken,
+    // Access tokens are short-lived; do not persist them to Cloudinary.
+    email: tokens.email ?? existing?.email,
+    scope: tokens.scope ?? existing?.scope,
+    expiryDate: tokens.expiryDate ?? existing?.expiryDate,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const record: CloudinaryTokenRecord = {
+    v: 1,
+    email: next.email,
+    scope: next.scope,
+    updatedAt: next.updatedAt,
+    expiryDate: next.expiryDate,
+    refreshToken: encryptSecret(next.refreshToken),
+  };
+
+  await uploadGoogleTokensJson(JSON.stringify(record));
   return next;
 }
 
 export async function readGoogleTokens(): Promise<StoredGoogleTokens | null> {
   try {
-    const raw = await readFile(TOKEN_PATH, "utf8");
-    return JSON.parse(raw) as StoredGoogleTokens;
+    const url = await fetchGoogleTokensJsonUrl();
+    if (!url) return null;
+
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+
+    const record = (await res.json()) as CloudinaryTokenRecord;
+    if (record.v !== 1 || !record.refreshToken) return null;
+
+    return {
+      refreshToken: decryptSecret(record.refreshToken),
+      email: record.email,
+      scope: record.scope,
+      expiryDate: record.expiryDate,
+      updatedAt: record.updatedAt,
+    };
   } catch {
     return null;
   }

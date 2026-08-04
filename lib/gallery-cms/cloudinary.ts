@@ -94,27 +94,32 @@ const CMS_FOLDER = "asosc/cms";
 // is actually "gallery.json" — the lookup path must match that exactly or
 // every read 404s and silently falls back to the seed data.
 const CMS_PUBLIC_ID = "gallery.json";
+const GOOGLE_TOKENS_PUBLIC_ID = "google-tokens.json";
 
-export async function uploadCmsJson(json: string): Promise<{ version: number; url: string }> {
+async function uploadRawJson(options: {
+  publicId: string;
+  filename: string;
+  json: string;
+}): Promise<{ version: number; url: string }> {
   const { cloudName, apiKey, apiSecret } = requireCloudinary();
   const timestamp = Math.round(Date.now() / 1000);
   const paramsToSign = {
     folder: CMS_FOLDER,
     invalidate: 1,
     overwrite: 1,
-    public_id: CMS_PUBLIC_ID,
+    public_id: options.publicId,
     timestamp,
   };
   const form = new FormData();
   form.append(
     "file",
-    new Blob([json], { type: "application/json" }),
-    "gallery.json",
+    new Blob([options.json], { type: "application/json" }),
+    options.filename,
   );
   form.append("api_key", apiKey);
   form.append("timestamp", String(timestamp));
   form.append("folder", CMS_FOLDER);
-  form.append("public_id", CMS_PUBLIC_ID);
+  form.append("public_id", options.publicId);
   form.append("overwrite", "true");
   form.append("invalidate", "true");
   form.append("signature", sign(paramsToSign, apiSecret));
@@ -134,11 +139,19 @@ export async function uploadCmsJson(json: string): Promise<{ version: number; ur
   return { version: data.version ?? timestamp, url: data.secure_url };
 }
 
-export async function fetchCmsJsonUrl(): Promise<string | null> {
+export async function uploadCmsJson(json: string): Promise<{ version: number; url: string }> {
+  return uploadRawJson({
+    publicId: CMS_PUBLIC_ID,
+    filename: "gallery.json",
+    json,
+  });
+}
+
+async function fetchRawJsonUrl(publicId: string): Promise<string | null> {
   const { cloudName, apiKey, apiSecret } = requireCloudinary();
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/resources/raw/upload/${encodeURIComponent(`${CMS_FOLDER}/${CMS_PUBLIC_ID}`)}`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/resources/raw/upload/${encodeURIComponent(`${CMS_FOLDER}/${publicId}`)}`,
     {
       headers: { Authorization: `Basic ${auth}` },
       cache: "no-store",
@@ -151,7 +164,26 @@ export async function fetchCmsJsonUrl(): Promise<string | null> {
   };
   if (!res.ok || !data.secure_url) {
     if (res.status === 404) return null;
-    throw new Error(data.error?.message ?? "Failed to locate gallery CMS file");
+    throw new Error(data.error?.message ?? "Failed to locate CMS file");
   }
   return data.secure_url;
+}
+
+export async function fetchCmsJsonUrl(): Promise<string | null> {
+  return fetchRawJsonUrl(CMS_PUBLIC_ID);
+}
+
+/** Encrypted Google OAuth token blob (same Cloudinary CMS folder as gallery). */
+export async function uploadGoogleTokensJson(
+  json: string,
+): Promise<{ version: number; url: string }> {
+  return uploadRawJson({
+    publicId: GOOGLE_TOKENS_PUBLIC_ID,
+    filename: "google-tokens.json",
+    json,
+  });
+}
+
+export async function fetchGoogleTokensJsonUrl(): Promise<string | null> {
+  return fetchRawJsonUrl(GOOGLE_TOKENS_PUBLIC_ID);
 }
