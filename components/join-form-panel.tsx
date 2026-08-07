@@ -29,9 +29,6 @@ const VOLUNTEER_ENDPOINT =
 const CONTACT_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbwE4D-Q446q9jXgjHjJD-q07EVRWg6DSvEvGpKKZIGHXszFIdpc3f243jbYNWd6YA/exec";
 
-const MEMBERSHIP_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbwuoS6A1wa0QL-hG1vsdhXzPl8sCX6sUdvb4q2DLWpYoSldMxKiKQB9TJ1OzAEip9yH_w/exec";
-
 const DONATE_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyYYW2jiGaGMXQd3j5iOJ4-0wlL5YhhowODwzyH3mvgLeWquQRU-fvlOKwxnWzKiLG-/exec";
 
@@ -129,14 +126,22 @@ async function uploadMembershipCard(values: FormValues): Promise<string | null> 
 }
 
 async function handleMembershipSubmit(values: FormValues) {
-  const payload = valuesToPayload(values);
+  const payload: FormValues = { ...values };
   try {
     const cardUrl = await uploadMembershipCard(values);
     if (cardUrl) payload.membershipCardUrl = cardUrl;
   } catch {
     // Card image upload is best-effort — the membership submission must still go through.
   }
-  await postToAppsScript(MEMBERSHIP_ENDPOINT, payload);
+
+  const res = await fetch("/api/membership/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error("Couldn't record your membership. Please try again.");
+  }
 }
 
 async function handleDonateSubmit(values: FormValues) {
