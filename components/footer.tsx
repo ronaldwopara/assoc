@@ -66,6 +66,8 @@ export function Footer() {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
+  if (pathname?.startsWith("/dashboard")) return null;
+
   return (
     <footer id="contact" className="footer">
       <div className="footer__inner">

@@ -15,6 +15,28 @@
   --text-2xl: 1.7325rem;
   --text-3xl: 2.165625rem;
   --text-4xl: 2.59875rem;
+
+  /* shadcn/ui token bridge — maps this site's cream/ink/orange palette onto
+     the semantic names shadcn components expect (bg-card, border-border, …)
+     so components/ui primitives can be dropped in without a second theme. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
 :root {
@@ -43,6 +65,25 @@
 
   /* Layout */
   --page-chrome: #f7f7f7;
+
+  /* shadcn/ui semantic tokens, mapped onto the palette above rather than a
+     separate design system — keeps components/ui primitives on-brand. */
+  --background: var(--cream-light);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --muted: var(--page-chrome);
+  --muted-foreground: rgba(var(--ink-rgb), 0.6);
+  --border: rgba(var(--ink-rgb), 0.1);
+  --input: rgba(var(--ink-rgb), 0.15);
+  --ring: var(--gold);
+  --primary: var(--orange);
+  --primary-foreground: #ffffff;
+  --secondary: var(--page-chrome);
+  --secondary-foreground: var(--ink);
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --radius: 0.75rem;
 
   /* 0 below 920px, 1 at/above 1024px, linear in between. Lets the desktop
      header + stacked cards switch on at 920px, while every size/spacing
@@ -341,6 +382,10 @@ textarea,
 
 .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px var(--gold), 0 0 0 4px rgba(var(--ink-rgb), 0.4);
+}
+
+.focus-ring-light {
+  outline: none;
 }
 
 .focus-ring-light:focus-visible {

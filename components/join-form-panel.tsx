@@ -15,6 +15,7 @@ import {
 } from "@/lib/join-community-forms";
 import type { FormDraft, FormDraftMap } from "@/lib/join-community-drafts";
 import { JOIN_ACTIONS, JOIN_SUCCESS_MESSAGES, joinActionFromSlug } from "@/lib/join-actions";
+import { renderMembershipCardPng } from "@/lib/membership-card-image";
 
 const NEWSLETTER_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbzVF8QsexivXYnaGj6pvzThDl3sMTauPGAfzVuXOStQ1kYH8bXV2PyTmAMFKmF9lt3NWA/exec";
@@ -102,8 +103,40 @@ async function handleContactSubmit(values: FormValues) {
   await postToAppsScript(CONTACT_ENDPOINT, valuesToPayload(values));
 }
 
+async function uploadMembershipCard(values: FormValues): Promise<string | null> {
+  const category = membershipCategoryOptions.find(
+    (option) => option.value === String(values.membershipCategory ?? ""),
+  );
+  if (!category) return null;
+
+  const memberName = [values.firstName, values.lastName]
+    .map((part) => String(part ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+
+  const blob = await renderMembershipCardPng({
+    categoryTitle: category.title,
+    price: category.price,
+    memberName: memberName || undefined,
+  });
+
+  const form = new FormData();
+  form.append("file", blob, "membership-card.png");
+  const res = await fetch("/api/membership/card", { method: "POST", body: form });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { url?: string };
+  return data.url ?? null;
+}
+
 async function handleMembershipSubmit(values: FormValues) {
-  await postToAppsScript(MEMBERSHIP_ENDPOINT, valuesToPayload(values));
+  const payload = valuesToPayload(values);
+  try {
+    const cardUrl = await uploadMembershipCard(values);
+    if (cardUrl) payload.membershipCardUrl = cardUrl;
+  } catch {
+    // Card image upload is best-effort — the membership submission must still go through.
+  }
+  await postToAppsScript(MEMBERSHIP_ENDPOINT, payload);
 }
 
 async function handleDonateSubmit(values: FormValues) {

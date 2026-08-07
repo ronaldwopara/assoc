@@ -107,6 +107,10 @@ export type GuidedField =
       kind: "donate" | "membership";
     }
   | {
+      type: "hint";
+      text: string;
+    }
+  | {
       type: "note";
       paragraphs: string[];
     };
@@ -160,7 +164,7 @@ export function defaultValidate(step: GuidedStep, values: FormValues): string | 
   if (step.validate) return step.validate(values);
 
   for (const field of step.fields) {
-    if (field.type === "note" || field.type === "payment") continue;
+    if (field.type === "note" || field.type === "payment" || field.type === "hint") continue;
 
     if (field.type === "name") {
       const first = asString(values[field.firstNameKey ?? "firstName"]).trim();
@@ -674,6 +678,10 @@ function renderField(
     return <PaymentPanel kind={field.kind} values={values} />;
   }
 
+  if (field.type === "hint") {
+    return <p className="text-xs font-semibold text-(--orange-dark)">{field.text}</p>;
+  }
+
   if (field.type === "note") {
     return (
       <div className="space-y-2 text-left text-xs text-black/60">
@@ -727,7 +735,8 @@ function PaymentPanel({
             </button>
           </div>
           <p className="guided-payment__etransfer-hint">
-            Include your full name in the memo so we can match your payment.
+            Include &ldquo;{kind === "membership" ? "Membership" : "Donation"}&rdquo; in the
+            memo so we can match your payment.
           </p>
         </div>
       )}

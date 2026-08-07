@@ -79,7 +79,11 @@ export const vendorHearAboutOptions = [
   "Other (please specify)",
 ];
 
-const emailStep = (id = "email", helper = "We'll send updates and confirmations here."): GuidedStep => ({
+const emailStep = (
+  id = "email",
+  helper = "We'll send updates and confirmations here.",
+  hint?: string,
+): GuidedStep => ({
   id,
   title: "What's your email?",
   helper,
@@ -91,6 +95,7 @@ const emailStep = (id = "email", helper = "We'll send updates and confirmations 
       placeholder: "you@example.com",
       autoComplete: "email",
     },
+    ...(hint ? [{ type: "hint" as const, text: hint }] : []),
   ],
 });
 
@@ -190,6 +195,12 @@ export const volunteerSteps: GuidedStep[] = [
 ];
 
 export const donateSteps: GuidedStep[] = [
+  nameStep("What's your name?", "We'll include this with your donation record."),
+  emailStep(
+    "email",
+    "We'll send your donation confirmation here.",
+    "If you pay by e-Transfer, send it from this email.",
+  ),
   {
     id: "amount",
     title: "Choose an amount",
@@ -205,14 +216,21 @@ export const donateSteps: GuidedStep[] = [
     id: "payment",
     title: "How would you like to pay?",
     helper:
-      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include your name in the memo so we can thank you.",
-    fields: [{ type: "payment", kind: "donate" }],
+      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include \"Donation\" in the memo so we can match your payment.",
+    fields: [
+      { type: "payment", kind: "donate" },
+      { type: "hint", text: "Paying by e-Transfer? Send it from the email you gave us." },
+    ],
   },
 ];
 
 export const membershipSteps: GuidedStep[] = [
   nameStep("What's your name?", "Required for official ASOSC membership records."),
-  emailStep("email", "We'll send your membership confirmation and updates here."),
+  emailStep(
+    "email",
+    "We'll send your membership confirmation and updates here.",
+    "If you pay by e-Transfer, send it from this email.",
+  ),
   phoneStep("phone", "For membership verification and urgent community alerts."),
   {
     id: "address",
@@ -403,8 +421,11 @@ export const membershipSteps: GuidedStep[] = [
     id: "payment",
     title: "How would you like to pay?",
     helper:
-      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include your name in the memo so we can thank you.",
-    fields: [{ type: "payment", kind: "membership" }],
+      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include \"Membership\" in the memo so we can match your payment.",
+    fields: [
+      { type: "payment", kind: "membership" },
+      { type: "hint", text: "Paying by e-Transfer? Send it from the email you gave us." },
+    ],
   },
 ];
 
