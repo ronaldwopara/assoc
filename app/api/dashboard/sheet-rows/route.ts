@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
+import { isDashboardSheetSource, resolveDashboardSheetId } from "@/lib/dashboard-sheets";
 import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
-
-function masterSheetId() {
-  const id = process.env.GOOGLE_MASTER_SHEET_ID?.trim();
-  if (!id) throw new Error("GOOGLE_MASTER_SHEET_ID is not configured");
-  return id;
-}
 
 export async function GET(request: Request) {
   try {
@@ -14,12 +9,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tab = new URL(request.url).searchParams.get("tab");
+    const url = new URL(request.url);
+    const tab = url.searchParams.get("tab");
     if (!tab) {
       return NextResponse.json({ error: "Missing ?tab=" }, { status: 400 });
     }
+    const sourceParam = url.searchParams.get("source") ?? "master";
+    if (!isDashboardSheetSource(sourceParam)) {
+      return NextResponse.json({ error: "Invalid source" }, { status: 400 });
+    }
 
-    const spreadsheetId = masterSheetId();
+    const spreadsheetId = resolveDashboardSheetId(sourceParam);
     const { accessToken } = await getAccessTokenForAccount();
     const values = await getSheetValues(accessToken, spreadsheetId, tab);
 
@@ -37,13 +37,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as { tab?: string; values?: string[] };
+    const body = (await request.json()) as { tab?: string; values?: string[]; source?: string };
 
     if (!body.tab || !Array.isArray(body.values)) {
       return NextResponse.json({ error: "Missing or invalid tab or values" }, { status: 400 });
     }
+    const source = body.source ?? "master";
+    if (!isDashboardSheetSource(source)) {
+      return NextResponse.json({ error: "Invalid source" }, { status: 400 });
+    }
 
-    const spreadsheetId = masterSheetId();
+    const spreadsheetId = resolveDashboardSheetId(source);
     const { accessToken } = await getAccessTokenForAccount();
     const rowNumber = await appendSheetRow(accessToken, spreadsheetId, body.tab, body.values);
 
@@ -64,13 +68,18 @@ export async function PATCH(request: Request) {
       tab?: string;
       rowNumber?: number;
       values?: string[];
+      source?: string;
     };
 
     if (!body.tab || !Number.isInteger(body.rowNumber) || body.rowNumber! < 2 || !Array.isArray(body.values)) {
       return NextResponse.json({ error: "Missing or invalid tab, rowNumber, or values" }, { status: 400 });
     }
+    const source = body.source ?? "master";
+    if (!isDashboardSheetSource(source)) {
+      return NextResponse.json({ error: "Invalid source" }, { status: 400 });
+    }
 
-    const spreadsheetId = masterSheetId();
+    const spreadsheetId = resolveDashboardSheetId(source);
     const { accessToken } = await getAccessTokenForAccount();
     await updateSheetRow(accessToken, spreadsheetId, body.tab, body.rowNumber!, body.values);
 

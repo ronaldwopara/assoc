@@ -50,17 +50,20 @@ function getVisibleColumns(
   });
 }
 
+const CURRENT_YEAR = String(new Date().getFullYear());
+
 export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const meta = listMeta(listId);
+  const source = meta.source ?? "master";
 
   const [tabsInfo, setTabsInfo] = useState<TabsResponse | null>(null);
   const [tabsError, setTabsError] = useState("");
   const [selectedEvent, setSelectedEvent] = useState("");
 
-  // Loaded once — powers the Events dropdown and every list's "Open in Sheets" link.
+  // Loaded once per source — powers the Events dropdown and every list's "Open in Sheets" link.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/dashboard/sheet-tabs")
+    fetch(`/api/dashboard/sheet-tabs?source=${encodeURIComponent(source)}`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -73,7 +76,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [source]);
 
   const eventTabs = useMemo(
     () => (tabsInfo?.tabs ?? []).filter((t) => !NON_EVENT_TABS.has(t.title)),
@@ -86,7 +89,14 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     }
   }, [listId, eventTabs, selectedEvent]);
 
-  const activeTab = listId === "master-events" ? selectedEvent : meta.sheetTab;
+  const activeTab =
+    listId === "master-events"
+      ? selectedEvent
+      : listId === "payment-review-membership"
+        ? CURRENT_YEAR
+        : listId === "payment-review-donations"
+          ? `${CURRENT_YEAR}-Income`
+          : meta.sheetTab;
 
   const [rows, setRows] = useState<RowsResponse | null>(null);
   const [rowsError, setRowsError] = useState("");
@@ -96,7 +106,10 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const loadRows = useCallback((tab: string, signal?: { cancelled: boolean }) => {
     setLoading(true);
     setRowsError("");
-    fetch(`/api/dashboard/sheet-rows?tab=${encodeURIComponent(tab)}`, { cache: "no-store" })
+    fetch(
+      `/api/dashboard/sheet-rows?tab=${encodeURIComponent(tab)}&source=${encodeURIComponent(source)}`,
+      { cache: "no-store" },
+    )
       .then((res) => res.json())
       .then((data) => {
         if (signal?.cancelled) return;
@@ -109,7 +122,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       .finally(() => {
         if (!signal?.cancelled) setLoading(false);
       });
-  }, []);
+  }, [source]);
 
   useEffect(() => {
     setQuery("");
@@ -165,7 +178,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       const res = await fetch("/api/dashboard/sheet-rows", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab: activeTab, rowNumber: editingRow, values: editValues }),
+        body: JSON.stringify({ tab: activeTab, rowNumber: editingRow, values: editValues, source }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed to save");
@@ -213,7 +226,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       const res = await fetch("/api/dashboard/sheet-rows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab: activeTab, values: newRowValues }),
+        body: JSON.stringify({ tab: activeTab, values: newRowValues, source }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed to add row");

@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
+import { isDashboardSheetSource, resolveDashboardSheetId } from "@/lib/dashboard-sheets";
 import { getAccessTokenForAccount, getSpreadsheetTabs } from "@/lib/google-sheets";
 
-function masterSheetId() {
-  const id = process.env.GOOGLE_MASTER_SHEET_ID?.trim();
-  if (!id) throw new Error("GOOGLE_MASTER_SHEET_ID is not configured");
-  return id;
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
     if (!(await isUpgradeAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const spreadsheetId = masterSheetId();
+    const sourceParam = new URL(request.url).searchParams.get("source") ?? "master";
+    if (!isDashboardSheetSource(sourceParam)) {
+      return NextResponse.json({ error: "Invalid source" }, { status: 400 });
+    }
+
+    const spreadsheetId = resolveDashboardSheetId(sourceParam);
     const { accessToken } = await getAccessTokenForAccount();
     const { title, tabs } = await getSpreadsheetTabs(accessToken, spreadsheetId);
 

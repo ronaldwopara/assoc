@@ -8,6 +8,8 @@ import {
   IdCard,
   List,
   Calendar,
+  BadgeCheck,
+  HandCoins,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -22,6 +24,8 @@ const ICONS: Record<DashboardListId, typeof List> = {
   "master-newsletter": Mail,
   "master-members": IdCard,
   "master-events": Calendar,
+  "payment-review-membership": BadgeCheck,
+  "payment-review-donations": HandCoins,
 };
 
 interface DashboardSidebarProps {
