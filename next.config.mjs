@@ -21,6 +21,16 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // sharp@0.35 loads libvips from a sibling package via dlopen. Next 16.2's
+  // Turbopack tracer missed that .so on Vercel; 16.3+ fixes it, and this
+  // include keeps the binary in the serverless bundle as a belt-and-suspenders
+  // measure. See https://github.com/lovell/sharp/issues/4567
+  outputFileTracingIncludes: {
+    "/*": [
+      "./node_modules/@img/sharp-libvips-linux-x64/**/*",
+      "./node_modules/@img/sharp-linux-x64/**/*",
+    ],
+  },
   images: {
     remotePatterns: [
       {
