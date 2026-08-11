@@ -1,3 +1,5 @@
+/* Homepage flyer popup — phone-sized card, matches upgrade Preview */
+
 .flyer-popup {
   position: fixed;
   inset: 0;
@@ -5,23 +7,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(1rem, var(--safe-top)) 1rem max(1rem, var(--safe-bottom));
+  padding:
+    max(0.75rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
+  /* Keep the overlay in its own layer so sticky About cards can't paint over it. */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .flyer-popup__backdrop {
   position: absolute;
   inset: 0;
   border: 0;
+  margin: 0;
+  padding: 0;
   background: rgba(var(--ink-rgb), 0.55);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .flyer-popup__dialog {
   position: relative;
   z-index: 1;
   display: flex;
-  max-height: min(92vh, 900px);
   width: min(100%, 22rem);
+  max-height: min(92dvh, 900px);
   flex-direction: column;
   overflow: hidden;
   border-radius: 1rem;
@@ -44,15 +56,17 @@
   justify-content: center;
   border-radius: 9999px;
   border: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   color: var(--ink);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .flyer-popup__image-wrap {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   width: 100%;
+  max-height: calc(min(92dvh, 900px) - 5.5rem);
   background: var(--cream);
 }
 
@@ -61,12 +75,20 @@
   height: 100%;
   width: 100%;
   object-fit: contain;
+  object-position: center top;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .flyer-popup__footer {
   flex-shrink: 0;
   border-top: 1px solid rgba(var(--ink-rgb), 0.1);
   padding: 1rem;
+}
+
+.flyer-popup__cta {
+  width: 100%;
 }
 
 .flyer-popup-preview {
@@ -78,5 +100,15 @@
 @media (min-width: 640px) {
   .flyer-popup__dialog {
     width: min(100%, 24rem);
+  }
+}
+
+@media (max-height: 700px) {
+  .flyer-popup__dialog {
+    max-height: min(94dvh, 900px);
+  }
+
+  .flyer-popup__footer {
+    padding: 0.75rem;
   }
 }

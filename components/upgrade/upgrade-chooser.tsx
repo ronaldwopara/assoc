@@ -75,6 +75,31 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
       role="group"
       aria-label="Choose an upgrade tool"
     >
+      {/* Keep above the tool list so it stays in the first mobile viewport. */}
+      <div className="border-b border-white/15 px-3 py-3">
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-white/85">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-(--orange)"
+            checked={fabDisabled}
+            onChange={(event) => {
+              const next = event.target.checked;
+              setFabDisabled(next);
+              setStaffFabHidden(next);
+            }}
+          />
+          <span>
+            <span className="font-medium text-white">
+              Disable floating settings button
+            </span>
+            <span className="mt-0.5 block text-xs text-white/60">
+              Hides the orange tools shortcut on the public site. Turn this off
+              anytime to bring it back.
+            </span>
+          </span>
+        </label>
+      </div>
+
       <ul className="m-0 grid list-none gap-2 p-2.5 sm:grid-cols-2">
         {UPGRADE_TOOLS.map((tool) => {
           const Icon = TOOL_ICONS[tool.id];
@@ -104,30 +129,6 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
           );
         })}
       </ul>
-
-      <div className="border-t border-white/15 px-3 py-3">
-        <label className="flex cursor-pointer items-start gap-3 text-sm text-white/85">
-          <input
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 shrink-0 accent-(--orange)"
-            checked={fabDisabled}
-            onChange={(event) => {
-              const next = event.target.checked;
-              setFabDisabled(next);
-              setStaffFabHidden(next);
-            }}
-          />
-          <span>
-            <span className="font-medium text-white">
-              Disable floating settings button
-            </span>
-            <span className="mt-0.5 block text-xs text-white/60">
-              Hides the orange tools shortcut on the public site. Turn this off
-              anytime to bring it back.
-            </span>
-          </span>
-        </label>
-      </div>
     </motion.div>
   );
 }

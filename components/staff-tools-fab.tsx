@@ -25,7 +25,7 @@ export function StaffToolsFab() {
     syncHidden();
 
     let cancelled = false;
-    fetch("/api/upgrade/session")
+    fetch("/api/upgrade/session", { credentials: "same-origin" })
       .then((res) => {
         if (!cancelled) setAuthed(res.ok);
       })
