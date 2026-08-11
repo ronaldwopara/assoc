@@ -4,8 +4,12 @@ import { FeaturedPrograms } from "@/components/featured-programs";
 import { CommunityActionSection } from "@/components/volunteer-section";
 import { AboutSection, GallerySection, SponsorsSection, UpdatesSection } from "@/components/page-sections";
 import { JoinDeepLink } from "@/components/join-deep-link";
+import { FlyerPopup } from "@/components/flyer-popup";
+import { getPopupCmsData } from "@/lib/popup-cms";
 
-export default function Home() {
+export default async function Home() {
+  const popupData = await getPopupCmsData();
+
   return (
     <>
       <JoinDeepLink />
@@ -24,6 +28,7 @@ export default function Home() {
         <CommunityActionSection actionId="contact" />
         <SponsorsSection />
       </main>
+      <FlyerPopup popup={popupData} />
     </>
   );
 }

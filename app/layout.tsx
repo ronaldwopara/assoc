@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { preload } from "react-dom";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PreventTextCaret } from "@/components/prevent-text-caret";
 import { OrientationLock } from "@/components/orientation-lock";
 import { SafeAreaFrame } from "@/components/safe-area-frame";
-import { ScrollProgress } from "@/components/scroll-progress";
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { SkipLink } from "@/components/skip-link";
 import { Footer } from "@/components/footer";
 import { GalleryCmsProvider } from "@/components/gallery-cms-provider";
+import { StaffToolsFabHost } from "@/components/staff-tools-fab-host";
 import { getGalleryCmsData } from "@/lib/gallery-cms";
 import "./globals.css";
 
@@ -64,6 +67,8 @@ export default async function RootLayout({
   // mobile-nav panel don't wait on a cold 129KB fetch when first opened.
   preload("/nav.webp", { as: "image", fetchPriority: "low" });
   const galleryCms = await getGalleryCmsData();
+  const announcementActive =
+    galleryCms.announcement.enabled && galleryCms.announcement.text.trim().length > 0;
 
   return (
     <html
@@ -73,15 +78,22 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="min-h-screen antialiased" suppressHydrationWarning>
+      <body
+        className="min-h-screen antialiased"
+        data-announcement={announcementActive ? "true" : undefined}
+        suppressHydrationWarning
+      >
         {/* Mount strips first so the notch/home-indicator paint before splash/modals */}
         <SafeAreaFrame />
-        <ScrollProgress />
+        <AnnouncementBar announcement={galleryCms.announcement} />
         <PreventTextCaret />
         <SkipLink />
         <GalleryCmsProvider data={galleryCms}>{children}</GalleryCmsProvider>
         <Footer />
+        <StaffToolsFabHost />
         <OrientationLock />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

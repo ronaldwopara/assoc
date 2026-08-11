@@ -4,6 +4,7 @@ import { AboutSectionShell } from "@/components/about-section-shell";
 import { CircularTestimonials } from "@/components/circular-testimonials";
 import { PageBackLink } from "@/components/page-back-link";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
+import { getDocumentsCmsData } from "@/lib/documents-cms";
 
 const CLOUDINARY_BASE =
   "https://res.cloudinary.com/daldas2e7/image/upload/c_fill,g_face,w_600,h_800,f_webp,q_auto";
@@ -36,7 +37,9 @@ const boardMembers = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const documentsData = await getDocumentsCmsData();
+
   return (
     <>
       <Navbar />
@@ -65,7 +68,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <DocumentsSection />
+        <DocumentsSection documentsData={documentsData} />
       </main>
     </>
   );

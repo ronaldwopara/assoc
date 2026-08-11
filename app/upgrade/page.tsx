@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { UpgradePageContent } from "@/components/upgrade-page-content";
+import { getDocumentsCmsData } from "@/lib/documents-cms";
 import { getGalleryCmsData } from "@/lib/gallery-cms";
+import { getPopupCmsData } from "@/lib/popup-cms";
 
 export const metadata: Metadata = {
   title: "Upgrade",
@@ -8,11 +10,20 @@ export const metadata: Metadata = {
 };
 
 export default async function UpgradePage() {
-  const initialData = await getGalleryCmsData();
+  const [initialGalleryData, initialDocumentsData, initialPopupData] =
+    await Promise.all([
+      getGalleryCmsData(),
+      getDocumentsCmsData(),
+      getPopupCmsData(),
+    ]);
 
   return (
     <main id="main-content" className="site-main min-h-screen bg-(--cream-light)">
-      <UpgradePageContent initialData={initialData} />
+      <UpgradePageContent
+        initialGalleryData={initialGalleryData}
+        initialDocumentsData={initialDocumentsData}
+        initialPopupData={initialPopupData}
+      />
     </main>
   );
 }

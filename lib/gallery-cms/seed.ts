@@ -81,5 +81,13 @@ export function buildSeedGalleryCms(): GalleryCmsData {
       title: category.program,
       years: category.years.map(({ year }) => yearEntry(category.slug, year, images)),
     })),
+    announcement: {
+      enabled: false,
+      text: "",
+      href: "",
+      speedSeconds: 26,
+      direction: "ltr",
+      pauseOnHover: true,
+    },
   };
 }

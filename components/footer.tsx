@@ -66,7 +66,9 @@ export function Footer() {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  if (pathname?.startsWith("/dashboard")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/upgrade")) {
+    return null;
+  }
 
   return (
     <footer id="contact" className="footer">

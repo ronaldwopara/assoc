@@ -187,3 +187,91 @@ export async function uploadGoogleTokensJson(
 export async function fetchGoogleTokensJsonUrl(): Promise<string | null> {
   return fetchRawJsonUrl(GOOGLE_TOKENS_PUBLIC_ID);
 }
+
+/** Gallery CMS preview uploads live under this folder prefix. */
+export const GALLERY_PREVIEW_FOLDER = "asosc/gallery-prev";
+
+/**
+ * Extract a Cloudinary image public_id from a delivery URL.
+ * Only accepts URLs for our cloud + gallery-prev folder so we never
+ * destroy seed assets, unrelated media, or third-party links.
+ */
+export function galleryPreviewPublicIdFromUrl(url: string): string | null {
+  if (!url) return null;
+  let cloudName: string;
+  try {
+    cloudName = requireCloudinary().cloudName;
+  } catch {
+    return null;
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "res.cloudinary.com") return null;
+    if (!parsed.pathname.startsWith(`/${cloudName}/image/upload/`)) return null;
+    const marker = `/${GALLERY_PREVIEW_FOLDER}/`;
+    const at = parsed.pathname.indexOf(marker);
+    if (at === -1) return null;
+    // pathname slice starts with "/" — drop it to get the public_id path
+    const withExt = parsed.pathname.slice(at + 1);
+    return withExt.replace(/\.[^.]+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteCloudinaryImageByPublicId(
+  publicId: string,
+): Promise<boolean> {
+  const { cloudName, apiKey, apiSecret } = requireCloudinary();
+  const timestamp = Math.round(Date.now() / 1000);
+  const paramsToSign = {
+    invalidate: 1,
+    public_id: publicId,
+    timestamp,
+  };
+  const body = new URLSearchParams();
+  body.set("public_id", publicId);
+  body.set("invalidate", "1");
+  body.set("timestamp", String(timestamp));
+  body.set("api_key", apiKey);
+  body.set("signature", sign(paramsToSign, apiSecret));
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    },
+  );
+  const data = (await res.json()) as { result?: string; error?: { message?: string } };
+  // "not found" / already-deleted is fine — treat as success.
+  if (data.result === "ok" || data.result === "not found") return true;
+  if (!res.ok) {
+    throw new Error(data.error?.message ?? `Cloudinary destroy failed for ${publicId}`);
+  }
+  return data.result === "ok";
+}
+
+export async function deleteGalleryPreviewUrls(urls: string[]): Promise<{
+  deleted: string[];
+  failed: { url: string; error: string }[];
+}> {
+  const unique = [...new Set(urls.filter(Boolean))];
+  const deleted: string[] = [];
+  const failed: { url: string; error: string }[] = [];
+  for (const url of unique) {
+    const publicId = galleryPreviewPublicIdFromUrl(url);
+    if (!publicId) continue;
+    try {
+      await deleteCloudinaryImageByPublicId(publicId);
+      deleted.push(url);
+    } catch (error) {
+      failed.push({
+        url,
+        error: error instanceof Error ? error.message : "Destroy failed",
+      });
+    }
+  }
+  return { deleted, failed };
+}

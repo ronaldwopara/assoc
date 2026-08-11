@@ -104,7 +104,10 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --header-height: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  --announcement-bar-height: 0px;
+  --header-height: calc(
+    var(--navbar-height) + env(safe-area-inset-top, 0px) + var(--announcement-bar-height)
+  );
   --stacked-card-pin-gap: 2rem;
   /* Fluid 920→1024: taller at 920px since the text column is narrower
      there (more line-wraps for the same content), converging to 640px —
@@ -270,36 +273,103 @@ body::-webkit-scrollbar {
 }
 
 /* Sits at the seam between .safe-area-strip--top and the header, above the
-   header's own z-index so it always reads on top of the nav texture. */
-.scroll-progress {
+   header's own z-index so it always reads on top of the nav texture. The
+   header is pushed down by --announcement-bar-height (set on <body> only
+   when a CMS-enabled message exists) so the two never overlap. */
+.announcement-bar {
   position: fixed;
   top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
-  height: 3px;
+  height: var(--announcement-bar-height);
   z-index: calc(var(--z-navbar) + 1);
-  pointer-events: none;
-}
-
-.scroll-progress__bar {
-  height: 100%;
-  width: 100%;
-  transform: scaleX(0);
-  transform-origin: left;
+  overflow: hidden;
   background: var(--gold);
-  will-change: transform;
-  transition: transform 100ms linear;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scroll-progress__bar {
-    transition: none;
+.announcement-bar__link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+}
+
+.announcement-bar__scroller {
+  display: flex;
+  height: 100%;
+  width: max-content;
+  animation-name: announcement-marquee;
+  animation-duration: var(--announcement-speed, 26s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.announcement-bar__scroller[data-direction="rtl"] {
+  animation-name: announcement-marquee-rtl;
+}
+
+.announcement-bar:hover .announcement-bar__scroller,
+.announcement-bar:active .announcement-bar__scroller {
+  animation-play-state: paused;
+}
+
+.announcement-bar[data-pause-on-hover="false"]:hover .announcement-bar__scroller,
+.announcement-bar[data-pause-on-hover="false"]:active .announcement-bar__scroller {
+  animation-play-state: running;
+}
+
+.announcement-bar__track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.announcement-bar__item {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 1.5rem;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+@keyframes announcement-marquee {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0%);
   }
 }
 
-/* Fixed header: texture bleeds into the notch; bar content stays below it */
+@keyframes announcement-marquee-rtl {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-bar__scroller {
+    animation: none;
+    transform: translateX(0%);
+  }
+}
+
+/* Fixed header: texture bleeds into the notch; bar content stays below it.
+   top offset makes room for the announcement bar above it, when present. */
 .site-header {
   padding-top: env(safe-area-inset-top, 0px);
+  top: var(--announcement-bar-height);
+}
+
+body[data-announcement="true"] {
+  --announcement-bar-height: 2.25rem;
 }
 
 /* Pull navbar texture up behind the status bar / notch */

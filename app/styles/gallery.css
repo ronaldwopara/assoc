@@ -223,6 +223,38 @@
   }
 }
 
+/* Mobile only — /upgrade's year picker (no .gallery-controls wrapper, so it
+   doesn't get the rule above): without this, flex-shrink:0 plus a
+   non-wrapping pill list lets the box grow past the viewport and forces
+   the whole admin page to scroll horizontally once several years exist. */
+@media (max-width: 639px) {
+  .upgrade-year-picker[data-open="true"] {
+    flex: 1 1 auto;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 1.25rem;
+    padding: 0.375rem 0.5rem;
+    overflow: visible;
+  }
+
+  .upgrade-year-picker[data-open="true"] .gallery-controls__years-list {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .upgrade-year-picker[data-open="true"] .gallery-controls__year-pill {
+    border-left: none;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .upgrade-year-picker[data-open="true"] .gallery-controls__years-toggle {
+    border-left: none;
+  }
+}
+
 /* Gallery bento — uniform 2×3 landscape grid (all programs match) */
 .gallery-bento {
   display: grid;

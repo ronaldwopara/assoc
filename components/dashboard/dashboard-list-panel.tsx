@@ -278,6 +278,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   );
 
   const errorMessage = rowsError || tabsError;
+  const needsGoogleConnect = /no google account connected/i.test(errorMessage);
+  const needsEnvConfig = /is not configured/i.test(errorMessage);
 
   return (
     <div className="dash-panel">
@@ -379,6 +381,18 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         <div className="dash-empty">
           <p>Couldn&rsquo;t load this list.</p>
           <p className="dash-muted">{errorMessage}</p>
+          {needsEnvConfig && (
+            <p className="dash-muted">
+              Set the missing variable on Vercel (Production), redeploy, then refresh.
+            </p>
+          )}
+          {needsGoogleConnect && (
+            <p className="dash-muted">
+              <a className="dash-action-btn focus-ring-light inline-flex" href="/api/google/connect">
+                Connect Google
+              </a>
+            </p>
+          )}
         </div>
       )}
 

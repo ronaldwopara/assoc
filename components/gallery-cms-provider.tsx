@@ -7,6 +7,14 @@ const EMPTY_CMS: GalleryCmsData = {
   version: 1,
   updatedAt: "",
   programs: [],
+  announcement: {
+    enabled: false,
+    text: "",
+    href: "",
+    speedSeconds: 26,
+    direction: "ltr",
+    pauseOnHover: true,
+  },
 };
 
 const GalleryCmsContext = createContext<GalleryCmsData>(EMPTY_CMS);

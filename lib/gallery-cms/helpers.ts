@@ -1,5 +1,6 @@
 import {
   PREVIEW_SLOT_COUNT,
+  type AnnouncementCms,
   type GalleryCmsCategory,
   type GalleryCmsData,
   type GalleryCmsImage,
@@ -37,6 +38,53 @@ function normalizeProgram(program: GalleryCmsProgram): GalleryCmsProgram | null 
   return { slug, title, years };
 }
 
+export const ANNOUNCEMENT_SPEED_MIN = 8;
+export const ANNOUNCEMENT_SPEED_MAX = 60;
+
+const ANNOUNCEMENT_DEFAULTS: AnnouncementCms = {
+  enabled: false,
+  text: "",
+  href: "",
+  speedSeconds: 26,
+  direction: "ltr",
+  pauseOnHover: true,
+};
+
+function normalizeAnnouncement(
+  input: unknown,
+  fallback?: AnnouncementCms,
+): AnnouncementCms {
+  const defaults = fallback ?? ANNOUNCEMENT_DEFAULTS;
+  if (!input || typeof input !== "object") return defaults;
+  const raw = input as Partial<AnnouncementCms>;
+  const speedSeconds =
+    typeof raw.speedSeconds === "number" && Number.isFinite(raw.speedSeconds)
+      ? Math.min(ANNOUNCEMENT_SPEED_MAX, Math.max(ANNOUNCEMENT_SPEED_MIN, raw.speedSeconds))
+      : defaults.speedSeconds;
+  return {
+    enabled: typeof raw.enabled === "boolean" ? raw.enabled : defaults.enabled,
+    text: typeof raw.text === "string" ? raw.text.trim() : defaults.text,
+    href: typeof raw.href === "string" ? raw.href.trim() : defaults.href,
+    speedSeconds,
+    direction: raw.direction === "rtl" ? "rtl" : "ltr",
+    pauseOnHover:
+      typeof raw.pauseOnHover === "boolean" ? raw.pauseOnHover : defaults.pauseOnHover,
+  };
+}
+
+/** All non-empty image src values currently referenced by the CMS tree. */
+export function collectGalleryImageUrls(data: GalleryCmsData): string[] {
+  const urls: string[] = [];
+  for (const program of data.programs) {
+    for (const year of program.years) {
+      for (const image of year.images) {
+        if (image.src) urls.push(image.src);
+      }
+    }
+  }
+  return urls;
+}
+
 export function normalizeGalleryCmsData(
   input: unknown,
   fallback?: GalleryCmsData,
@@ -47,6 +95,7 @@ export function normalizeGalleryCmsData(
         version: 1,
         updatedAt: new Date().toISOString(),
         programs: [],
+        announcement: ANNOUNCEMENT_DEFAULTS,
       }
     );
   }
@@ -60,6 +109,7 @@ export function normalizeGalleryCmsData(
     updatedAt:
       typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString(),
     programs,
+    announcement: normalizeAnnouncement(raw.announcement, fallback?.announcement),
   };
 }
 

@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "optimize-images": "node scripts/optimize-images.mjs",
-    "smoke:gallery-upload": "node --env-file=.env --env-file=.env.local scripts/smoke-gallery-upload.mjs"
+    "smoke:gallery-upload": "node --env-file=.env --env-file=.env.local scripts/smoke-gallery-upload.mjs",
+    "smoke:gallery-delete": "node --env-file=.env --env-file=.env.local scripts/smoke-gallery-delete.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",

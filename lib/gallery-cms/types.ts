@@ -17,10 +17,21 @@ export type GalleryCmsProgram = {
   years: GalleryCmsYearEntry[];
 };
 
+export type AnnouncementCms = {
+  enabled: boolean;
+  text: string;
+  href: string;
+  /** Seconds for one full marquee loop. Lower = faster. */
+  speedSeconds: number;
+  direction: "ltr" | "rtl";
+  pauseOnHover: boolean;
+};
+
 export type GalleryCmsData = {
   version: 1;
   updatedAt: string;
   programs: GalleryCmsProgram[];
+  announcement: AnnouncementCms;
 };
 
 export type GalleryCmsCategory = {

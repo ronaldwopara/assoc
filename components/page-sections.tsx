@@ -10,6 +10,8 @@ import { AboutSectionShell } from "@/components/about-section-shell";
 import { MediaPlaceholderImage } from "@/components/media-placeholder";
 import { useGalleryCms } from "@/components/gallery-cms-provider";
 import { getGalleryPreviewUrlsFromCms } from "@/lib/gallery-cms/helpers";
+import type { DocumentsCmsData } from "@/lib/documents-cms/types";
+import { toPublicDocumentHref } from "@/lib/documents-cms/helpers";
 
 export { EventsPageContent } from "@/components/events-section";
 
@@ -49,23 +51,15 @@ interface DocumentGroup {
   items: DocumentItem[];
 }
 
-const documentGroups: DocumentGroup[] = [
-  {
-    title: "Financial Reports",
-    items: [
-      { label: "2025 Financial Statement", href: "/docs/2025/Financial-Statement-2025.pdf" },
-      { label: "2024 Financial Statement", href: "/docs/2024/ASOSC-Financial-Statement-2024.pdf" },
-      { label: "2023 Financial Statement", href: "/docs/2023/ASOSC-Financial-Statement-2023.pdf" },
-    ],
-  },
-  {
-    title: "Governance & Planning",
-    items: [
-      { label: "Bylaws (2025)", href: "/docs/governance/Bylaws-2025.docx" },
-      { label: "Strategic Plan", href: "/docs/governance/ASOSC-Strategic-Plan.pptx" },
-    ],
-  },
-];
+function documentsCmsToGroups(data: DocumentsCmsData): DocumentGroup[] {
+  return data.groups.map((group) => ({
+    title: group.title,
+    items: group.items.map((item) => ({
+      label: item.label,
+      href: toPublicDocumentHref(item.url),
+    })),
+  }));
+}
 
 function CardBullet({ children }: { children: React.ReactNode }) {
   return (
@@ -203,7 +197,13 @@ export function PageSections() {
   );
 }
 
-export function DocumentsSection() {
+export function DocumentsSection({
+  documentsData,
+}: {
+  documentsData: DocumentsCmsData;
+}) {
+  const documentGroups = documentsCmsToGroups(documentsData);
+
   return (
     <section
       className="section-shell bg-(--cream-light)"
@@ -228,7 +228,7 @@ export function DocumentsSection() {
             <div className="flex flex-col gap-3">
               {group.items.map((item) => (
                 <a
-                  key={item.href}
+                  key={`${group.title}-${item.href}`}
                   href={item.href}
                   download
                   className="focus-ring-light group flex items-center justify-between gap-4 rounded-2xl border border-(--brown-dark)/10 bg-(--cream)/60 px-5 py-4 transition-colors duration-200 hover:bg-(--hero-cta)/15"
