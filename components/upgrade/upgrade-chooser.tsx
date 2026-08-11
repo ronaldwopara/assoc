@@ -14,7 +14,11 @@ import { UPGRADE_TOOLS, type UpgradeToolId } from "@/lib/upgrade-tools";
 import {
   isStaffFabHidden,
   setStaffFabHidden,
+  getStaffFabPrefs,
+  setStaffFabPrefs,
+  DEFAULT_STAFF_FAB_PREFS,
   STAFF_FAB_CHANGE_EVENT,
+  type StaffFabPrefs,
 } from "@/lib/staff-fab";
 
 const MORPH_TRANSITION = { type: "spring", stiffness: 420, damping: 36, mass: 0.8 } as const;
@@ -36,10 +40,14 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
   const reduceMotion = useReducedMotion();
   const [pressedId, setPressedId] = useState<string | null>(null);
   const [fabDisabled, setFabDisabled] = useState(false);
+  const [fabPrefs, setFabPrefs] = useState<StaffFabPrefs>(DEFAULT_STAFF_FAB_PREFS);
   const pendingRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const sync = () => setFabDisabled(isStaffFabHidden());
+    const sync = () => {
+      setFabDisabled(isStaffFabHidden());
+      setFabPrefs(getStaffFabPrefs());
+    };
     sync();
     window.addEventListener(STAFF_FAB_CHANGE_EVENT, sync);
     window.addEventListener("storage", sync);
@@ -76,7 +84,7 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
       aria-label="Choose an upgrade tool"
     >
       {/* Keep above the tool list so it stays in the first mobile viewport. */}
-      <div className="border-b border-white/15 px-3 py-3">
+      <div className="border-b border-white/15 px-3 py-3 flex flex-col gap-3">
         <label className="flex cursor-pointer items-start gap-3 text-sm text-white/85">
           <input
             type="checkbox"
@@ -98,6 +106,92 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
             </span>
           </span>
         </label>
+
+        {!fabDisabled && (
+          <div className="ml-7 flex flex-col gap-3 border-l border-white/10 pl-3">
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="mb-0.5 text-xs font-medium text-white/85">
+                Position
+              </legend>
+              <div className="flex gap-4 text-xs text-white/70">
+                {(
+                  [
+                    { value: "bottom-left", label: "Bottom left" },
+                    { value: "bottom-right", label: "Bottom right" },
+                  ] as const
+                ).map((opt) => (
+                  <label key={opt.value} className="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="fab-position"
+                      className="h-3.5 w-3.5 accent-(--orange)"
+                      checked={fabPrefs.position === opt.value}
+                      onChange={() => {
+                        const next = { ...fabPrefs, position: opt.value };
+                        setFabPrefs(next);
+                        setStaffFabPrefs({ position: opt.value });
+                      }}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className="mb-0.5 text-xs font-medium text-white/85">
+                Show
+              </legend>
+              <div className="flex flex-col gap-1.5 text-xs text-white/70">
+                {(
+                  [
+                    { value: "always", label: "Always visible" },
+                    { value: "after-scroll", label: "After scrolling down" },
+                  ] as const
+                ).map((opt) => (
+                  <label key={opt.value} className="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="fab-trigger"
+                      className="h-3.5 w-3.5 accent-(--orange)"
+                      checked={fabPrefs.trigger === opt.value}
+                      onChange={() => {
+                        const next = { ...fabPrefs, trigger: opt.value };
+                        setFabPrefs(next);
+                        setStaffFabPrefs({ trigger: opt.value });
+                      }}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {fabPrefs.trigger === "after-scroll" && (
+              <label className="flex flex-col gap-1.5 text-xs text-white/70">
+                <span>
+                  Scroll distance:{" "}
+                  <span className="font-medium text-white/85">
+                    {fabPrefs.scrollThreshold}px
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={2000}
+                  step={50}
+                  className="accent-(--orange)"
+                  value={fabPrefs.scrollThreshold}
+                  onChange={(event) => {
+                    const next = { ...fabPrefs, scrollThreshold: Number(event.target.value) };
+                    setFabPrefs(next);
+                    setStaffFabPrefs({ scrollThreshold: next.scrollThreshold });
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        )}
       </div>
 
       <ul className="m-0 grid list-none gap-2 p-2.5 sm:grid-cols-2">

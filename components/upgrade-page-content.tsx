@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LayoutGroup } from "framer-motion";
 import type { GalleryCmsData } from "@/lib/gallery-cms/types";
+import { collectGalleryImageUrls } from "@/lib/gallery-cms/helpers";
 import type { DocumentsCmsData } from "@/lib/documents-cms/types";
 import type { PopupCmsData } from "@/lib/popup-cms/types";
 import {
@@ -144,6 +145,19 @@ function UpgradePageContentInner({
   };
 
   const saveGallery = async () => {
+    // Save permanently destroys any Cloudinary asset whose URL isn't present
+    // anywhere in the submitted data — no server-side undo. Surface exactly
+    // what that means before it happens instead of only announcing it after
+    // the fact, since a slip here (e.g. a stray year edit) is unrecoverable.
+    const removedCount = collectGalleryImageUrls(savedGalleryData).filter(
+      (url) => !collectGalleryImageUrls(galleryData).includes(url),
+    ).length;
+    if (removedCount > 0) {
+      const ok = window.confirm(
+        `This will permanently delete ${removedCount} image${removedCount === 1 ? "" : "s"} from Cloudinary that are no longer referenced anywhere in the gallery (removed years, cleared slots, replaced uploads, etc.). This cannot be undone. Continue?`,
+      );
+      if (!ok) return;
+    }
     setGallerySaving(true);
     setGalleryStatus({ type: "idle", message: "" });
     try {

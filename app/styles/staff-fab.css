@@ -4,7 +4,6 @@
   position: fixed;
   /* Above navbar (50); below modals (100) so dialogs still cover it. */
   z-index: calc(var(--z-modal) - 10);
-  left: max(0.875rem, env(safe-area-inset-left, 0px));
   /* Extra lift clears iOS home-indicator / browser chrome better than inset alone. */
   bottom: calc(max(0.875rem, env(safe-area-inset-bottom, 0px)) + 0.35rem);
   display: inline-flex;
@@ -26,6 +25,22 @@
     opacity 0.18s ease,
     transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.18s ease;
+  animation: staff-tools-fab-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes staff-tools-fab-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.9);
+  }
+}
+
+.staff-tools-fab--bottom-left {
+  left: max(0.875rem, env(safe-area-inset-left, 0px));
+}
+
+.staff-tools-fab--bottom-right {
+  right: max(0.875rem, env(safe-area-inset-right, 0px));
 }
 
 .staff-tools-fab:hover,

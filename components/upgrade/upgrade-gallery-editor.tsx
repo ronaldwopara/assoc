@@ -319,10 +319,34 @@ export function UpgradeGalleryEditor({
                   type="button"
                   className="rounded-lg border border-(--ink)/20 bg-white px-3 py-2.5 text-sm font-medium"
                   onClick={() => {
-                    const nextYear = String(new Date().getFullYear());
+                    if (!program) return;
+                    const existing = new Set(program.years.map((entry) => entry.year));
+                    const currentYear = String(new Date().getFullYear());
+                    const suggestion = existing.has(currentYear) ? "" : currentYear;
+                    // A blind "just use the current calendar year" default silently
+                    // created a second same-labeled entry once a year already
+                    // existed — two identical pills in the picker below, easy to
+                    // mix up, and Save destroys Cloudinary assets for anything
+                    // that falls out of the submitted data. Always ask instead.
+                    const input = window.prompt(
+                      "Year label for the new entry (e.g. 2027):",
+                      suggestion,
+                    );
+                    if (input === null) return;
+                    const trimmed = input.trim();
+                    if (!trimmed) {
+                      window.alert("Year label can't be empty.");
+                      return;
+                    }
+                    if (existing.has(trimmed)) {
+                      window.alert(
+                        `"${trimmed}" already exists for this program. Choose a different label, or select it from the picker to edit it directly.`,
+                      );
+                      return;
+                    }
                     updateProgram((prog) => ({
                       ...prog,
-                      years: [emptyYear(nextYear), ...prog.years],
+                      years: [emptyYear(trimmed), ...prog.years],
                     }));
                     setYearIndex(0);
                   }}

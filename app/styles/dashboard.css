@@ -728,6 +728,11 @@
   .dash-tab-strip {
     order: 3;
     flex-basis: 100%;
+    /* Wrap onto more lines instead of scrolling horizontally — with several
+       lists open, a hidden-scrollbar row is easy to miss (nothing hints
+       there's more to the right), so every open tab stays visible instead. */
+    flex-wrap: wrap;
+    overflow-x: visible;
   }
 
   .dash-content {
