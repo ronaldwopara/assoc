@@ -8,6 +8,9 @@ import {
 } from "@/lib/google-sheets";
 
 const CARD_URL_HEADER = "Membership Card URL";
+const INTERAC_EMAIL_HEADER = "Interac Email";
+const INTERAC_SAME_HEADER = "Interac Same?";
+const SELF_HEALING_HEADERS = [INTERAC_EMAIL_HEADER, INTERAC_SAME_HEADER, CARD_URL_HEADER];
 
 function requireMembershipSheetId(): string {
   const id = process.env.MEMBERSHIP_SHEET_ID?.trim();
@@ -93,6 +96,14 @@ function fieldForHeader(header: string, values: FormValues): string | null {
     case "PAID OR NOT":
       // Left blank — set by the Apps Script poller once an Interac/card payment is confirmed.
       return "";
+    case INTERAC_EMAIL_HEADER: {
+      const interacEmail = asString(values.interacEmail).trim();
+      if (interacEmail) return interacEmail;
+      // "Yes" means the contact email is also the banking address.
+      return asString(values.interacSame) === "Yes" ? asString(values.email) : "";
+    }
+    case INTERAC_SAME_HEADER:
+      return asString(values.interacSame);
     case CARD_URL_HEADER:
       return asString(values.membershipCardUrl);
     default:
@@ -110,8 +121,9 @@ export async function appendMembershipRow(values: FormValues): Promise<void> {
   let [headers = []] = existing;
   const dataRows = existing.slice(1);
 
-  if (!headers.includes(CARD_URL_HEADER)) {
-    headers = [...headers, CARD_URL_HEADER];
+  const missingHeaders = SELF_HEALING_HEADERS.filter((header) => !headers.includes(header));
+  if (missingHeaders.length) {
+    headers = [...headers, ...missingHeaders];
     await updateSheetRow(accessToken, spreadsheetId, tabTitle, 1, headers);
   }
 

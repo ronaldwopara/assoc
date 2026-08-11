@@ -231,6 +231,26 @@ export const membershipSteps: GuidedStep[] = [
     "We'll send your membership confirmation and updates here.",
     "If you pay by e-Transfer, send it from this email.",
   ),
+  {
+    id: "interac-same",
+    title: "Is this the email you use for Interac e-Transfer?",
+    helper: "Helps us match your e-Transfer payment to your membership automatically.",
+    fields: [{ type: "choice", name: "interacSame", options: yesNoOptions }],
+  },
+  {
+    id: "interac-email",
+    title: "What email is on your Interac e-Transfer account?",
+    helper: "The banking address on your e-Transfer, so we can match your payment.",
+    when: (values) => values.interacSame === "No",
+    fields: [
+      {
+        type: "text",
+        name: "interacEmail",
+        inputType: "email",
+        placeholder: "you@example.com",
+      },
+    ],
+  },
   phoneStep("phone", "For membership verification and urgent community alerts."),
   {
     id: "address",
