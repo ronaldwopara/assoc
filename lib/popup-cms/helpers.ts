@@ -52,11 +52,6 @@ export function normalizePopupCmsData(
   };
 }
 
-/** Campaign id for session dismiss — changes when staff publish a new flyer. */
-export function popupCampaignId(data: PopupCmsData): string {
-  return data.updatedAt || data.imageUrl || "empty";
-}
-
 export function isPopupReady(data: PopupCmsData): boolean {
   return data.enabled && data.imageUrl.trim().length > 0;
 }

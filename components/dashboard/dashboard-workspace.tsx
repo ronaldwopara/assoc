@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { Menu } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import {
   closeTabInSet,
@@ -25,6 +26,7 @@ export function DashboardWorkspace({
   onLogout,
 }: DashboardWorkspaceProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [tabs, setTabs] = useState<DashboardTab[]>(() => [createTab("master-list")]);
   const [activeId, setActiveId] = useState<DashboardListId>("master-list");
 
@@ -55,13 +57,23 @@ export function DashboardWorkspace({
     <div className="dash-shell">
       <DashboardSidebar
         collapsed={sidebarCollapsed}
+        mobileOpen={mobileNavOpen}
         activeId={activeId}
         onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+        onCloseMobile={() => setMobileNavOpen(false)}
         onOpenList={openList}
       />
 
       <div className="dash-main">
         <header className="dash-topbar">
+          <button
+            type="button"
+            className="dash-menu-btn focus-ring-light"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Menu size={20} />
+          </button>
           <div className="dash-topbar-nav">
             <button
               type="button"

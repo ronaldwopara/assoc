@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
 export const UPGRADE_COOKIE = "asosc_upgrade_session";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
+const MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
 
 function sessionSecret() {
   const secret =

@@ -25,9 +25,20 @@ export function StaffToolsFab() {
     syncHidden();
 
     let cancelled = false;
-    fetch("/api/upgrade/session", { credentials: "same-origin" })
-      .then((res) => {
-        if (!cancelled) setAuthed(res.ok);
+    fetch("/api/upgrade/session", { credentials: "same-origin", cache: "no-store" })
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setAuthed(false);
+          return;
+        }
+        // Require an explicit JSON flag — a soft redirect HTML 200 must not count.
+        try {
+          const body = (await res.json()) as { authenticated?: unknown };
+          setAuthed(body.authenticated === true);
+        } catch {
+          setAuthed(false);
+        }
       })
       .catch(() => {
         if (!cancelled) setAuthed(false);
@@ -45,10 +56,13 @@ export function StaffToolsFab() {
     };
   }, [pathname]);
 
-  // Hide only on the tool-picker hub — you're already there.
-  const onToolPickerHub = pathname === "/upgrade" && !searchParams.get("tool");
+  // Hide only while inside an active tool — every tool view has its own
+  // "All tools"/back control there, so the fab is redundant (and on mobile
+  // it can overlap in-tool overlays like modals). Still show it on the tool
+  // picker hub itself (/upgrade with no tool selected) and everywhere else.
+  const insideActiveTool = pathname === "/upgrade" && !!searchParams.get("tool");
 
-  if (!ready || !authed || hidden || onToolPickerHub) return null;
+  if (!ready || !authed || hidden || insideActiveTool) return null;
 
   return (
     <button

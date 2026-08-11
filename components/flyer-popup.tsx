@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import type { PopupCmsData } from "@/lib/popup-cms/types";
 import { isPopupReady, normalizeFooterColor } from "@/lib/popup-cms/helpers";
-import {
-  dismissPopupForSession,
-  isPopupDismissedThisSession,
-} from "@/lib/popup-cms/session";
 
 function isExternalHref(href: string): boolean {
   try {
@@ -34,10 +31,13 @@ interface FlyerPopupProps {
 }
 
 export function FlyerPopup({ popup }: FlyerPopupProps) {
+  const pathname = usePathname();
+  const onHomepage = pathname === "/";
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const scrollLockRef = useRef<{ y: number; body: string; html: string } | null>(
@@ -54,8 +54,14 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
-    if (isPopupDismissedThisSession(popup)) return;
+    if (!onHomepage) {
+      setArmed(false);
+      setOpen(false);
+    }
+  }, [onHomepage]);
+
+  useEffect(() => {
+    if (!onHomepage || !ready || dismissed) return;
 
     const target = document.getElementById("about");
     if (!target) return;
@@ -74,18 +80,18 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [popup, ready]);
+  }, [popup, ready, dismissed, onHomepage]);
 
   useEffect(() => {
-    if (!armed || !ready) return;
-    if (isPopupDismissedThisSession(popup)) return;
+    if (!onHomepage || !armed || !ready || dismissed) return;
     setOpen(true);
-  }, [armed, popup, ready]);
+  }, [armed, popup, ready, dismissed, onHomepage]);
 
   const dismiss = useCallback(() => {
-    dismissPopupForSession(popup);
+    // In-memory only — a full homepage refresh should show the flyer again.
+    setDismissed(true);
     setOpen(false);
-  }, [popup]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +136,7 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
     };
   }, [open, dismiss]);
 
-  if (!mounted || !ready || !open) return null;
+  if (!mounted || !onHomepage || !ready || !open) return null;
 
   const external = buttonHref ? isExternalHref(buttonHref) : false;
   const footerColor = normalizeFooterColor(popup.footerColor);
@@ -187,7 +193,7 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
-              onClick={() => dismissPopupForSession(popup)}
+              onClick={dismiss}
             >
               {buttonLabel}
             </a>

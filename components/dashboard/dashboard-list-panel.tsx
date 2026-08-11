@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Download, RefreshCw, Search, Pencil, Check, X, Plus } from "lucide-react";
+import {
+  ExternalLink,
+  Download,
+  RefreshCw,
+  Search,
+  Pencil,
+  Check,
+  X,
+  Plus,
+  SlidersHorizontal,
+} from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import { NON_EVENT_TABS, listMeta } from "@/lib/dashboard-lists";
 
@@ -102,6 +112,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const [rowsError, setRowsError] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  /** Mobile only — Refresh/Export/Open in Sheets/event-picker live in a
+      bottom sheet there instead of a row of buttons; unused on desktop. */
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const loadRows = useCallback((tab: string, signal?: { cancelled: boolean }) => {
     setLoading(true);
@@ -297,77 +310,179 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
           </p>
         </div>
         <div className="dash-panel-actions">
-          <label className="dash-search-wrap">
-            <Search size={15} aria-hidden />
-            <input
-              type="search"
-              className="dash-search-input"
-              placeholder="Search this list…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              disabled={!rows || rows.rows.length === 0}
-            />
-          </label>
-          <button
-            type="button"
-            className="dash-action-btn focus-ring-light"
-            onClick={beginAddRow}
-            disabled={!activeTab || !rows || addingNewRow}
-            title="Add a new row"
-          >
-            <Plus size={16} />
-            Add row
-          </button>
-          <button
-            type="button"
-            className="dash-action-btn focus-ring-light"
-            onClick={() => activeTab && loadRows(activeTab)}
-            disabled={!activeTab || loading}
-            title="Refresh from Sheets"
-          >
-            <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
-            Refresh
-          </button>
-          {listId === "master-events" && (
-            <label className="dash-select-wrap">
-              <span className="sr-only">Filter by event</span>
-              <select
-                className="dash-select focus-ring-light"
-                value={selectedEvent}
-                onChange={(e) => setSelectedEvent(e.target.value)}
-                disabled={eventTabs.length === 0}
-              >
-                {eventTabs.length === 0 && <option value="">No event tabs found</option>}
-                {eventTabs.map((tab) => (
-                  <option key={tab.title} value={tab.title}>
-                    {tab.title}
-                  </option>
-                ))}
-              </select>
+          {/* Grouped into rows (dash-actions-row is `display:contents` on
+              desktop, so this nesting is invisible there — see dashboard.css).
+              On mobile, search gets its own full-width row, Add row + More
+              actions share the next, and everything else (Refresh, Export,
+              Open in Sheets, the event picker) moves into a bottom-sheet
+              modal behind "More actions" instead of stacking as more rows. */}
+          <div className="dash-actions-row dash-actions-row--search">
+            <label className="dash-search-wrap">
+              <Search size={15} aria-hidden />
+              <input
+                type="search"
+                className="dash-search-input"
+                placeholder="Search this list…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={!rows || rows.rows.length === 0}
+              />
             </label>
-          )}
-          <button
-            type="button"
-            className="dash-action-btn focus-ring-light"
-            onClick={exportCsv}
-            disabled={!rows || rows.rows.length === 0}
-          >
-            <Download size={16} />
-            Export CSV
-          </button>
-          <a
-            className="dash-action-btn focus-ring-light"
-            href={openInSheetsHref ?? undefined}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => {
-              if (!openInSheetsHref) e.preventDefault();
-            }}
-            aria-disabled={!openInSheetsHref}
-          >
-            <ExternalLink size={16} />
-            Open in Sheets
-          </a>
+          </div>
+          <div className="dash-actions-row dash-actions-row--primary">
+            <button
+              type="button"
+              className="dash-action-btn focus-ring-light"
+              onClick={beginAddRow}
+              disabled={!activeTab || !rows || addingNewRow}
+              title="Add a new row"
+            >
+              <Plus size={16} />
+              Add row
+            </button>
+            <button
+              type="button"
+              className="dash-action-btn dash-actions-trigger focus-ring-light"
+              onClick={() => setActionsOpen(true)}
+            >
+              <SlidersHorizontal size={16} />
+              More actions
+            </button>
+          </div>
+          <div className="dash-actions-row dash-actions-row--secondary">
+            <button
+              type="button"
+              className="dash-action-btn focus-ring-light"
+              onClick={() => activeTab && loadRows(activeTab)}
+              disabled={!activeTab || loading}
+              title="Refresh from Sheets"
+            >
+              <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
+              Refresh
+            </button>
+            {listId === "master-events" && (
+              <label className="dash-select-wrap">
+                <span className="sr-only">Filter by event</span>
+                <select
+                  className="dash-select focus-ring-light"
+                  value={selectedEvent}
+                  onChange={(e) => setSelectedEvent(e.target.value)}
+                  disabled={eventTabs.length === 0}
+                >
+                  {eventTabs.length === 0 && <option value="">No event tabs found</option>}
+                  {eventTabs.map((tab) => (
+                    <option key={tab.title} value={tab.title}>
+                      {tab.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className="dash-action-btn focus-ring-light"
+              onClick={exportCsv}
+              disabled={!rows || rows.rows.length === 0}
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+            <a
+              className="dash-action-btn focus-ring-light"
+              href={openInSheetsHref ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (!openInSheetsHref) e.preventDefault();
+              }}
+              aria-disabled={!openInSheetsHref}
+            >
+              <ExternalLink size={16} />
+              Open in Sheets
+            </a>
+          </div>
+        </div>
+
+        {/* Mobile-only bottom sheet — see dashboard.css; never shown on
+            desktop, where dash-actions-row--secondary above is already
+            visible inline. Same actions, restated here as large, fully
+            labeled rows (no icon-only controls) so they stay easy to
+            recognize for anyone who doesn't parse icons quickly. */}
+        <button
+          type="button"
+          className={`dash-actions-backdrop${actionsOpen ? " dash-actions-backdrop--visible" : ""}`}
+          onClick={() => setActionsOpen(false)}
+          aria-hidden={!actionsOpen}
+          tabIndex={-1}
+        />
+        <div
+          className={`dash-actions-sheet${actionsOpen ? " dash-actions-sheet--open" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="List actions"
+        >
+          <div className="dash-actions-sheet-head">
+            <span className="dash-actions-sheet-title">List actions</span>
+            <button
+              type="button"
+              className="dash-icon-btn dash-icon-btn--ink focus-ring-light"
+              onClick={() => setActionsOpen(false)}
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="dash-actions-sheet-body" onClick={() => setActionsOpen(false)}>
+            <button
+              type="button"
+              className="dash-sheet-action focus-ring-light"
+              onClick={() => activeTab && loadRows(activeTab)}
+              disabled={!activeTab || loading}
+            >
+              <RefreshCw size={18} className={loading ? "dash-spin" : undefined} />
+              Refresh
+            </button>
+            {listId === "master-events" && (
+              <label className="dash-sheet-select-wrap" onClick={(e) => e.stopPropagation()}>
+                <span className="dash-sheet-select-label">Filter by event</span>
+                <select
+                  className="dash-select focus-ring-light"
+                  value={selectedEvent}
+                  onChange={(e) => setSelectedEvent(e.target.value)}
+                  disabled={eventTabs.length === 0}
+                >
+                  {eventTabs.length === 0 && <option value="">No event tabs found</option>}
+                  {eventTabs.map((tab) => (
+                    <option key={tab.title} value={tab.title}>
+                      {tab.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className="dash-sheet-action focus-ring-light"
+              onClick={exportCsv}
+              disabled={!rows || rows.rows.length === 0}
+            >
+              <Download size={18} />
+              Export CSV
+            </button>
+            <a
+              className="dash-sheet-action focus-ring-light"
+              href={openInSheetsHref ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                if (!openInSheetsHref) e.preventDefault();
+              }}
+              aria-disabled={!openInSheetsHref}
+            >
+              <ExternalLink size={18} />
+              Open in Sheets
+            </a>
+          </div>
         </div>
       </header>
 

@@ -89,7 +89,7 @@ export function UpgradeChooser({ onSelectTool }: UpgradeChooserProps) {
             }}
           />
           <span>
-            <span className="font-medium text-white">
+            <span className="font-medium text-(--orange)">
               Disable floating settings button
             </span>
             <span className="mt-0.5 block text-xs text-white/60">

@@ -133,9 +133,14 @@ function UpgradePageContentInner({
   };
 
   const logout = async () => {
-    await fetch("/api/upgrade/logout", { method: "POST" });
+    await fetch("/api/upgrade/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
     setAuthed(false);
-    router.push("/upgrade");
+    // Force a full load so the staff FAB re-checks the cleared session cookie.
+    window.location.assign("/upgrade");
   };
 
   const saveGallery = async () => {
