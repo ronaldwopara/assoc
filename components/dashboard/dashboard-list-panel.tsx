@@ -11,9 +11,18 @@ import {
   X,
   Plus,
   SlidersHorizontal,
+  ListFilter,
 } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import { NON_EVENT_TABS, listMeta } from "@/lib/dashboard-lists";
+import {
+  cellMatchesDateQuery,
+  defaultValueForDateHeader,
+  findDateColumnIndex,
+  formatIsoDayLabel,
+  isTimestampHeader,
+  rowMatchesDateFilter,
+} from "@/lib/sheet-dates";
 
 type SheetTab = { title: string; sheetId: number; rowCount: number; columnCount: number };
 type TabsResponse = { spreadsheetId: string; spreadsheetTitle: string; tabs: SheetTab[] };
@@ -25,42 +34,86 @@ interface DashboardListPanelProps {
 
 /** Event sign-up forms vary wildly in shape — this maps each one back onto
  * the same four columns every other list shows, so Events doesn't stick out. */
-const EVENTS_SECONDARY_FIELD = /spouse|emergency|guardian|parent|child/i;
-const TIMESTAMP_HEADER = /^(timestamp|entry\s*date)$/i;
+const SECONDARY_FIELD = /spouse|emergency|guardian|parent|child/i;
 const EVENTS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
-  { label: "Timestamp", match: TIMESTAMP_HEADER },
+  { label: "Timestamp", match: /^(timestamp|entry\s*date)$/i },
   { label: "Full Name", match: /^(full\s*)?name$/i },
   { label: "Email", match: /email/i },
   { label: "Phone Number", match: /phone/i },
 ];
 
-/** Matches this sheet's existing "7/12/2025 1:36:28" convention. */
-function formatTimestamp(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} ${date.getHours()}:${pad(
-    date.getMinutes(),
-  )}:${pad(date.getSeconds())}`;
-}
+/** Members shows the same narrow field set as the Vendors tab — the rest of
+ * the membership form's fields (address, age, spouse, etc.) stay hidden here. */
+const MEMBERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
+  { label: "Timestamp", match: /^(timestamp|entry\s*date)$/i },
+  { label: "Full Name", match: /^(full\s*)?name$/i },
+  { label: "Email", match: /email/i },
+  { label: "Phone Number", match: /phone/i },
+  { label: "Paid or Not", match: /^paid or not$/i },
+];
 
-/** Which sheet columns to show, and under what label — full set for every
- * list except Events, which is narrowed down to the four shared columns. */
-function getVisibleColumns(
-  listId: DashboardListId,
+/** Narrows headers down to a curated set, in that set's order, skipping any
+ * header excluded (e.g. "Spouse's Email" shouldn't win the "Email" slot). */
+function canonicalColumns(
   headers: string[],
+  canonical: Array<{ label: string; match: RegExp }>,
+  exclude: RegExp,
 ): Array<{ index: number; label: string }> {
-  if (listId !== "master-events") {
-    return headers.map((label, index) => ({ index, label }));
-  }
-  return EVENTS_CANONICAL_COLUMNS.flatMap(({ label, match }) => {
+  return canonical.flatMap(({ label, match }) => {
     const index = headers.findIndex((h) => {
       const trimmed = h.trim();
-      return match.test(trimmed) && !EVENTS_SECONDARY_FIELD.test(trimmed);
+      return match.test(trimmed) && !exclude.test(trimmed);
     });
     return index === -1 ? [] : [{ index, label }];
   });
 }
 
+/** Which sheet columns to show, and under what label — full set for every
+ * list except Events and Members, which are narrowed to a curated set. */
+function getVisibleColumns(
+  listId: DashboardListId,
+  headers: string[],
+): Array<{ index: number; label: string }> {
+  if (listId === "master-events") {
+    return canonicalColumns(headers, EVENTS_CANONICAL_COLUMNS, SECONDARY_FIELD);
+  }
+  if (listId === "master-members") {
+    return canonicalColumns(headers, MEMBERS_CANONICAL_COLUMNS, SECONDARY_FIELD);
+  }
+  return headers.map((label, index) => ({ index, label }));
+}
+
+function emailColumnIndex(headers: string[]): number {
+  return headers.findIndex((h) => {
+    const trimmed = h.trim();
+    return /email/i.test(trimmed) && !SECONDARY_FIELD.test(trimmed);
+  });
+}
+
+function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: string): string {
+  const q = query.trim();
+  const range =
+    dateFrom && dateTo
+      ? `between ${formatIsoDayLabel(dateFrom)} and ${formatIsoDayLabel(dateTo)}`
+      : dateFrom
+        ? `from ${formatIsoDayLabel(dateFrom)} onward`
+        : dateTo
+          ? `through ${formatIsoDayLabel(dateTo)}`
+          : "";
+  if (q && range) return `Nothing in “${tab}” matches “${q}” ${range}.`;
+  if (q) return `Nothing in “${tab}” matches “${q}”.`;
+  if (range) return `Nothing in “${tab}” was registered ${range}.`;
+  return `Nothing in “${tab}” matches.`;
+}
+
 const CURRENT_YEAR = String(new Date().getFullYear());
+
+/** The three lists that cross-reference each other by email to show a "Sources" chip column. */
+const SOURCE_LISTS: Array<{ id: DashboardListId; label: string; source: string; tab: string }> = [
+  { id: "master-list", label: "Master List", source: "master", tab: "Master List" },
+  { id: "master-volunteer", label: "Volunteers", source: "master", tab: "Volunteers" },
+  { id: "payment-review-membership", label: "Payments", source: "membership", tab: CURRENT_YEAR },
+];
 
 export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const meta = listMeta(listId);
@@ -73,6 +126,10 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   // Loaded once per source — powers the Events dropdown and every list's "Open in Sheets" link.
   useEffect(() => {
     let cancelled = false;
+    // Clear immediately so a stale tab list from the previous source (e.g. another
+    // spreadsheet) can't be used to compute eventTabs/auto-select while this loads.
+    setTabsInfo(null);
+    setTabsError("");
     fetch(`/api/dashboard/sheet-tabs?source=${encodeURIComponent(source)}`)
       .then((res) => res.json())
       .then((data) => {
@@ -104,14 +161,17 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       ? selectedEvent
       : listId === "payment-review-membership"
         ? CURRENT_YEAR
-        : listId === "payment-review-donations"
-          ? `${CURRENT_YEAR}-Income`
-          : meta.sheetTab;
+        : meta.sheetTab;
 
   const [rows, setRows] = useState<RowsResponse | null>(null);
   const [rowsError, setRowsError] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
+  const datePopoverRef = useRef<HTMLDivElement>(null);
+  const dateFilterBtnRef = useRef<HTMLButtonElement>(null);
   /** Mobile only — Refresh/Export/Open in Sheets/event-picker live in a
       bottom sheet there instead of a row of buttons; unused on desktop. */
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -139,6 +199,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
 
   useEffect(() => {
     setQuery("");
+    setDateFrom("");
+    setDateTo("");
+    setDateOpen(false);
     if (!activeTab) {
       setRows(null);
       return;
@@ -150,16 +213,121 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     };
   }, [activeTab, loadRows]);
 
+  const dateColumnIndex = useMemo(
+    () => findDateColumnIndex(rows?.headers ?? []),
+    [rows],
+  );
+  const dateFilterActive = Boolean(dateFrom || dateTo);
+
+  useEffect(() => {
+    if (!dateOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDateOpen(false);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (datePopoverRef.current?.contains(target) || dateFilterBtnRef.current?.contains(target)) {
+        return;
+      }
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement &&
+        active.type === "date" &&
+        datePopoverRef.current?.contains(active)
+      ) {
+        return;
+      }
+      setDateOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [dateOpen]);
+
+  // Payments only ever shows confirmed-paid membership rows — other lists show everything.
+  const paidColumnIndex = useMemo(
+    () => (rows?.headers ?? []).findIndex((h) => h.trim().toLowerCase() === "paid or not"),
+    [rows],
+  );
+  const paidOnly = listId === "payment-review-membership" && paidColumnIndex !== -1;
+
+  // Master List, Volunteers, and Payments cross-reference each other by email to show
+  // a "Sources" chip column — which of the other two lists this same person is also in.
+  const showSources = SOURCE_LISTS.some((s) => s.id === listId);
+  const [sourceEmailSets, setSourceEmailSets] = useState<Partial<Record<DashboardListId, Set<string>>>>({});
+
+  useEffect(() => {
+    if (!showSources) {
+      setSourceEmailSets({});
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      SOURCE_LISTS.filter((s) => s.id !== listId).map((s) =>
+        fetch(
+          `/api/dashboard/sheet-rows?tab=${encodeURIComponent(s.tab)}&source=${encodeURIComponent(s.source)}`,
+          { cache: "no-store" },
+        )
+          .then((res) => res.json())
+          .then((data): [DashboardListId, Set<string>] => {
+            const emails = new Set<string>();
+            const headers: string[] = data?.headers ?? [];
+            const emailIdx = emailColumnIndex(headers);
+            if (!data.error && emailIdx !== -1) {
+              for (const row of (data.rows ?? []) as string[][]) {
+                const email = (row[emailIdx] ?? "").trim().toLowerCase();
+                if (email) emails.add(email);
+              }
+            }
+            return [s.id, emails];
+          })
+          .catch((): [DashboardListId, Set<string>] => [s.id, new Set<string>()]),
+      ),
+    ).then((entries) => {
+      if (cancelled) return;
+      setSourceEmailSets(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [listId, showSources]);
+
+  const ownEmailColumnIndex = useMemo(() => emailColumnIndex(rows?.headers ?? []), [rows]);
+
+  const sourcesForRow = useCallback(
+    (row: string[]): string[] => {
+      if (!showSources || ownEmailColumnIndex === -1) return [];
+      const email = (row[ownEmailColumnIndex] ?? "").trim().toLowerCase();
+      if (!email) return [];
+      return SOURCE_LISTS.filter(
+        (s) => s.id !== listId && sourceEmailSets[s.id]?.has(email),
+      ).map((s) => s.label);
+    },
+    [showSources, ownEmailColumnIndex, listId, sourceEmailSets],
+  );
+
   // rowNumber is 1-indexed and includes the header row, matching the Sheets API range.
   const visibleRows = useMemo(() => {
     if (!rows) return [];
     const withRowNumbers = rows.rows.map((row, i) => ({ row, rowNumber: i + 2 }));
     const q = query.trim().toLowerCase();
-    if (!q) return withRowNumbers;
-    return withRowNumbers.filter(({ row }) =>
-      row.some((cell) => (cell ?? "").toLowerCase().includes(q)),
-    );
-  }, [rows, query]);
+    return withRowNumbers.filter(({ row }) => {
+      if (paidOnly && (row[paidColumnIndex] ?? "").trim().toLowerCase() !== "paid") {
+        return false;
+      }
+      if (dateFilterActive && !rowMatchesDateFilter(row, dateColumnIndex, dateFrom, dateTo)) {
+        return false;
+      }
+      if (!q) return true;
+      const textMatch = row.some((cell) => (cell ?? "").toLowerCase().includes(q));
+      if (textMatch) return true;
+      return row.some((cell) => cellMatchesDateQuery(cell ?? "", query.trim()));
+    });
+  }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive, paidOnly, paidColumnIndex]);
 
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<string[]>([]);
@@ -219,7 +387,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   // (at the bottom, its natural position) and the draft disappears.
   const beginAddRow = () => {
     if (!rows) return;
-    setNewRowValues(rows.headers.map((h) => (TIMESTAMP_HEADER.test(h.trim()) ? formatTimestamp(new Date()) : "")));
+    setNewRowValues(rows.headers.map((h) => defaultValueForDateHeader(h)));
     setAddingNewRow(true);
     setSaveError("");
     tableWrapRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -266,8 +434,12 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     if (!rows) return;
     const escape = (cell: string) => `"${(cell ?? "").replace(/"/g, '""')}"`;
     const csv = [
-      visibleColumns.map((col) => col.label),
-      ...visibleRows.map((v) => visibleColumns.map((col) => v.row[col.index])),
+      visibleColumns.map((col) => col.label).concat(showSources ? ["Sources"] : []),
+      ...visibleRows.map((v) =>
+        visibleColumns
+          .map((col) => v.row[col.index])
+          .concat(showSources ? [sourcesForRow(v.row).join("; ")] : []),
+      ),
     ]
       .map((r) => r.map(escape).join(","))
       .join("\n");
@@ -315,9 +487,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               On mobile, search gets its own full-width row, Add row + More
               actions share the next, and everything else (Refresh, Export,
               Open in Sheets, the event picker) moves into a bottom-sheet
-              modal behind "More actions" instead of stacking as more rows. */}
+              modal behind "More actions". */}
           <div className="dash-actions-row dash-actions-row--search">
-            <label className="dash-search-wrap">
+            <div className="dash-search-wrap">
               <Search size={15} aria-hidden />
               <input
                 type="search"
@@ -327,7 +499,65 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={!rows || rows.rows.length === 0}
               />
-            </label>
+              <button
+                ref={dateFilterBtnRef}
+                type="button"
+                className={`dash-search-filter focus-ring-light${dateFilterActive ? " dash-search-filter--on" : ""}${dateOpen ? " dash-search-filter--open" : ""}`}
+                aria-label={
+                  dateFilterActive
+                    ? `Date filter, ${dateFrom && dateTo ? `${formatIsoDayLabel(dateFrom)} to ${formatIsoDayLabel(dateTo)}` : dateFrom ? `from ${formatIsoDayLabel(dateFrom)}` : `through ${formatIsoDayLabel(dateTo)}`}. Change dates.`
+                    : "Filter by date"
+                }
+                aria-expanded={dateOpen}
+                aria-haspopup="dialog"
+                aria-controls="dash-date-popover"
+                disabled={!rows || rows.rows.length === 0}
+                onClick={() => setDateOpen((open) => !open)}
+              >
+                <ListFilter size={15} aria-hidden />
+                {dateFilterActive && <span className="dash-search-filter-dot" />}
+              </button>
+              {dateOpen && (
+                <div
+                  ref={datePopoverRef}
+                  id="dash-date-popover"
+                  className="dash-date-popover"
+                  role="dialog"
+                  aria-label="Filter by date"
+                >
+                  <p className="dash-date-popover-title">Date range</p>
+                  <label className="dash-date-field">
+                    <span className="dash-date-label">From</span>
+                    <input
+                      type="date"
+                      className="dash-date-input"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </label>
+                  <label className="dash-date-field">
+                    <span className="dash-date-label">To</span>
+                    <input
+                      type="date"
+                      className="dash-date-input"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="dash-date-clear focus-ring-light"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                    }}
+                    disabled={!dateFilterActive}
+                  >
+                    Clear dates
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="dash-actions-row dash-actions-row--primary">
             <button
@@ -529,7 +759,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       {!loading && !errorMessage && rows && rows.rows.length > 0 && visibleRows.length === 0 && !addingNewRow && (
         <div className="dash-empty">
           <p>No matches.</p>
-          <p className="dash-muted">Nothing in &ldquo;{activeTab}&rdquo; matches &ldquo;{query}&rdquo;.</p>
+          <p className="dash-muted">{noMatchHint(activeTab || meta.title, query, dateFrom, dateTo)}</p>
         </div>
       )}
 
@@ -542,6 +772,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 {visibleColumns.map((col) => (
                   <th key={col.index}>{col.label || `Column ${col.index + 1}`}</th>
                 ))}
+                {showSources && <th>Sources</th>}
                 <th className="dash-th-actions" aria-label="Actions" />
               </tr>
             </thead>
@@ -549,7 +780,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               {addingNewRow && (
                 <tr className="dash-row-new">
                   {visibleColumns.map((col) => {
-                    const isTimestamp = TIMESTAMP_HEADER.test((rows.headers[col.index] ?? "").trim());
+                    const isTimestamp = isTimestampHeader(rows.headers[col.index] ?? "");
                     return (
                       <td key={col.index}>
                         {isTimestamp ? (
@@ -571,6 +802,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                       </td>
                     );
                   })}
+                  {showSources && <td>—</td>}
                   <td className="dash-row-actions">
                     <button
                       type="button"
@@ -598,7 +830,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 return (
                   <tr key={rowNumber}>
                     {visibleColumns.map((col) => {
-                      const isTimestamp = TIMESTAMP_HEADER.test((rows.headers[col.index] ?? "").trim());
+                      const isTimestamp = isTimestampHeader(rows.headers[col.index] ?? "");
                       return isEditing ? (
                         <td key={col.index}>
                           {isTimestamp ? (
@@ -623,6 +855,19 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                         </td>
                       );
                     })}
+                    {showSources && (
+                      <td>
+                        <div className="dash-sources-inner">
+                          {sourcesForRow(row).length === 0
+                            ? "—"
+                            : sourcesForRow(row).map((label) => (
+                                <span key={label} className="dash-source-chip">
+                                  {label}
+                                </span>
+                              ))}
+                        </div>
+                      </td>
+                    )}
                     <td className="dash-row-actions">
                       {isEditing ? (
                         <>
@@ -669,6 +914,13 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
           {visibleRows.length}
           {visibleRows.length !== rows.rows.length ? ` of ${rows.rows.length}` : ""} row
           {rows.rows.length === 1 ? "" : "s"}
+          {dateFilterActive
+            ? dateFrom && dateTo
+              ? ` · ${formatIsoDayLabel(dateFrom)} to ${formatIsoDayLabel(dateTo)}`
+              : dateFrom
+                ? ` · from ${formatIsoDayLabel(dateFrom)}`
+                : ` · through ${formatIsoDayLabel(dateTo)}`
+            : ""}
         </p>
       )}
     </div>

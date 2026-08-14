@@ -4,26 +4,15 @@
  * (pasted over the old Code.gs) and EmailTemplate.gs.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THIS IS THE EMAIL THE PAYMENT LEDGER DEPENDS ON
+ * PAYMENT CONFIRMATION, NOT A KEYWORD PROMPT
  *
- * ASOSC receives money constantly — memberships, donations, vendor fees — and
- * Interac gives no API, so the notification emails are the only data source.
- * A $15 arrival is indistinguishable from a $15 Single/Student membership on
- * amount alone.
- *
- * Two things make a payment matchable, and both are set here:
- *
- *   THE KEYWORD   The member is told to type "MEMBER <their name>" in the
- *                 Interac message field. That string is what separates a
- *                 membership payment from a donation in the ledger.
- *
- *   THE MOMENT    This email arrives while they are about to open their
- *                 banking app. Instructions given later are instructions
- *                 nobody reads.
- *
- * Expect partial compliance. Manual review exists because of that, not as an
- * edge case. But every person who follows the instruction is one Busayo does
- * not have to identify by hand.
+ * This email tells the member their payment is already accounted for
+ * ({{payment_instructions}} — one line, same wording for every payment
+ * method, just naming which one they used). It does not ask them to do
+ * anything else with their bank, e-Transfer message field included — that
+ * instruction was removed. Matching a payment to a member is handled
+ * elsewhere (by email, in the Interac payments script), not by anything
+ * this email tells the member to type.
  *
  * ─────────────────────────────────────────────────────────────────────────
  * WHAT THIS EMAIL DELIBERATELY DOES NOT CONTAIN
@@ -78,8 +67,6 @@ const MB = {
   NOTIFY_EMAIL: '',
   REPLY_TO: '',
   FROM_NAME: 'ASOSC',
-  ETRANSFER_TO: 'info@asosc.ca',
-  KEYWORD: 'MEMBER',
   PAID_VALUE: 'Paid',      // written by markExistingMembersPaid()
 };
 
@@ -216,20 +203,18 @@ function mbEnsureTemplateTab(ss) {
   tab.getRange('B2').setValue('See what is coming up');
   tab.getRange('B3').setValue('https://www.asosc.ca/events');
   tab.getRange('B4').setValue('');
-  tab.getRange('B5').setValue(mbDefaultEtransferBlock());
-  tab.getRange('B6').setValue(mbDefaultCardBlock());
+  tab.getRange('B5').setValue(mbDefaultPaymentBlock());
 
   tab.getRange('A3').setValue('Body in A1. Subject B1. Button label B2, link B3. Preview text B4.');
-  tab.getRange('A4').setValue('B5 = instructions for Interac e-transfer. B6 = instructions for card.');
-  tab.getRange('A5').setValue('Placeholders: {{first_name}}, {{name}}, {{category}}, {{amount}}, {{keyword_line}}, {{payment_instructions}}');
-  tab.getRange('A6').setValue('KEEP {{keyword_line}} in B5. It is what tells a membership payment apart from a donation. Without it payments arrive unidentifiable.');
+  tab.getRange('A4').setValue('B5 = payment confirmation line, same wording for every payment method.');
+  tab.getRange('A5').setValue('Placeholders: {{first_name}}, {{name}}, {{category}}, {{amount}}, {{payment_method}}, {{payment_instructions}}');
   tab.getRange('A7').setValue('Do not add address, age, spouse or children details to this email. They are in the sheet already and email is the wrong place for them.');
   tab.getRange('A3:A7').setFontStyle('italic').setFontColor('#666666');
 
   tab.setColumnWidth(1, 620);
   tab.setColumnWidth(2, 420);
   tab.getRange('A1').setWrap(true).setVerticalAlignment('top');
-  tab.getRange('B5:B6').setWrap(true).setVerticalAlignment('top');
+  tab.getRange('B5').setWrap(true).setVerticalAlignment('top');
   tab.setRowHeight(1, 300);
   return tab;
 }
@@ -531,14 +516,12 @@ function mbReadTemplate() {
     buttonLabel: String(tab.getRange('B2').getValue() || '').trim(),
     buttonUrl: String(tab.getRange('B3').getValue() || '').trim(),
     preheader: String(tab.getRange('B4').getValue() || '').trim(),
-    etransferBlock: String(tab.getRange('B5').getValue() || '').trim() || mbDefaultEtransferBlock(),
-    cardBlock: String(tab.getRange('B6').getValue() || '').trim() || mbDefaultCardBlock(),
+    paymentBlock: String(tab.getRange('B5').getValue() || '').trim() || mbDefaultPaymentBlock(),
   };
 }
 
 function mbRenderBody(template, person, t) {
-  const isEtransfer = /transfer|interac|etransfer/i.test(person.method || '');
-  const instructions = (isEtransfer ? t.etransferBlock : t.cardBlock) || '';
+  const instructions = t.paymentBlock || '';
 
   const fill = function (s) {
     return String(s)
@@ -546,8 +529,7 @@ function mbRenderBody(template, person, t) {
       .replace(/\{\{name\}\}/g, person.name || 'there')
       .replace(/\{\{category\}\}/g, mbCategoryLabel(person.category))
       .replace(/\{\{amount\}\}/g, mbMoney(person.amount))
-      .replace(/\{\{keyword_line\}\}/g, MB.KEYWORD + ' ' + (person.name || ''))
-      .replace(/\{\{etransfer_to\}\}/g, MB.ETRANSFER_TO)
+      .replace(/\{\{payment_method\}\}/g, String(person.method || '').toLowerCase())
       .replace(/\{\{email\}\}/g, person.email || '');
   };
 
@@ -574,22 +556,8 @@ function mbDefaultBody() {
   ].join('\n');
 }
 
-function mbDefaultEtransferBlock() {
-  return [
-    'To finish signing up, send an Interac e-Transfer of {{amount}} to {{etransfer_to}}.',
-    '',
-    'When you send it, type this in the message field:',
-    '',
-    '{{keyword_line}}',
-    '',
-    'That message is how we match your payment to your membership. Without it your transfer looks the same as a donation and it may sit unprocessed.',
-    '',
-    'One more thing. If the email address on your bank account is not {{email}}, reply and tell us which one it is, otherwise we may not spot your payment.',
-  ].join('\n');
-}
-
-function mbDefaultCardBlock() {
-  return 'We are processing your card payment of {{amount}}. Nothing else is needed from you.';
+function mbDefaultPaymentBlock() {
+  return 'We are processing your {{payment_method}} payment of {{amount}}. Nothing else is needed from you.';
 }
 
 // ============================================================ HELPERS

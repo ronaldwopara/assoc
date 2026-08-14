@@ -30,7 +30,7 @@ const CONTACT_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbwE4D-Q446q9jXgjHjJD-q07EVRWg6DSvEvGpKKZIGHXszFIdpc3f243jbYNWd6YA/exec";
 
 const DONATE_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbyYYW2jiGaGMXQd3j5iOJ4-0wlL5YhhowODwzyH3mvgLeWquQRU-fvlOKwxnWzKiLG-/exec";
+  "https://script.google.com/macros/s/AKfycbzhDyDeUjLnTQnfaevz5bt6dSQNj-FHnBs38mTX9vogj8zbtBvw4fUDyca-HvOBoBcP/exec";
 
 function postToAppsScript(endpoint: string, payload: Record<string, string>) {
   return new Promise<void>((resolve) => {

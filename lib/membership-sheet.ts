@@ -6,11 +6,18 @@ import {
   getSheetValues,
   updateSheetRow,
 } from "@/lib/google-sheets";
+import { formatTimestamp } from "@/lib/sheet-dates";
 
 const CARD_URL_HEADER = "Membership Card URL";
 const INTERAC_EMAIL_HEADER = "Interac Email";
 const INTERAC_SAME_HEADER = "Interac Same?";
-const SELF_HEALING_HEADERS = [INTERAC_EMAIL_HEADER, INTERAC_SAME_HEADER, CARD_URL_HEADER];
+const TIMESTAMP_HEADER = "Timestamp";
+const SELF_HEALING_HEADERS = [
+  INTERAC_EMAIL_HEADER,
+  INTERAC_SAME_HEADER,
+  CARD_URL_HEADER,
+  TIMESTAMP_HEADER,
+];
 
 function requireMembershipSheetId(): string {
   const id = process.env.MEMBERSHIP_SHEET_ID?.trim();
@@ -106,6 +113,8 @@ function fieldForHeader(header: string, values: FormValues): string | null {
       return asString(values.interacSame);
     case CARD_URL_HEADER:
       return asString(values.membershipCardUrl);
+    case TIMESTAMP_HEADER:
+      return formatTimestamp(new Date());
     default:
       return null;
   }
@@ -121,7 +130,9 @@ export async function appendMembershipRow(values: FormValues): Promise<void> {
   let [headers = []] = existing;
   const dataRows = existing.slice(1);
 
-  const missingHeaders = SELF_HEALING_HEADERS.filter((header) => !headers.includes(header));
+  const missingHeaders = SELF_HEALING_HEADERS.filter(
+    (header) => !headers.some((h) => h.trim().toLowerCase() === header.toLowerCase()),
+  );
   if (missingHeaders.length) {
     headers = [...headers, ...missingHeaders];
     await updateSheetRow(accessToken, spreadsheetId, tabTitle, 1, headers);
@@ -129,6 +140,7 @@ export async function appendMembershipRow(values: FormValues): Promise<void> {
 
   const row = headers.map((header) => {
     if (header === "Entry ID") return nextEntryId(dataRows);
+    if (/^timestamp$/i.test(header.trim())) return formatTimestamp(new Date());
     return fieldForHeader(header, values) ?? "";
   });
 

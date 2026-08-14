@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { isDashboardSheetSource, resolveDashboardSheetId } from "@/lib/dashboard-sheets";
-import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
+import {
+  appendSheetRow,
+  ensurePaidColumn,
+  ensureSheetTab,
+  getAccessTokenForAccount,
+  getSheetValues,
+  updateSheetRow,
+} from "@/lib/google-sheets";
+
+/** Lists that carry a "PAID OR NOT" status — self-healed onto the sheet the first time it's opened. */
+function needsPaidColumn(source: string, tab: string): boolean {
+  return (source === "master" && tab === "Vendors") || (source === "donor" && tab === "Donations");
+}
 
 export async function GET(request: Request) {
   try {
@@ -21,6 +33,12 @@ export async function GET(request: Request) {
 
     const spreadsheetId = resolveDashboardSheetId(sourceParam);
     const { accessToken } = await getAccessTokenForAccount();
+
+    if (needsPaidColumn(sourceParam, tab)) {
+      if (sourceParam === "donor") await ensureSheetTab(accessToken, spreadsheetId, tab);
+      await ensurePaidColumn(accessToken, spreadsheetId, tab);
+    }
+
     const values = await getSheetValues(accessToken, spreadsheetId, tab);
 
     const [headers = [], ...rows] = values;
@@ -49,6 +67,24 @@ export async function POST(request: Request) {
 
     const spreadsheetId = resolveDashboardSheetId(source);
     const { accessToken } = await getAccessTokenForAccount();
+
+    if (source === "master" && body.tab === "Master List") {
+      const [headers = [], ...existingRows] = await getSheetValues(accessToken, spreadsheetId, body.tab);
+      const emailCol = headers.findIndex((h) => h.trim().toLowerCase() === "email");
+      const newEmail = emailCol !== -1 ? (body.values[emailCol] ?? "").trim().toLowerCase() : "";
+      if (emailCol !== -1 && newEmail) {
+        const isDuplicate = existingRows.some(
+          (row) => (row[emailCol] ?? "").trim().toLowerCase() === newEmail,
+        );
+        if (isDuplicate) {
+          return NextResponse.json(
+            { error: "A row with this email already exists in Master List." },
+            { status: 409 },
+          );
+        }
+      }
+    }
+
     const rowNumber = await appendSheetRow(accessToken, spreadsheetId, body.tab, body.values);
 
     return NextResponse.json({ ok: true, rowNumber });

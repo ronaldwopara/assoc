@@ -10,6 +10,7 @@ import {
   Calendar,
   BadgeCheck,
   HandCoins,
+  MailPlus,
   PanelLeftClose,
   PanelLeft,
   X,
@@ -27,6 +28,7 @@ const ICONS: Record<DashboardListId, typeof List> = {
   "master-events": Calendar,
   "payment-review-membership": BadgeCheck,
   "payment-review-donations": HandCoins,
+  "email-membership-followup": MailPlus,
 };
 
 interface DashboardSidebarProps {
@@ -37,6 +39,8 @@ interface DashboardSidebarProps {
   onToggleCollapse: () => void;
   onCloseMobile: () => void;
   onOpenList: (id: DashboardListId) => void;
+  /** Mobile-only: Sign out lives at the bottom of the drawer (see dashboard.css). */
+  onLogout: () => void;
 }
 
 export function DashboardSidebar({
@@ -46,6 +50,7 @@ export function DashboardSidebar({
   onToggleCollapse,
   onCloseMobile,
   onOpenList,
+  onLogout,
 }: DashboardSidebarProps) {
   return (
     <>
@@ -63,7 +68,7 @@ export function DashboardSidebar({
         aria-label="Dashboard navigation"
       >
         <div className="dash-sidebar-head">
-          {(!collapsed || mobileOpen) && <span className="dash-sidebar-brand">Operations</span>}
+          {(!collapsed || mobileOpen) && <span className="dash-sidebar-brand">Dashboard</span>}
           <button
             type="button"
             className="dash-icon-btn dash-icon-btn--collapse focus-ring-light"
@@ -103,6 +108,11 @@ export function DashboardSidebar({
             );
           })}
         </nav>
+
+        {/* Mobile-only — see dashboard.css; sits at the bottom of the drawer below the (flex:1) nav. */}
+        <button type="button" className="dash-sidebar-signout focus-ring-light" onClick={onLogout}>
+          Sign out
+        </button>
       </aside>
     </>
   );

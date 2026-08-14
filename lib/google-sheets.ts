@@ -143,6 +143,87 @@ export async function getSheetValues(
   return payload.values ?? [];
 }
 
+/** Raw values for an explicit A1 range, e.g. "A1:B6". */
+export async function getSheetRange(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+  range: string,
+): Promise<string[][]> {
+  const encodedRange = encodeURIComponent(`${tabTitle}!${range}`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedRange}`;
+
+  const payload = (await googleApiFetch(url, accessToken)) as { values?: string[][] };
+  return payload.values ?? [];
+}
+
+/** Overwrite an explicit A1 range, e.g. "A1:B6". */
+export async function updateSheetRange(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+  range: string,
+  values: string[][],
+): Promise<void> {
+  const encodedRange = encodeURIComponent(`${tabTitle}!${range}`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedRange}?valueInputOption=USER_ENTERED`;
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ values }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || `Failed to update range (${response.status})`);
+  }
+}
+
+/** Creates a tab with the given title if one doesn't already exist. */
+export async function ensureSheetTab(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+): Promise<void> {
+  const { tabs } = await getSpreadsheetTabs(accessToken, spreadsheetId);
+  if (tabs.some((t) => t.title === tabTitle)) return;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      requests: [{ addSheet: { properties: { title: tabTitle } } }],
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    // Another request may have created it concurrently — treat as success.
+    if (!/already exists/i.test(payload?.error?.message ?? "")) {
+      throw new Error(payload?.error?.message || `Failed to create tab (${response.status})`);
+    }
+  }
+}
+
+/** Adds a "PAID OR NOT" header if the tab doesn't already have one (case-insensitive). */
+export async function ensurePaidColumn(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+): Promise<void> {
+  const [headers = []] = await getSheetValues(accessToken, spreadsheetId, tabTitle);
+  if (headers.some((h) => h.trim().toLowerCase() === "paid or not")) return;
+  await updateSheetRow(accessToken, spreadsheetId, tabTitle, 1, [...headers, "PAID OR NOT"]);
+}
+
 /** Overwrite one row in place. `rowNumber` is 1-indexed and includes the header row. */
 export async function updateSheetRow(
   accessToken: string,

@@ -289,6 +289,7 @@ function appendFinanceRow(kind, rec) {
         [/recognized/, ''],       // bookkeeper judgment — leave blank
         [/deferred/, ''],         // bookkeeper judgment — leave blank
         ['notes', note],
+        ['date', dateStr],
         // The first ("donor/category") column has no reliable header text in
         // the live 2026 tab (it's blank/whitespace) — this rule is the
         // fallback for any otherwise-unmatched header, so it must stay last.

@@ -1,17 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
-import {
-  closeTabInSet,
-  createTab,
-  openTabInSet,
-  type DashboardTab,
-} from "@/lib/dashboard-tabs";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
-import { DashboardTabStrip } from "@/components/dashboard/dashboard-tab-strip";
 import { DashboardListPanel } from "@/components/dashboard/dashboard-list-panel";
+import { DashboardEmailTemplatePanel } from "@/components/dashboard/dashboard-email-template-panel";
 
 interface DashboardWorkspaceProps {
   onBack: () => void;
@@ -27,31 +21,7 @@ export function DashboardWorkspace({
 }: DashboardWorkspaceProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [tabs, setTabs] = useState<DashboardTab[]>(() => [createTab("master-list")]);
   const [activeId, setActiveId] = useState<DashboardListId>("master-list");
-
-  const openList = useCallback((listId: DashboardListId) => {
-    setTabs((prev) => {
-      const next = openTabInSet(prev, listId);
-      setActiveId(next.activeId);
-      return next.tabs;
-    });
-  }, []);
-
-  const selectTab = useCallback((listId: DashboardListId) => {
-    setActiveId(listId);
-  }, []);
-
-  const closeTab = useCallback(
-    (listId: DashboardListId) => {
-      setTabs((prev) => {
-        const next = closeTabInSet(prev, activeId, listId);
-        setActiveId(next.activeId);
-        return next.tabs;
-      });
-    },
-    [activeId],
-  );
 
   return (
     <div className="dash-shell">
@@ -61,7 +31,8 @@ export function DashboardWorkspace({
         activeId={activeId}
         onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
         onCloseMobile={() => setMobileNavOpen(false)}
-        onOpenList={openList}
+        onOpenList={setActiveId}
+        onLogout={onLogout}
       />
 
       <div className="dash-main">
@@ -90,12 +61,6 @@ export function DashboardWorkspace({
               Home
             </button>
           </div>
-          <DashboardTabStrip
-            tabs={tabs}
-            activeId={activeId}
-            onSelect={selectTab}
-            onClose={closeTab}
-          />
           <button
             type="button"
             className="dash-logout-btn focus-ring-light"
@@ -106,7 +71,11 @@ export function DashboardWorkspace({
         </header>
 
         <div className="dash-content">
-          <DashboardListPanel listId={activeId} />
+          {activeId === "email-membership-followup" ? (
+            <DashboardEmailTemplatePanel />
+          ) : (
+            <DashboardListPanel listId={activeId} />
+          )}
         </div>
       </div>
     </div>

@@ -11,7 +11,8 @@ export type DashboardListId =
   | "master-members"
   | "master-events"
   | "payment-review-membership"
-  | "payment-review-donations";
+  | "payment-review-donations"
+  | "email-membership-followup";
 
 export const DASHBOARD_LISTS: Array<{
   id: DashboardListId;
@@ -30,9 +31,11 @@ export const DASHBOARD_LISTS: Array<{
   { id: "master-events", title: "Events", sheetTab: "" },
   // Current-year Membership sheet tab (e.g. "2026") — PAID OR NOT lives here.
   { id: "payment-review-membership", title: "Payments", sheetTab: "", source: "membership" },
-  // Current-year "<year>-Income" tab on the Finance sheet — every inbound
-  // Interac payment (donations, grants, membership) the pipeline logs.
-  { id: "payment-review-donations", title: "Donations", sheetTab: "", source: "finance" },
+  // Separate donor spreadsheet — auto-created if the "Donations" tab is missing.
+  { id: "payment-review-donations", title: "Donations", sheetTab: "Donations", source: "donor" },
+  // Not a row grid — rendered by its own panel. Backed by the "Membership Email"
+  // tab that Membershipfollowup.gs reads via mbReadTemplate().
+  { id: "email-membership-followup", title: "Follow-up Email", sheetTab: "Membership Email", source: "membership" },
 ];
 
 /** Sheet tabs already claimed by another list above — excluded from the Events dropdown. */
