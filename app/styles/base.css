@@ -591,7 +591,7 @@ textarea,
 
 .skip-link:focus {
   position: fixed;
-  top: max(1rem, var(--safe-top));
+  top: calc(max(1rem, var(--safe-top)) + var(--announcement-bar-height));
   left: max(1rem, var(--safe-left));
   z-index: 100;
   width: auto;

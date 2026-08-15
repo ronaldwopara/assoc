@@ -277,7 +277,7 @@ function GalleryModal({
               type="button"
               onClick={() => setDrawerOpen(false)}
               aria-label="Close details"
-              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-(--yellow) transition-colors hover:bg-black/5 hover:text-(--yellow-dark) lg:hidden"
+              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-(--ink)/70 transition-colors hover:bg-black/5 hover:text-(--ink) lg:hidden"
             >
               <X size={20} />
             </button>

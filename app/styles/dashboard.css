@@ -14,8 +14,13 @@
 
 .dash-page {
   height: 100dvh;
+  /* The dashboard has no site header of its own, but the announcement bar is
+     fixed + global — without this offset it renders on top of (covers) the
+     dashboard's own top row instead of sitting above it. */
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--announcement-bar-height));
   overflow: hidden;
   background: var(--cream-light);
+  box-sizing: border-box;
 }
 
 .dash-shell {

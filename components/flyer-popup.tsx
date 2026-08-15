@@ -7,14 +7,25 @@ import { X } from "lucide-react";
 import type { PopupCmsData } from "@/lib/popup-cms/types";
 import { isPopupReady, normalizeFooterColor } from "@/lib/popup-cms/helpers";
 
-function isExternalHref(href: string): boolean {
+/** Resolves the CMS-entered button link to an actual href + whether it's external.
+ * Handles a link typed without a protocol (e.g. "asosc.ca/event" or
+ * "eventbrite.com/x") — without this, `new URL()` wrongly resolves a
+ * protocol-less value as a path relative to the homepage instead of an
+ * absolute URL, silently pointing the button at a broken same-site path. */
+function resolveButtonLink(rawHref: string): { href: string; external: boolean } {
+  const href = rawHref.trim();
+  if (!href) return { href: "", external: false };
+
+  // Anchors, mailto/tel, and site-relative paths are already well-formed.
+  if (/^(\/|#|mailto:|tel:)/i.test(href)) {
+    return { href, external: false };
+  }
+
+  const withProtocol = /^https?:\/\//i.test(href) ? href : `https://${href}`;
   try {
-    const url = new URL(href, "https://asosc.ca");
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.origin !== "https://asosc.ca"
-      : false;
+    return { href: withProtocol, external: new URL(withProtocol).origin !== "https://asosc.ca" };
   } catch {
-    return false;
+    return { href: withProtocol, external: true };
   }
 }
 
@@ -138,7 +149,8 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
 
   if (!mounted || !onHomepage || !ready || !open) return null;
 
-  const external = buttonHref ? isExternalHref(buttonHref) : false;
+  const resolvedButton = resolveButtonLink(buttonHref);
+  const external = resolvedButton.external;
   const footerColor = normalizeFooterColor(popup.footerColor);
 
   return createPortal(
@@ -188,7 +200,7 @@ export function FlyerPopup({ popup }: FlyerPopupProps) {
             style={{ backgroundColor: footerColor }}
           >
             <a
-              href={buttonHref}
+              href={resolvedButton.href}
               className="hero-cta-btn flyer-popup__cta inline-flex min-h-11 w-full items-center justify-center px-4 text-sm font-semibold text-black"
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }

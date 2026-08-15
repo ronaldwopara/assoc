@@ -286,7 +286,10 @@ function UpgradePageContentInner({
       <form
         onSubmit={login}
         className="mx-auto max-w-md rounded-2xl bg-white/70 px-6 py-8 shadow-sm"
-        style={{ marginTop: "max(2.5rem, calc(1.25rem + var(--safe-top)))" }}
+        style={{
+          marginTop:
+            "calc(max(2.5rem, calc(1.25rem + var(--safe-top))) + var(--announcement-bar-height, 0px))",
+        }}
       >
         <h1 className="text-2xl font-semibold text-(--ink)">Upgrade</h1>
         <p className="mt-2 text-sm text-(--ink)/70">
@@ -333,7 +336,10 @@ function UpgradePageContentInner({
   return (
     <div
       className="mx-auto max-w-4xl px-5 pb-8 sm:px-6 sm:pb-10"
-      style={{ paddingTop: "max(2rem, calc(1.25rem + var(--safe-top)))" }}
+      style={{
+        paddingTop:
+          "calc(max(2rem, calc(1.25rem + var(--safe-top))) + var(--announcement-bar-height, 0px))",
+      }}
     >
       {!activeTool ? (
         <>

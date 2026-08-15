@@ -73,14 +73,14 @@
 .mobile-nav-close {
   position: absolute;
   z-index: 2;
-  top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
+  top: calc(max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem)) + var(--announcement-bar-height));
   right: max(1rem, env(safe-area-inset-right, 0px));
 }
 
 .mobile-nav-content {
   position: relative;
   z-index: 1;
-  padding-top: max(5rem, calc(env(safe-area-inset-top, 0px) + var(--navbar-height)));
+  padding-top: calc(max(5rem, calc(env(safe-area-inset-top, 0px) + var(--navbar-height))) + var(--announcement-bar-height));
   padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
   padding-left: max(2rem, env(safe-area-inset-left, 0px));
   padding-right: max(2rem, env(safe-area-inset-right, 0px));

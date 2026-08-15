@@ -25,7 +25,7 @@
  */
 .stacked-card-pin {
   position: sticky;
-  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px));
+  top: calc(var(--navbar-height) + env(safe-area-inset-top, 0px) + var(--announcement-bar-height));
   width: 100%;
   max-width: 1100px;
   flex-shrink: 0;
