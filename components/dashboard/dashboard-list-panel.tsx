@@ -42,14 +42,31 @@ const EVENTS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
   { label: "Phone Number", match: /phone/i },
 ];
 
+/** Vendor form name is "Full Name (First & Last)"; volunteer is just "Name".
+ *  The extra `(\s*\(.*\))?` keeps "Business or Organization Name" out. */
+const NAME_HEADER = /^(full\s*)?name(\s*\(.*\))?$/i;
+
 /** Members shows the same narrow field set as the Vendors tab — the rest of
  * the membership form's fields (address, age, spouse, etc.) stay hidden here. */
 const MEMBERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
   { label: "Timestamp", match: /^(timestamp|entry\s*date)$/i },
-  { label: "Full Name", match: /^(full\s*)?name$/i },
+  { label: "Full Name", match: NAME_HEADER },
   { label: "Email", match: /email/i },
   { label: "Phone Number", match: /phone/i },
   { label: "Paid or Not", match: /^paid or not$/i },
+];
+
+const VENDORS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
+  { label: "Full Name", match: NAME_HEADER },
+  { label: "Email", match: /email/i },
+  { label: "Phone Number", match: /phone/i },
+  { label: "Paid or Not", match: /^paid or not$/i },
+];
+
+const VOLUNTEERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
+  { label: "Full Name", match: NAME_HEADER },
+  { label: "Email", match: /email/i },
+  { label: "Phone Number", match: /phone/i },
 ];
 
 /** Narrows headers down to a curated set, in that set's order, skipping any
@@ -69,7 +86,7 @@ function canonicalColumns(
 }
 
 /** Which sheet columns to show, and under what label — full set for every
- * list except Events and Members, which are narrowed to a curated set. */
+ * list except Events, Members, Vendors, and Volunteers, which are narrowed. */
 function getVisibleColumns(
   listId: DashboardListId,
   headers: string[],
@@ -79,6 +96,12 @@ function getVisibleColumns(
   }
   if (listId === "master-members") {
     return canonicalColumns(headers, MEMBERS_CANONICAL_COLUMNS, SECONDARY_FIELD);
+  }
+  if (listId === "master-vendor") {
+    return canonicalColumns(headers, VENDORS_CANONICAL_COLUMNS, SECONDARY_FIELD);
+  }
+  if (listId === "master-volunteer") {
+    return canonicalColumns(headers, VOLUNTEERS_CANONICAL_COLUMNS, SECONDARY_FIELD);
   }
   return headers.map((label, index) => ({ index, label }));
 }
@@ -108,11 +131,12 @@ function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: strin
 
 const CURRENT_YEAR = String(new Date().getFullYear());
 
-/** The three lists that cross-reference each other by email to show a "Sources" chip column. */
+/** Lists that cross-reference each other by email to show a "Sources" chip column. */
 const SOURCE_LISTS: Array<{ id: DashboardListId; label: string; source: string; tab: string }> = [
   { id: "master-list", label: "Master List", source: "master", tab: "Master List" },
-  { id: "master-volunteer", label: "Volunteers", source: "master", tab: "Volunteers" },
-  { id: "payment-review-membership", label: "Payments", source: "membership", tab: CURRENT_YEAR },
+  { id: "master-volunteer", label: "Volunteers", source: "volunteer", tab: "Sheet1" },
+  { id: "master-vendor", label: "Vendors", source: "vendor", tab: "Vendors" },
+  { id: "master-members", label: "Members", source: "membership", tab: CURRENT_YEAR },
 ];
 
 export function DashboardListPanel({ listId }: DashboardListPanelProps) {
@@ -156,12 +180,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     }
   }, [listId, eventTabs, selectedEvent]);
 
-  const activeTab =
-    listId === "master-events"
-      ? selectedEvent
-      : listId === "payment-review-membership"
-        ? CURRENT_YEAR
-        : meta.sheetTab;
+  const activeTab = listId === "master-events" ? selectedEvent : meta.sheetTab;
 
   const [rows, setRows] = useState<RowsResponse | null>(null);
   const [rowsError, setRowsError] = useState("");
@@ -248,15 +267,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     };
   }, [dateOpen]);
 
-  // Payments only ever shows confirmed-paid membership rows — other lists show everything.
-  const paidColumnIndex = useMemo(
-    () => (rows?.headers ?? []).findIndex((h) => h.trim().toLowerCase() === "paid or not"),
-    [rows],
-  );
-  const paidOnly = listId === "payment-review-membership" && paidColumnIndex !== -1;
-
-  // Master List, Volunteers, and Payments cross-reference each other by email to show
-  // a "Sources" chip column — which of the other two lists this same person is also in.
+  // Master List, Volunteers, Vendors, and Members cross-reference each other by
+  // email to show a "Sources" chip column — which of the other lists this person is also in.
   const showSources = SOURCE_LISTS.some((s) => s.id === listId);
   const [sourceEmailSets, setSourceEmailSets] = useState<Partial<Record<DashboardListId, Set<string>>>>({});
 
@@ -316,9 +328,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     const withRowNumbers = rows.rows.map((row, i) => ({ row, rowNumber: i + 2 }));
     const q = query.trim().toLowerCase();
     return withRowNumbers.filter(({ row }) => {
-      if (paidOnly && (row[paidColumnIndex] ?? "").trim().toLowerCase() !== "paid") {
-        return false;
-      }
       if (dateFilterActive && !rowMatchesDateFilter(row, dateColumnIndex, dateFrom, dateTo)) {
         return false;
       }
@@ -327,7 +336,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       if (textMatch) return true;
       return row.some((cell) => cellMatchesDateQuery(cell ?? "", query.trim()));
     });
-  }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive, paidOnly, paidColumnIndex]);
+  }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive]);
 
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<string[]>([]);

@@ -79,8 +79,9 @@ const VN = {
   MAX_PER_DAY: 25,
   CIRCUIT_BREAKER: 15,
 
-  NOTIFY_EMAIL: '',        // blank = the account running the script
-  REPLY_TO: '',
+  NOTIFY_EMAIL: 'support@asosc.ca',
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
 };
 
@@ -98,6 +99,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmVendors')
     .addItem('Status', 'showVendorStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingVendors')
     .addItem('First-time setup', 'setupVendors')
     .addToUi();
 }
@@ -211,7 +213,10 @@ function showVendorStatus() {
 function previewVendorAcks() {
   const pending = vnFindPending();
   const ui = SpreadsheetApp.getUi();
-  if (!pending.length) { ui.alert('No applications are waiting for a reply.'); return; }
+  if (!pending.length) {
+    ui.alert('No applications are waiting for a reply.\n\nIf people are already on the sheet, they may be frozen by setup. Use Allow emails for existing rows.');
+    return;
+  }
 
   const lines = pending.slice(0, 20).map(function (p) {
     return '  ' + (p.businessName || p.name) + '  <' + p.email + '>';
@@ -236,13 +241,11 @@ function sendVendorTestToMe() {
   };
 
   const body = vnRenderBody(t.body, sample);
-  MailApp.sendEmail({
+  vnSendMail({
     to: to,
     subject: '[TEST] ' + t.subject,
     body: body,
     htmlBody: buildBrandedEmail(body, t),
-    name: VN.FROM_NAME,
-    replyTo: VN.REPLY_TO || to,
   });
 
   vnSendNotification(sample, to);
@@ -333,13 +336,11 @@ function sendVendorAcks(manual) {
 
     try {
       const plain = vnRenderBody(t.body, p);
-      MailApp.sendEmail({
+      vnSendMail({
         to: p.email,
         subject: t.subject,
         body: plain,                              // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, t),
-        name: VN.FROM_NAME,
-        replyTo: VN.REPLY_TO || notifyTo,
       });
     } catch (err) {
       problems.push('VN-03 reply: ' + String(err).slice(0, 80));
@@ -537,6 +538,35 @@ function vnDefaultBody() {
 }
 
 // ============================================================ HELPERS
+
+function vnSendMail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: VN.FROM_NAME,
+    replyTo: opts.replyTo || VN.REPLY_TO,
+  });
+}
+
+function includeExistingVendors() {
+  const ui = SpreadsheetApp.getUi();
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VN.FORM_TAB);
+  if (!form) { ui.alert('VN-01 — Cannot find the ' + VN.FORM_TAB + ' tab.'); return; }
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes applications that were on the sheet before First-time setup. Rows already marked sent stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+  vnEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('vn_watermark', '0');
+  ui.alert(
+    'Existing rows can now be emailed.\n\nWaiting: ' + vnFindPending().length +
+    '.\nNext: Preview, then Send pending replies now.\nDo not run First-time setup again.'
+  );
+}
 
 function vnFormatPhone(digits) {
   const d = String(digits).replace(/\D/g, '');

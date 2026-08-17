@@ -3,11 +3,13 @@
 import type { DashboardSheetSource } from "@/lib/dashboard-sheets";
 
 export type DashboardListId =
+  | "overview"
   | "master-list"
   | "master-volunteer"
   | "master-vendor"
   | "master-guests"
   | "master-newsletter"
+  | "master-contact"
   | "master-members"
   | "master-events"
   | "payment-review-membership"
@@ -22,15 +24,18 @@ export const DASHBOARD_LISTS: Array<{
   /** Which spreadsheet this list reads/writes. Defaults to "master" when omitted. */
   source?: DashboardSheetSource;
 }> = [
+  // Landing tab — its own panel, not a row grid.
+  { id: "overview", title: "Overview", sheetTab: "" },
   { id: "master-list", title: "Master List", sheetTab: "Master List" },
-  { id: "master-volunteer", title: "Volunteers", sheetTab: "Volunteers" },
-  { id: "master-vendor", title: "Vendors", sheetTab: "Vendors" },
+  { id: "master-volunteer", title: "Volunteers", sheetTab: "Sheet1", source: "volunteer" },
+  { id: "master-vendor", title: "Vendors", sheetTab: "Vendors", source: "vendor" },
   { id: "master-guests", title: "Guests", sheetTab: "Guests" },
-  { id: "master-newsletter", title: "Newsletter", sheetTab: "Newsletter" },
+  { id: "master-newsletter", title: "Newsletter", sheetTab: "Newsletter", source: "newsletter" },
+  { id: "master-contact", title: "Contact", sheetTab: "Sheet1", source: "contact" },
   { id: "master-members", title: "Members", sheetTab: "ASOSC Membership Form 2025" },
   { id: "master-events", title: "Events", sheetTab: "" },
-  // Current-year Membership sheet tab (e.g. "2026") — PAID OR NOT lives here.
-  { id: "payment-review-membership", title: "Payments", sheetTab: "", source: "membership" },
+  // Interac inbox log — matching still writes Paid on Members / Donations / Vendors.
+  { id: "payment-review-membership", title: "Payments", sheetTab: "Interac Log", source: "interac" },
   // Separate donor spreadsheet — auto-created if the "Donations" tab is missing.
   { id: "payment-review-donations", title: "Donations", sheetTab: "Donations", source: "donor" },
   // Not a row grid — rendered by its own panel. Backed by the "Membership Email"

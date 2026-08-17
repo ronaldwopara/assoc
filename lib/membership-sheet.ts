@@ -101,7 +101,7 @@ function fieldForHeader(header: string, values: FormValues): string | null {
     case "Comments":
       return asString(values.comments);
     case "PAID OR NOT":
-      // Left blank — set by the Apps Script poller once an Interac/card payment is confirmed.
+      // Left blank — Vercel Interac cron marks this Paid once an e-Transfer from this email lands.
       return "";
     case INTERAC_EMAIL_HEADER: {
       const interacEmail = asString(values.interacEmail).trim();

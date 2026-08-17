@@ -64,8 +64,9 @@ const MB = {
   MAX_PER_DAY: 25,
   CIRCUIT_BREAKER: 15,
 
-  NOTIFY_EMAIL: '',
-  REPLY_TO: '',
+  NOTIFY_EMAIL: 'support@asosc.ca',
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
   PAID_VALUE: 'Paid',      // written by markExistingMembersPaid()
 };
@@ -84,6 +85,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmMembership')
     .addItem('Status', 'showMembershipStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingMembership')
     .addItem('Mark existing members as paid', 'markExistingMembersPaid')
     .addItem('First-time setup', 'setupMembership')
     .addToUi();
@@ -280,7 +282,10 @@ function showMembershipStatus() {
 function previewMembershipEmails() {
   const pending = mbFindPending();
   const ui = SpreadsheetApp.getUi();
-  if (!pending.length) { ui.alert('Nobody is waiting for a confirmation.'); return; }
+  if (!pending.length) {
+    ui.alert('Nobody is waiting for a confirmation.\n\nIf people are already on the sheet, they may be frozen by setup. Use Allow emails for existing rows.');
+    return;
+  }
 
   const lines = pending.slice(0, 20).map(function (p) {
     return '  ' + p.name + '  <' + p.email + '>  ' + mbMoney(p.amount) + '  ' + p.method;
@@ -308,13 +313,11 @@ function sendMembershipTestToMe() {
       category: s[0], amount: mbAmountFrom(s[0]), method: s[1], entryId: 0,
     };
     const body = mbRenderBody(t.body, p, t);
-    MailApp.sendEmail({
+    mbSendMail({
       to: to,
       subject: '[TEST ' + mbMoney(p.amount) + ' ' + s[1] + '] ' + t.subject,
       body: body,
       htmlBody: buildBrandedEmail(body, t),
-      name: MB.FROM_NAME,
-      replyTo: MB.REPLY_TO || to,
     });
   });
 
@@ -392,13 +395,11 @@ function sendMembershipEmails(manual) {
 
     try {
       const plain = mbRenderBody(t.body, p, t);
-      MailApp.sendEmail({
+      mbSendMail({
         to: p.email,
         subject: t.subject,
         body: plain,                              // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, t),
-        name: MB.FROM_NAME,
-        replyTo: MB.REPLY_TO || Session.getEffectiveUser().getEmail(),
       });
       // Mark immediately, so a crash on the next row cannot cause a resend.
       form.getRange(p.row, sentCol).setValue(new Date());
@@ -561,6 +562,35 @@ function mbDefaultPaymentBlock() {
 }
 
 // ============================================================ HELPERS
+
+function mbSendMail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: MB.FROM_NAME,
+    replyTo: opts.replyTo || MB.REPLY_TO,
+  });
+}
+
+function includeExistingMembership() {
+  const ui = SpreadsheetApp.getUi();
+  const form = mbFormSheet();
+  if (!form) { ui.alert('MB-01 — Cannot find a year tab such as 2026.'); return; }
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes members that were on the sheet before First-time setup. Rows already marked sent stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+  mbEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('mb_watermark', '0');
+  ui.alert(
+    'Existing rows can now be emailed.\n\nWaiting: ' + mbFindPending().length +
+    '.\nNext: Preview, then Send pending confirmations now.\nDo not run First-time setup again.'
+  );
+}
 
 /** Pulls the dollar figure out of a category label like "$30 CAD/year - ...". */
 function mbAmountFrom(categoryLabel) {

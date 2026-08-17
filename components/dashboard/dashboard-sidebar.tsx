@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   HandCoins,
   MailPlus,
+  LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
   X,
@@ -19,11 +20,13 @@ import type { DashboardListId } from "@/lib/dashboard-lists";
 import { DASHBOARD_LISTS } from "@/lib/dashboard-lists";
 
 const ICONS: Record<DashboardListId, typeof List> = {
+  overview: LayoutDashboard,
   "master-list": List,
   "master-volunteer": Users,
   "master-vendor": Store,
   "master-guests": Contact,
   "master-newsletter": Mail,
+  "master-contact": Mail,
   "master-members": IdCard,
   "master-events": Calendar,
   "payment-review-membership": BadgeCheck,

@@ -7,6 +7,7 @@
  */
 
 import type { DashboardSheetSource } from "@/lib/dashboard-sheets";
+import { E_TRANSFER_EMAIL } from "@/lib/payment-links";
 
 export type EmailFlowId = "donate" | "contact" | "newsletter" | "vendors" | "volunteer";
 
@@ -35,8 +36,8 @@ export interface FlowEmailSample {
   interests?: string;
 }
 
-const DONATE_ETRANSFER_TO = "info@asosc.ca";
-const NEWSLETTER_UNSUBSCRIBE_FALLBACK = "mailto:info@asosc.ca?subject=Unsubscribe%20from%20newsletter";
+const DONATE_ETRANSFER_TO = E_TRANSFER_EMAIL;
+const NEWSLETTER_UNSUBSCRIBE_FALLBACK = "mailto:support@asosc.ca?subject=Unsubscribe%20from%20newsletter";
 
 export const FLOW_META: Record<
   EmailFlowId,

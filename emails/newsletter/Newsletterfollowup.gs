@@ -54,9 +54,10 @@ const NL = {
   MAX_PER_DAY: 25,
   CIRCUIT_BREAKER: 15,
 
-  REPLY_TO: '',            // blank = the account running the script
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
-  UNSUBSCRIBE: 'mailto:info@asosc.ca?subject=Unsubscribe%20from%20newsletter',
+  UNSUBSCRIBE: 'mailto:support@asosc.ca?subject=Unsubscribe%20from%20newsletter',
 };
 
 // ============================================================ MENU
@@ -73,6 +74,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmNewsletter')
     .addItem('Status', 'showNewsletterStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingNewsletter')
     .addItem('First-time setup', 'setupNewsletter')
     .addToUi();
 }
@@ -194,7 +196,10 @@ function showNewsletterStatus() {
 function previewNewsletterConfirmations() {
   const pending = nlFindPending();
   const ui = SpreadsheetApp.getUi();
-  if (!pending.length) { ui.alert('Nobody is waiting for a confirmation.'); return; }
+  if (!pending.length) {
+    ui.alert('Nobody is waiting for a confirmation.\n\nIf people are already on the sheet, they may be frozen by setup. Use Allow emails for existing rows.');
+    return;
+  }
 
   const lines = pending.slice(0, 20).map(function (p) {
     return '  ' + p.name + '  <' + p.email + '>';
@@ -211,13 +216,11 @@ function sendNewsletterTestToMe() {
   const body = nlRenderBody(t.body, { name: 'Sample Subscriber', firstName: 'Sample' });
   t.unsubscribe = nlUnsubscribeFor(to, t.unsubscribe);
 
-  MailApp.sendEmail({
+  nlSendMail({
     to: to,
     subject: '[TEST] ' + t.subject,
     body: body,
     htmlBody: buildBrandedEmail(body, t),
-    name: NL.FROM_NAME,
-    replyTo: NL.REPLY_TO || to,
   });
   SpreadsheetApp.getUi().alert('Test sent to ' + to);
 }
@@ -295,13 +298,11 @@ function sendNewsletterConfirmations(manual) {
         preheader: t.preheader,
         unsubscribe: nlUnsubscribeFor(p.email, t.unsubscribe),
       };
-      MailApp.sendEmail({
+      nlSendMail({
         to: p.email,
         subject: t.subject,
         body: plain,                              // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, opts),
-        name: NL.FROM_NAME,
-        replyTo: NL.REPLY_TO || Session.getEffectiveUser().getEmail(),
       });
       // Mark immediately, so a crash on the next row cannot cause a resend.
       form.getRange(p.row, sentCol).setValue(new Date());
@@ -422,6 +423,35 @@ function nlDefaultBody() {
 }
 
 // ============================================================ HELPERS
+
+function nlSendMail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: NL.FROM_NAME,
+    replyTo: opts.replyTo || NL.REPLY_TO,
+  });
+}
+
+function includeExistingNewsletter() {
+  const ui = SpreadsheetApp.getUi();
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NL.FORM_TAB);
+  if (!form) { ui.alert('NL-01 — Cannot find the ' + NL.FORM_TAB + ' tab.'); return; }
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes subscribers that were on the sheet before First-time setup. Rows already marked sent stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+  nlEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('nl_watermark', '0');
+  ui.alert(
+    'Existing rows can now be emailed.\n\nWaiting: ' + nlFindPending().length +
+    '.\nNext: Preview, then Send pending confirmations now.\nDo not run First-time setup again.'
+  );
+}
 
 function nlColumnIndex(sheet, header) {
   const head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];

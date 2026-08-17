@@ -5,7 +5,9 @@ import { Menu } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardListPanel } from "@/components/dashboard/dashboard-list-panel";
+import { DashboardInteracPanel } from "@/components/dashboard/dashboard-interac-panel";
 import { DashboardEmailTemplatePanel } from "@/components/dashboard/dashboard-email-template-panel";
+import { DashboardOverviewPanel } from "@/components/dashboard/dashboard-overview-panel";
 
 interface DashboardWorkspaceProps {
   onBack: () => void;
@@ -21,7 +23,7 @@ export function DashboardWorkspace({
 }: DashboardWorkspaceProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeId, setActiveId] = useState<DashboardListId>("master-list");
+  const [activeId, setActiveId] = useState<DashboardListId>("overview");
 
   return (
     <div className="dash-shell">
@@ -71,8 +73,12 @@ export function DashboardWorkspace({
         </header>
 
         <div className="dash-content">
-          {activeId === "email-membership-followup" ? (
+          {activeId === "overview" ? (
+            <DashboardOverviewPanel />
+          ) : activeId === "email-membership-followup" ? (
             <DashboardEmailTemplatePanel />
+          ) : activeId === "payment-review-membership" ? (
+            <DashboardInteracPanel />
           ) : (
             <DashboardListPanel listId={activeId} />
           )}

@@ -12,7 +12,11 @@ import {
 
 /** Lists that carry a "PAID OR NOT" status — self-healed onto the sheet the first time it's opened. */
 function needsPaidColumn(source: string, tab: string): boolean {
-  return (source === "master" && tab === "Vendors") || (source === "donor" && tab === "Donations");
+  if (source === "donor" && tab === "Donations") return true;
+  if (source === "vendor" && tab === "Vendors") return true;
+  if (source === "master" && tab === "Vendors") return true;
+  if (source === "membership") return true;
+  return false;
 }
 
 export async function GET(request: Request) {

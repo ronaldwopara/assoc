@@ -63,9 +63,10 @@ const DN = {
   CIRCUIT_BREAKER: 15,
 
   NOTIFY_EMAIL: '',        // blank = the account running the script
-  REPLY_TO: '',
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
-  ETRANSFER_TO: 'info@asosc.ca',
+  ETRANSFER_TO: 'payment@asosc.ca',
 };
 
 // ============================================================ MENU
@@ -74,6 +75,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Donation thanks')
     .addItem('Preview who would get an email', 'previewDonationThanks')
+    .addItem('Why rows are skipped', 'explainDonationSkips')
     .addItem('Send me a test copy', 'sendDonationTestToMe')
     .addSeparator()
     .addItem('Send pending thanks now', 'sendDonationFromMenu')
@@ -82,6 +84,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmDonations')
     .addItem('Status', 'showDonationStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingDonations')
     .addItem('First-time setup', 'setupDonations')
     .addToUi();
 }
@@ -209,8 +212,15 @@ function previewDonationThanks() {
   const pending = dnFindPending();
   const ui = SpreadsheetApp.getUi();
   if (!pending.length) {
-    ui.alert('No donations are waiting.\n\nIf donations are coming in but nothing ' +
-             'appears here, check that the form is sending donorEmail.');
+    const d = dnDiagnoseRows();
+    ui.alert(
+      'No donations are waiting.\n\n' +
+      (d.missing
+        ? d.missing
+        : 'Rows are on the sheet, but every one is skipped:\n\n' +
+          d.lines.slice(-12).join('\n') +
+          '\n\nIf you see "frozen by setup", use Donation thanks → Allow emails for existing rows.')
+    );
     return;
   }
   const lines = pending.slice(0, 20).map(function (p) {
@@ -220,6 +230,71 @@ function previewDonationThanks() {
     pending.length + ' waiting. The next run would email up to ' + DN.MAX_PER_RUN + ':\n\n' +
     lines.join('\n') + (pending.length > 20 ? '\n  ...and ' + (pending.length - 20) + ' more' : '')
   );
+}
+
+function explainDonationSkips() {
+  const d = dnDiagnoseRows();
+  const ui = SpreadsheetApp.getUi();
+  if (d.missing) {
+    ui.alert(d.missing);
+    return;
+  }
+  if (!d.lines.length) {
+    ui.alert('No donation rows yet.');
+    return;
+  }
+  ui.alert(
+    'Skipping entries 1 to ' + d.watermark + '.\n\n' +
+    d.lines.join('\n')
+  );
+}
+
+/**
+ * First-time setup freezes every Entry ID that already existed so old
+ * records never get a surprise email. That is why Preview is empty for
+ * Ronald's rows even though Donor Email is filled: they were already on
+ * the sheet when setup ran.
+ */
+function includeExistingDonations() {
+  const ui = SpreadsheetApp.getUi();
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DN.FORM_TAB);
+  if (!form) { ui.alert('DN-01 — Cannot find the ' + DN.FORM_TAB + ' tab.'); return; }
+
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes donations that were on the sheet before First-time setup. ' +
+    'Rows with no Donor Email, and rows already marked sent, stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+
+  dnEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('dn_watermark', '0');
+
+  const pending = dnFindPending();
+  ui.alert(
+    'Existing rows can now be emailed.\n\n' +
+    pending.length + ' donation(s) are waiting.\n\n' +
+    'Next: Preview, then Send pending thanks now.\n' +
+    'Do not run First-time setup again — that would freeze them once more.'
+  );
+}
+
+/**
+ * Headless variant for `clasp run`. SpreadsheetApp.getUi() is unavailable
+ * outside the sheet menu, so this skips every alert, unfreezes watermarked
+ * rows, and sends immediately.
+ */
+function claspUnfreezeAndSend() {
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DN.FORM_TAB);
+  if (!form) throw new Error('DN-01 — Cannot find the ' + DN.FORM_TAB + ' tab.');
+  dnEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('dn_watermark', '0');
+  const sent = sendDonationThanks(true);
+  return {
+    sent: sent,
+    stillWaiting: dnFindPending().length,
+  };
 }
 
 /** Sends both variants so you can compare the e-transfer and card wording. */
@@ -233,13 +308,11 @@ function sendDonationTestToMe() {
       amount: pair[1], method: pair[0], entryId: 0,
     };
     const body = dnRenderBody(t.body, sample, t);
-    MailApp.sendEmail({
+    dnSendDonorEmail({
       to: to,
       subject: '[TEST ' + pair[0] + '] ' + t.subject,
       body: body,
       htmlBody: buildBrandedEmail(body, t),
-      name: DN.FROM_NAME,
-      replyTo: DN.REPLY_TO || to,
     });
   });
 
@@ -316,13 +389,11 @@ function sendDonationThanks(manual) {
 
     try {
       const plain = dnRenderBody(t.body, p, t);
-      MailApp.sendEmail({
+      dnSendDonorEmail({
         to: p.email,
         subject: t.subject,
         body: plain,                              // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, t),
-        name: DN.FROM_NAME,
-        replyTo: DN.REPLY_TO || Session.getEffectiveUser().getEmail(),
       });
       // Mark immediately, so a crash on the next row cannot cause a resend.
       form.getRange(p.row, sentCol).setValue(new Date());
@@ -451,6 +522,73 @@ function dnDefaultCardBlock() {
 }
 
 // ============================================================ HELPERS
+
+/**
+ * Donor-facing mail. MailApp always sends from the script owner; replies go
+ * to support@asosc.ca. Do not pass GmailApp `from` unless that address is a
+ * Send-mail-as alias on the owner account — otherwise every send throws and
+ * nothing goes out.
+ */
+function dnSendDonorEmail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: DN.FROM_NAME,
+    replyTo: DN.REPLY_TO,
+  });
+}
+
+/** Why each existing row would or would not send. Used when Preview is empty. */
+function dnDiagnoseRows() {
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DN.FORM_TAB);
+  if (!form || form.getLastRow() < 2) {
+    return { missing: 'No donation rows yet.', lines: [], watermark: 0 };
+  }
+
+  const sentCol = dnColumnIndex(form, DN.SENT_COL_HEADER);
+  const emailCol = dnColumnIndex(form, DN.COL_EMAIL);
+  const entryCol = dnColumnIndex(form, DN.COL_ENTRY);
+  const nameCol = dnColumnIndex(form, DN.COL_NAME);
+  const watermark = Number(PropertiesService.getScriptProperties().getProperty('dn_watermark') || 0);
+
+  if (sentCol < 1) {
+    return {
+      missing: 'Missing a column headed exactly "' + DN.SENT_COL_HEADER +
+               '". Use Allow emails for existing rows (or First-time setup once), then try Preview again.',
+      lines: [],
+      watermark: watermark,
+    };
+  }
+  if (emailCol < 1) {
+    return { missing: 'Missing a column headed exactly "' + DN.COL_EMAIL + '".', lines: [], watermark: watermark };
+  }
+  if (entryCol < 1) {
+    return { missing: 'Missing a column headed exactly "' + DN.COL_ENTRY + '".', lines: [], watermark: watermark };
+  }
+
+  const values = form.getDataRange().getValues();
+  const lines = [];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const entryId = Number(row[entryCol - 1]);
+    const email = String(row[emailCol - 1] || '').trim();
+    const name = nameCol > 0 ? String(row[nameCol - 1] || '').trim() : '';
+    let reason = 'WAITING';
+
+    if (!email || email.indexOf('@') === -1) reason = 'no email — skipped';
+    else if (row[sentCol - 1]) reason = 'already marked sent';
+    else if (!Number.isFinite(entryId) || entryId <= 0) reason = 'bad Entry ID — skipped';
+    else if (entryId <= watermark) reason = 'frozen by setup (ID ' + entryId + ' <= ' + watermark + ')';
+
+    const label = Number.isFinite(entryId) && entryId > 0 ? String(entryId) : '?';
+    lines.push('#' + label + '  ' + (name || '(no name)') + '  —  ' + reason);
+  }
+
+  return { missing: '', lines: lines, watermark: watermark };
+}
 
 function dnMoney(n) {
   const v = Number(n);

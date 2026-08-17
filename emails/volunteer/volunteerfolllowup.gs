@@ -41,7 +41,8 @@ const FU = {
   MAX_PER_DAY: 25,
   CIRCUIT_BREAKER: 15,     // pending count above which we stop and ask a human
 
-  REPLY_TO: '',            // blank = the account running the script
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
 };
 
@@ -59,6 +60,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmFollowUps')
     .addItem('Status', 'showFollowUpStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingFollowUps')
     .addItem('First-time setup', 'setupFollowUps')
     .addToUi();
 }
@@ -178,7 +180,10 @@ function showFollowUpStatus() {
 function previewFollowUps() {
   const pending = findPending();
   const ui = SpreadsheetApp.getUi();
-  if (!pending.length) { ui.alert('Nobody is waiting for a follow-up.'); return; }
+  if (!pending.length) {
+    ui.alert('Nobody is waiting for a follow-up.\n\nIf people are already on the sheet, they may be frozen by setup. Use Allow emails for existing rows.');
+    return;
+  }
 
   const lines = pending.slice(0, 20).map(function (p) {
     return '  ' + p.name + '  <' + p.email + '>';
@@ -199,13 +204,11 @@ function sendFollowUpTestToMe() {
     interests: 'helping at events\nsetup and takedown',
   });
 
-  MailApp.sendEmail({
+  fuSendMail({
     to: to,
     subject: '[TEST] ' + t.subject,
     body: body,
     htmlBody: buildBrandedEmail(body, t),
-    name: FU.FROM_NAME,
-    replyTo: FU.REPLY_TO || to,
   });
   SpreadsheetApp.getUi().alert('Test sent to ' + to);
 }
@@ -284,13 +287,11 @@ function sendVolunteerFollowUps(manual) {
 
     try {
       const plain = renderBody(t.body, p);
-      MailApp.sendEmail({
+      fuSendMail({
         to: p.email,
         subject: t.subject,
         body: plain,                                   // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, t),
-        name: FU.FROM_NAME,
-        replyTo: FU.REPLY_TO || Session.getEffectiveUser().getEmail(),
       });
       // Mark immediately. If the script dies on the next row, this one is
       // still recorded and will not be sent again.
@@ -414,6 +415,35 @@ function defaultBody() {
 }
 
 // ============================================================ HELPERS
+
+function fuSendMail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: FU.FROM_NAME,
+    replyTo: opts.replyTo || FU.REPLY_TO,
+  });
+}
+
+function includeExistingFollowUps() {
+  const ui = SpreadsheetApp.getUi();
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FU.FORM_TAB);
+  if (!form) { ui.alert('VF-01 — Cannot find the ' + FU.FORM_TAB + ' tab.'); return; }
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes volunteers that were on the sheet before First-time setup. Rows already marked sent stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+  ensureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('fu_watermark', '0');
+  ui.alert(
+    'Existing rows can now be emailed.\n\nWaiting: ' + findPending().length +
+    '.\nNext: Preview, then Send pending follow-ups now.\nDo not run First-time setup again.'
+  );
+}
 
 function columnIndex(sheet, header) {
   const head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];

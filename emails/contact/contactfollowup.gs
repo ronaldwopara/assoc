@@ -53,8 +53,9 @@ const CT = {
   MAX_PER_DAY: 25,
   CIRCUIT_BREAKER: 15,
 
-  NOTIFY_EMAIL: '',        // blank = the account running the script
-  REPLY_TO: '',            // blank = the account running the script
+  NOTIFY_EMAIL: 'support@asosc.ca',
+  REPLY_TO: 'support@asosc.ca',
+  FROM_EMAIL: 'support@asosc.ca',
   FROM_NAME: 'ASOSC',
 
   ECHO_LIMIT: 600,         // chars of their message quoted back to them
@@ -74,6 +75,7 @@ function onOpen() {
     .addItem('Turn sending OFF', 'disarmContact')
     .addItem('Status', 'showContactStatus')
     .addSeparator()
+    .addItem('Allow emails for existing rows', 'includeExistingContact')
     .addItem('First-time setup', 'setupContact')
     .addToUi();
 }
@@ -190,7 +192,10 @@ function showContactStatus() {
 function previewContactReplies() {
   const pending = ctFindPending();
   const ui = SpreadsheetApp.getUi();
-  if (!pending.length) { ui.alert('No messages are waiting for a reply.'); return; }
+  if (!pending.length) {
+    ui.alert('No messages are waiting for a reply.\n\nIf people are already on the sheet, they may be frozen by setup. Use Allow emails for existing rows.');
+    return;
+  }
 
   const lines = pending.slice(0, 20).map(function (p) {
     return '  ' + p.name + '  <' + p.email + '>';
@@ -217,13 +222,11 @@ function sendContactTestToMe() {
   };
 
   const body = ctRenderBody(t.body, sample);
-  MailApp.sendEmail({
+  ctSendMail({
     to: to,
     subject: '[TEST] ' + t.subject,
     body: body,
     htmlBody: buildBrandedEmail(body, t),
-    name: CT.FROM_NAME,
-    replyTo: CT.REPLY_TO || to,
   });
 
   ctSendNotification(sample, to);
@@ -312,13 +315,11 @@ function sendContactReplies(manual) {
 
     try {
       const plain = ctRenderBody(t.body, p);
-      MailApp.sendEmail({
+      ctSendMail({
         to: p.email,
         subject: t.subject,
         body: plain,                              // fallback for text-only clients
         htmlBody: buildBrandedEmail(plain, t),
-        name: CT.FROM_NAME,
-        replyTo: CT.REPLY_TO || notifyTo,
       });
     } catch (err) {
       problems.push('CT-03 reply: ' + String(err).slice(0, 80));
@@ -462,6 +463,35 @@ function ctDefaultBody() {
 }
 
 // ============================================================ HELPERS
+
+function ctSendMail(opts) {
+  MailApp.sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    body: opts.body,
+    htmlBody: opts.htmlBody,
+    name: CT.FROM_NAME,
+    replyTo: opts.replyTo || CT.REPLY_TO,
+  });
+}
+
+function includeExistingContact() {
+  const ui = SpreadsheetApp.getUi();
+  const form = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CT.FORM_TAB);
+  if (!form) { ui.alert('CT-01 — Cannot find the ' + CT.FORM_TAB + ' tab.'); return; }
+  const res = ui.alert(
+    'Allow emails for rows that already exist?',
+    'This unfreezes messages that were on the sheet before First-time setup. Rows already marked sent stay skipped.\n\nContinue?',
+    ui.ButtonSet.YES_NO
+  );
+  if (res !== ui.Button.YES) return;
+  ctEnsureTrackingColumns(form);
+  PropertiesService.getScriptProperties().setProperty('ct_watermark', '0');
+  ui.alert(
+    'Existing rows can now be emailed.\n\nWaiting: ' + ctFindPending().length +
+    '.\nNext: Preview, then Send pending replies now.\nDo not run First-time setup again.'
+  );
+}
 
 function ctSubjectSnippet(message) {
   const m = String(message || '').replace(/\s+/g, ' ').trim();

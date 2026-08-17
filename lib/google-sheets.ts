@@ -58,6 +58,38 @@ async function googleApiFetch(url: string, accessToken: string) {
   return payload;
 }
 
+/**
+ * The Sheets API caps "Read requests per minute per user" (default 60). Staff switching
+ * dashboard tabs and matching Interac transfers can easily fire 20-30 reads in a few
+ * seconds since callers re-fetch the same tab repeatedly with no coordination. This is a
+ * short-TTL, per-process cache (+ in-flight de-dup) around raw reads to collapse bursts of
+ * identical requests without staff needing to notice stale data — 8s is short enough that
+ * a manual refresh always gets current numbers.
+ */
+const READ_CACHE_TTL_MS = 8000;
+const readCache = new Map<string, { expires: number; value: Promise<unknown> }>();
+
+function cachedRead<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const hit = readCache.get(key);
+  if (hit && hit.expires > now) return hit.value as Promise<T>;
+
+  const value = fetcher().catch((error) => {
+    readCache.delete(key);
+    throw error;
+  });
+  readCache.set(key, { expires: now + READ_CACHE_TTL_MS, value });
+  return value as Promise<T>;
+}
+
+/** Drop cached reads for a spreadsheet (or one tab) after a write so callers see fresh data. */
+function invalidateReadCache(spreadsheetId: string, tabTitle?: string) {
+  const prefix = tabTitle ? `${spreadsheetId}::values::${tabTitle}` : `${spreadsheetId}::`;
+  for (const key of readCache.keys()) {
+    if (key.startsWith(prefix)) readCache.delete(key);
+  }
+}
+
 export type DriveSpreadsheetSummary = {
   id: string;
   name: string;
@@ -105,29 +137,31 @@ export async function getSpreadsheetTabs(
   accessToken: string,
   spreadsheetId: string,
 ): Promise<{ title: string; tabs: SpreadsheetTab[] }> {
-  const url = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`);
-  url.searchParams.set("fields", "properties.title,sheets.properties");
+  return cachedRead(`${spreadsheetId}::tabs`, async () => {
+    const url = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`);
+    url.searchParams.set("fields", "properties.title,sheets.properties");
 
-  const payload = (await googleApiFetch(url.toString(), accessToken)) as {
-    properties?: { title?: string };
-    sheets?: Array<{
-      properties: {
-        title: string;
-        sheetId: number;
-        gridProperties?: { rowCount?: number; columnCount?: number };
-      };
-    }>;
-  };
+    const payload = (await googleApiFetch(url.toString(), accessToken)) as {
+      properties?: { title?: string };
+      sheets?: Array<{
+        properties: {
+          title: string;
+          sheetId: number;
+          gridProperties?: { rowCount?: number; columnCount?: number };
+        };
+      }>;
+    };
 
-  return {
-    title: payload.properties?.title ?? spreadsheetId,
-    tabs: (payload.sheets ?? []).map((sheet) => ({
-      title: sheet.properties.title,
-      sheetId: sheet.properties.sheetId,
-      rowCount: sheet.properties.gridProperties?.rowCount ?? 0,
-      columnCount: sheet.properties.gridProperties?.columnCount ?? 0,
-    })),
-  };
+    return {
+      title: payload.properties?.title ?? spreadsheetId,
+      tabs: (payload.sheets ?? []).map((sheet) => ({
+        title: sheet.properties.title,
+        sheetId: sheet.properties.sheetId,
+        rowCount: sheet.properties.gridProperties?.rowCount ?? 0,
+        columnCount: sheet.properties.gridProperties?.columnCount ?? 0,
+      })),
+    };
+  });
 }
 
 /** Raw row values for one tab (first row assumed to be headers). */
@@ -136,11 +170,13 @@ export async function getSheetValues(
   spreadsheetId: string,
   tabTitle: string,
 ): Promise<string[][]> {
-  const range = encodeURIComponent(tabTitle);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
+  return cachedRead(`${spreadsheetId}::values::${tabTitle}`, async () => {
+    const range = encodeURIComponent(tabTitle);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
 
-  const payload = (await googleApiFetch(url, accessToken)) as { values?: string[][] };
-  return payload.values ?? [];
+    const payload = (await googleApiFetch(url, accessToken)) as { values?: string[][] };
+    return payload.values ?? [];
+  });
 }
 
 /** Raw values for an explicit A1 range, e.g. "A1:B6". */
@@ -181,6 +217,7 @@ export async function updateSheetRange(
     const payload = await response.json().catch(() => null);
     throw new Error(payload?.error?.message || `Failed to update range (${response.status})`);
   }
+  invalidateReadCache(spreadsheetId, tabTitle);
 }
 
 /** Creates a tab with the given title if one doesn't already exist. */
@@ -211,6 +248,7 @@ export async function ensureSheetTab(
       throw new Error(payload?.error?.message || `Failed to create tab (${response.status})`);
     }
   }
+  readCache.delete(`${spreadsheetId}::tabs`);
 }
 
 /** Adds a "PAID OR NOT" header if the tab doesn't already have one (case-insensitive). */
@@ -248,6 +286,7 @@ export async function updateSheetRow(
     const payload = await response.json().catch(() => null);
     throw new Error(payload?.error?.message || `Failed to update row (${response.status})`);
   }
+  invalidateReadCache(spreadsheetId, tabTitle);
 }
 
 /** Append a new row at the end of the tab. Returns the 1-indexed row number it landed on. */
@@ -277,7 +316,22 @@ export async function appendSheetRow(
   const updatedRange = (payload as { updates?: { updatedRange?: string } })?.updates?.updatedRange ?? "";
   const match = updatedRange.match(/![A-Za-z]+(\d+)/);
   if (!match) throw new Error("Added the row but couldn't determine its row number");
+  invalidateReadCache(spreadsheetId, tabTitle);
   return Number(match[1]);
+}
+
+/** Overwrite a single cell. `row` and `column` are 1-indexed. */
+export async function updateSheetCell(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+  row: number,
+  column: number,
+  value: string,
+): Promise<void> {
+  await updateSheetRange(accessToken, spreadsheetId, tabTitle, `${columnLetter(column)}${row}`, [
+    [value],
+  ]);
 }
 
 function columnLetter(count: number): string {

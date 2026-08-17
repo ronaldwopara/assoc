@@ -157,7 +157,7 @@ function MembershipEmailEditor() {
 
       {!loading && loadError && (
         <div className="dash-empty">
-          <p>Couldn&rsquo;t load the email template.</p>
+          <p>Couldn&rsquo;t load the membership email template.</p>
           <p className="dash-muted">{loadError}</p>
         </div>
       )}
@@ -332,8 +332,13 @@ function FlowEmailEditor({ flow }: { flow: EmailFlowId }) {
 
       {!loading && loadError && (
         <div className="dash-empty">
-          <p>Couldn&rsquo;t load the email template.</p>
+          <p>Couldn&rsquo;t load the {meta.title} email template.</p>
           <p className="dash-muted">{loadError}</p>
+          {/is not configured/i.test(loadError) && (
+            <p className="dash-muted">
+              Set the missing spreadsheet id on Vercel (Production), redeploy, then reload.
+            </p>
+          )}
         </div>
       )}
 

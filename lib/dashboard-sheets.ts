@@ -8,7 +8,8 @@ export type DashboardSheetSource =
   | "volunteer"
   | "vendor"
   | "contact"
-  | "newsletter";
+  | "newsletter"
+  | "interac";
 
 const ENV_VAR_BY_SOURCE: Record<DashboardSheetSource, string> = {
   master: "GOOGLE_MASTER_SHEET_ID",
@@ -19,6 +20,7 @@ const ENV_VAR_BY_SOURCE: Record<DashboardSheetSource, string> = {
   vendor: "VENDOR_SHEET_ID",
   contact: "CONTACT_SHEET_ID",
   newsletter: "NEWSLETTER_SHEET_ID",
+  interac: "INTERAC_LOG_SHEET_ID",
 };
 
 const SOURCES = Object.keys(ENV_VAR_BY_SOURCE) as DashboardSheetSource[];
