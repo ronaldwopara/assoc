@@ -334,6 +334,28 @@ async function tokenForSheets() {
   return getAccessTokenForAccount();
 }
 
+/** Gmail's messages.list caps each page at 500 and a single call without a
+ * pageToken only returns its default page (100 unless maxResults says otherwise) —
+ * a plain single call with a small maxResults silently drops anything past that
+ * page with no error, which is how "recent transfers aren't showing up" happens
+ * once a mailbox has more matching mail than one page. Page through everything. */
+export async function listAllGmailMessageIds(
+  accessToken: string,
+  query: string,
+  maxPages = 20,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+  for (let page = 0; page < maxPages; page++) {
+    const path = `messages?q=${encodeURIComponent(query)}&maxResults=500${pageToken ? `&pageToken=${pageToken}` : ""}`;
+    const list = (await gmailFetch(accessToken, path)) as { messages?: Array<{ id: string }>; nextPageToken?: string };
+    ids.push(...(list.messages ?? []).map((m) => m.id));
+    if (!list.nextPageToken) break;
+    pageToken = list.nextPageToken;
+  }
+  return ids;
+}
+
 export async function gmailInboxes(): Promise<GmailSession[]> {
   const accounts = await listGoogleAccounts();
   if (accounts.length === 0) {
@@ -696,8 +718,8 @@ async function matchTransfer(
 async function loadSeen(
   accessToken: string,
   spreadsheetId: string,
+  headers: string[],
 ): Promise<{ ids: Set<string>; references: Set<string> }> {
-  const headers = await ensureLogHeaders(accessToken, spreadsheetId);
   const values = await getSheetValues(accessToken, spreadsheetId, LOG_TAB);
   const rows = values.slice(1);
   const idCol = headerIndex(headers, "gmail message id");
@@ -725,11 +747,11 @@ function isSeenMessage(ids: Set<string>, inbox: string, messageId: string): bool
 async function logResult(
   accessToken: string,
   spreadsheetId: string,
+  headers: string[],
   transfer: ParsedTransfer,
   matched: string,
   status: string,
 ) {
-  const headers = await ensureLogHeaders(accessToken, spreadsheetId);
   const fields = logFieldMap(transfer, matched, status);
   const values = headers.map((header) => fields[header.trim().toLowerCase()] ?? "");
   await appendSheetRow(accessToken, spreadsheetId, LOG_TAB, values);
@@ -936,7 +958,8 @@ export async function runInteracPayments(): Promise<InteracRunResult> {
   }
 
   const inboxes = await gmailInboxes();
-  const seen = await loadSeen(accessToken, logSheetId);
+  const logHeaders = await ensureLogHeaders(accessToken, logSheetId);
+  const seen = await loadSeen(accessToken, logSheetId, logHeaders);
   const sheets = await loadMatchTargets(accessToken);
   const transfers: ParsedTransfer[] = [];
   const result: InteracRunResult = {
@@ -959,13 +982,8 @@ export async function runInteracPayments(): Promise<InteracRunResult> {
 
   for (const inbox of inboxes) {
     try {
-      const list = await gmailFetch(
-        inbox.accessToken,
-        `messages?q=${encodeURIComponent(`from:${INBOUND_FROM}`)}&maxResults=40`,
-      );
-      const unseenIds = (list.messages ?? [])
-        .map((m) => m.id)
-        .filter((id) => !isSeenMessage(seen.ids, inbox.email, id));
+      const allIds = await listAllGmailMessageIds(inbox.accessToken, `from:${INBOUND_FROM}`);
+      const unseenIds = allIds.filter((id) => !isSeenMessage(seen.ids, inbox.email, id));
       result.scanned += unseenIds.length;
 
       for (const id of unseenIds) {
@@ -996,20 +1014,20 @@ export async function runInteracPayments(): Promise<InteracRunResult> {
   for (const transfer of transfers) {
     try {
       if (transfer.dkim === "fail") {
-        await logResult(accessToken, logSheetId, transfer, "", "Blocked — failed DKIM");
+        await logResult(accessToken, logSheetId, logHeaders, transfer, "", "Blocked — failed DKIM");
         result.skipped += 1;
         result.results.push({ email: transfer.email, amount: transfer.amount, matched: "", status: "blocked" });
         continue;
       }
       if (!transfer.email) {
-        await logResult(accessToken, logSheetId, transfer, "", "No Reply-To email");
+        await logResult(accessToken, logSheetId, logHeaders, transfer, "", "No Reply-To email");
         result.unmatched += 1;
         result.results.push({ email: "", amount: transfer.amount, matched: "", status: "no-email" });
         continue;
       }
       const matched = await matchTransfer(accessToken, sheets, transfer);
       const status = matched ? "Matched" : "Unmatched — no unpaid row for this email";
-      await logResult(accessToken, logSheetId, transfer, matched, status);
+      await logResult(accessToken, logSheetId, logHeaders, transfer, matched, status);
       if (matched) result.matched += 1;
       else result.unmatched += 1;
       result.results.push({ email: transfer.email, amount: transfer.amount, matched, status });

@@ -474,7 +474,7 @@ export function DashboardInteracPanel() {
 
       {isExpenseView && !expenseLoading && !expenseError && expenseLog && visibleExpenseRows.length > 0 && (
         <div className="dash-table-wrap">
-          <table className="dash-table">
+          <table className="dash-table dash-table--expenses">
             <thead>
               <tr>
                 {EXPENSE_COLUMNS.map((col) => (
@@ -564,7 +564,7 @@ export function DashboardInteracPanel() {
 
       {!isExpenseView && !loading && !loadError && log && visibleRows.length > 0 && (
         <div className="dash-table-wrap">
-          <table className="dash-table">
+          <table className="dash-table dash-table--transfers">
             <thead>
               <tr>
                 {LOG_COLUMNS.map((col) => (

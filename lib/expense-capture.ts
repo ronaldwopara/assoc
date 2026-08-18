@@ -30,6 +30,7 @@ import {
   gmailInboxes,
   header,
   headerIndex,
+  listAllGmailMessageIds,
   walkPlainText,
   type GmailMessage,
   type GmailPart,
@@ -239,8 +240,7 @@ async function captureDebits(
   seen: Set<string>,
   result: ExpenseRunResult,
 ) {
-  const list = await gmailFetch(inbox.accessToken, `messages?q=${encodeURIComponent(`from:${DEBIT_FROM}`)}&maxResults=40`);
-  const ids: string[] = (list.messages ?? []).map((m: { id: string }) => m.id);
+  const ids = await listAllGmailMessageIds(inbox.accessToken, `from:${DEBIT_FROM}`);
   for (const id of ids) {
     if (seen.has(id)) continue;
     result.scanned += 1;
@@ -293,8 +293,7 @@ async function captureVendorMail(
 ) {
   const senderQuery = SENDER_RULES.map((r) => `from:${r.test.source.replace(/\\\./g, ".")}`).join(" OR ");
   const query = `(${senderQuery} OR subject:invoice OR subject:receipt) -from:${DEBIT_FROM}`;
-  const list = await gmailFetch(inbox.accessToken, `messages?q=${encodeURIComponent(query)}&maxResults=40`);
-  const ids: string[] = (list.messages ?? []).map((m: { id: string }) => m.id);
+  const ids = await listAllGmailMessageIds(inbox.accessToken, query);
   for (const id of ids) {
     if (seen.has(id)) continue;
     result.scanned += 1;

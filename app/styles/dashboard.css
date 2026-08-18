@@ -671,6 +671,83 @@
   word-break: break-word;
 }
 
+/* table-layout:auto sizes each column by its widest cell across every row in the
+ * table — one long, unbreakable value (a long relay email address, say) blows that
+ * column out and squeezes its neighbors down to near-zero, which then wrap their
+ * own short text into dozens of lines. Fixed proportions + break-anywhere on every
+ * cell means no single value can do that again. Two variants because the
+ * e-Transfers table (7 cols) and the Expenses tables (6 cols) don't share a shape. */
+.dash-table--transfers,
+.dash-table--expenses {
+  table-layout: fixed;
+}
+
+.dash-table--transfers th,
+.dash-table--transfers td,
+.dash-table--expenses th,
+.dash-table--expenses td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Arrived, Inbox, Name, From, Amount, Memo, Actions */
+.dash-table--transfers th:nth-child(1),
+.dash-table--transfers td:nth-child(1) {
+  width: 13%;
+}
+.dash-table--transfers th:nth-child(2),
+.dash-table--transfers td:nth-child(2) {
+  width: 12%;
+}
+.dash-table--transfers th:nth-child(3),
+.dash-table--transfers td:nth-child(3) {
+  width: 14%;
+}
+.dash-table--transfers th:nth-child(4),
+.dash-table--transfers td:nth-child(4) {
+  width: 16%;
+}
+.dash-table--transfers th:nth-child(5),
+.dash-table--transfers td:nth-child(5) {
+  width: 9%;
+  white-space: nowrap;
+}
+.dash-table--transfers th:nth-child(6),
+.dash-table--transfers td:nth-child(6) {
+  width: 24%;
+}
+.dash-table--transfers th:nth-child(7),
+.dash-table--transfers td:nth-child(7) {
+  width: 12%;
+}
+
+/* Arrived, Payee, Amount, Description, Reference, Attachment */
+.dash-table--expenses th:nth-child(1),
+.dash-table--expenses td:nth-child(1) {
+  width: 14%;
+}
+.dash-table--expenses th:nth-child(2),
+.dash-table--expenses td:nth-child(2) {
+  width: 18%;
+}
+.dash-table--expenses th:nth-child(3),
+.dash-table--expenses td:nth-child(3) {
+  width: 9%;
+  white-space: nowrap;
+}
+.dash-table--expenses th:nth-child(4),
+.dash-table--expenses td:nth-child(4) {
+  width: 33%;
+}
+.dash-table--expenses th:nth-child(5),
+.dash-table--expenses td:nth-child(5) {
+  width: 14%;
+}
+.dash-table--expenses th:nth-child(6),
+.dash-table--expenses td:nth-child(6) {
+  width: 12%;
+}
+
 .dash-table th {
   position: sticky;
   top: 0;
