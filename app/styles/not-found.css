@@ -1,0 +1,93 @@
+/* 404 page — the "404" is filled with the same woven texture as the nav bar. */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  background: var(--cream-light);
+  padding-bottom: 5rem;
+  min-height: 70vh;
+}
+
+/* Clear the fixed header (beats the generic first-section rule in base.css). */
+.site-main > .section-shell.not-found:first-child {
+  /* Phones: --header-height excludes the announcement bar, so leave a larger minimum. */
+  padding-top: calc(var(--header-height) + clamp(4.5rem, 8vw, 5rem));
+}
+
+.not-found__code {
+  margin: 0;
+  font-size: clamp(7rem, 24vw, 15rem);
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--orange);
+  background-color: var(--orange);
+  background-image: var(--nav-texture-url);
+  background-size: calc(var(--nav-texture-size) / 2.5) auto;
+  background-position: center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  user-select: none;
+}
+
+.not-found__title {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.not-found__lede {
+  margin: 0 0 0.5rem;
+  max-width: 34rem;
+  font-size: var(--text-lg);
+  line-height: 1.55;
+  color: rgba(var(--ink-rgb), 0.75);
+  text-wrap: balance;
+}
+
+.not-found__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 0.625rem;
+  margin-top: 0.75rem;
+  max-width: 40rem;
+}
+
+.not-found__link {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(var(--ink-rgb), 0.18);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.not-found__link:hover {
+  border-color: var(--orange);
+  background-color: var(--cream);
+}
+
+.not-found__help {
+  margin: 0.75rem 0 0;
+  font-size: var(--text-sm);
+  color: rgba(var(--ink-rgb), 0.65);
+}
+
+.not-found__inline-link {
+  color: var(--orange-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found__link { transition: none; }
+}
