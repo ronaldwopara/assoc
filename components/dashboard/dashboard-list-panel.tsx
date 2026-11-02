@@ -14,7 +14,8 @@ import {
   ListFilter,
 } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
-import { NON_EVENT_TABS, listMeta } from "@/lib/dashboard-lists";
+import { listMeta } from "@/lib/dashboard-lists";
+import { MASTER_TABS } from "@/lib/master-sheet";
 import {
   cellMatchesDateQuery,
   defaultValueForDateHeader,
@@ -32,36 +33,24 @@ interface DashboardListPanelProps {
   listId: DashboardListId;
 }
 
-/** Event sign-up forms vary wildly in shape — this maps each one back onto
- * the same four columns every other list shows, so Events doesn't stick out. */
+/** Keeps a secondary person's fields (spouse, emergency contact…) out of the main Email/Phone slots. */
 const SECONDARY_FIELD = /spouse|emergency|guardian|parent|child/i;
-const EVENTS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
-  { label: "Timestamp", match: /^(timestamp|entry\s*date)$/i },
-  { label: "Full Name", match: /^(full\s*)?name$/i },
-  { label: "Email", match: /email/i },
-  { label: "Phone Number", match: /phone/i },
-];
 
 /** Vendor form name is "Full Name (First & Last)"; volunteer is just "Name".
  *  The extra `(\s*\(.*\))?` keeps "Business or Organization Name" out. */
 const NAME_HEADER = /^(full\s*)?name(\s*\(.*\))?$/i;
 
-/** Members shows the same narrow field set as the Vendors tab — the rest of
- * the membership form's fields (address, age, spouse, etc.) stay hidden here. */
-const MEMBERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
-  { label: "Timestamp", match: /^(timestamp|entry\s*date)$/i },
-  { label: "Full Name", match: NAME_HEADER },
-  { label: "Email", match: /email/i },
-  { label: "Phone Number", match: /phone/i },
-  { label: "Paid or Not", match: /^paid or not$/i },
-];
-
 const VENDORS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
   { label: "Full Name", match: NAME_HEADER },
   { label: "Email", match: /email/i },
   { label: "Phone Number", match: /phone/i },
-  { label: "Paid or Not", match: /^paid or not$/i },
+  { label: "Paid", match: /^paid$/i },
+  // Approving a vendor (with a Fee) sends the approval email and starts fee reminders.
+  { label: "Status", match: /^status$/i },
+  { label: "Fee", match: /^fee$/i },
 ];
+
+const VENDOR_STATUSES = ["Pending", "Approved", "Declined"];
 
 const VOLUNTEERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
   { label: "Full Name", match: NAME_HEADER },
@@ -86,17 +75,11 @@ function canonicalColumns(
 }
 
 /** Which sheet columns to show, and under what label — full set for every
- * list except Events, Members, Vendors, and Volunteers, which are narrowed. */
+ * list except Vendors and Volunteers, which are narrowed. */
 function getVisibleColumns(
   listId: DashboardListId,
   headers: string[],
 ): Array<{ index: number; label: string }> {
-  if (listId === "master-events") {
-    return canonicalColumns(headers, EVENTS_CANONICAL_COLUMNS, SECONDARY_FIELD);
-  }
-  if (listId === "master-members") {
-    return canonicalColumns(headers, MEMBERS_CANONICAL_COLUMNS, SECONDARY_FIELD);
-  }
   if (listId === "master-vendor") {
     return canonicalColumns(headers, VENDORS_CANONICAL_COLUMNS, SECONDARY_FIELD);
   }
@@ -129,32 +112,25 @@ function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: strin
   return `Nothing in “${tab}” matches.`;
 }
 
-const CURRENT_YEAR = String(new Date().getFullYear());
-
 /** Lists that cross-reference each other by email to show a "Sources" chip column. */
-const SOURCE_LISTS: Array<{ id: DashboardListId; label: string; source: string; tab: string }> = [
-  { id: "master-list", label: "Master List", source: "master", tab: "Master List" },
-  { id: "master-volunteer", label: "Volunteers", source: "volunteer", tab: "Sheet1" },
-  { id: "master-vendor", label: "Vendors", source: "vendor", tab: "Vendors" },
-  { id: "master-members", label: "Members", source: "membership", tab: CURRENT_YEAR },
+const SOURCE_LISTS: Array<{ id: DashboardListId; label: string; tab: string }> = [
+  { id: "master-list", label: "Master List", tab: MASTER_TABS.masterList },
+  { id: "master-volunteer", label: "Volunteers", tab: MASTER_TABS.volunteers },
+  { id: "master-vendor", label: "Vendors", tab: MASTER_TABS.vendors },
 ];
 
 export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const meta = listMeta(listId);
-  const source = meta.source ?? "master";
 
   const [tabsInfo, setTabsInfo] = useState<TabsResponse | null>(null);
   const [tabsError, setTabsError] = useState("");
-  const [selectedEvent, setSelectedEvent] = useState("");
 
-  // Loaded once per source — powers the Events dropdown and every list's "Open in Sheets" link.
+  // Loaded once — powers every list's "Open in Sheets" link.
   useEffect(() => {
     let cancelled = false;
-    // Clear immediately so a stale tab list from the previous source (e.g. another
-    // spreadsheet) can't be used to compute eventTabs/auto-select while this loads.
     setTabsInfo(null);
     setTabsError("");
-    fetch(`/api/dashboard/sheet-tabs?source=${encodeURIComponent(source)}`)
+    fetch("/api/dashboard/sheet-tabs")
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -167,20 +143,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [source]);
+  }, []);
 
-  const eventTabs = useMemo(
-    () => (tabsInfo?.tabs ?? []).filter((t) => !NON_EVENT_TABS.has(t.title)),
-    [tabsInfo],
-  );
-
-  useEffect(() => {
-    if (listId === "master-events" && !selectedEvent && eventTabs.length > 0) {
-      setSelectedEvent(eventTabs[0].title);
-    }
-  }, [listId, eventTabs, selectedEvent]);
-
-  const activeTab = listId === "master-events" ? selectedEvent : meta.sheetTab;
+  const activeTab = meta.sheetTab;
 
   const [rows, setRows] = useState<RowsResponse | null>(null);
   const [rowsError, setRowsError] = useState("");
@@ -199,7 +164,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     setLoading(true);
     setRowsError("");
     fetch(
-      `/api/dashboard/sheet-rows?tab=${encodeURIComponent(tab)}&source=${encodeURIComponent(source)}`,
+      `/api/dashboard/sheet-rows?tab=${encodeURIComponent(tab)}`,
       { cache: "no-store" },
     )
       .then((res) => res.json())
@@ -214,7 +179,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       .finally(() => {
         if (!signal?.cancelled) setLoading(false);
       });
-  }, [source]);
+  }, []);
 
   useEffect(() => {
     setQuery("");
@@ -267,7 +232,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     };
   }, [dateOpen]);
 
-  // Master List, Volunteers, Vendors, and Members cross-reference each other by
+  // Master List, Volunteers, and Vendors cross-reference each other by
   // email to show a "Sources" chip column — which of the other lists this person is also in.
   const showSources = SOURCE_LISTS.some((s) => s.id === listId);
   const [sourceEmailSets, setSourceEmailSets] = useState<Partial<Record<DashboardListId, Set<string>>>>({});
@@ -281,7 +246,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     Promise.all(
       SOURCE_LISTS.filter((s) => s.id !== listId).map((s) =>
         fetch(
-          `/api/dashboard/sheet-rows?tab=${encodeURIComponent(s.tab)}&source=${encodeURIComponent(s.source)}`,
+          `/api/dashboard/sheet-rows?tab=${encodeURIComponent(s.tab)}`,
           { cache: "no-store" },
         )
           .then((res) => res.json())
@@ -368,7 +333,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       const res = await fetch("/api/dashboard/sheet-rows", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab: activeTab, rowNumber: editingRow, values: editValues, source }),
+        body: JSON.stringify({ tab: activeTab, rowNumber: editingRow, values: editValues }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed to save");
@@ -416,7 +381,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       const res = await fetch("/api/dashboard/sheet-rows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tab: activeTab, values: newRowValues, source }),
+        body: JSON.stringify({ tab: activeTab, values: newRowValues }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Failed to add row");
@@ -599,24 +564,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
               Refresh
             </button>
-            {listId === "master-events" && (
-              <label className="dash-select-wrap">
-                <span className="sr-only">Filter by event</span>
-                <select
-                  className="dash-select focus-ring-light"
-                  value={selectedEvent}
-                  onChange={(e) => setSelectedEvent(e.target.value)}
-                  disabled={eventTabs.length === 0}
-                >
-                  {eventTabs.length === 0 && <option value="">No event tabs found</option>}
-                  {eventTabs.map((tab) => (
-                    <option key={tab.title} value={tab.title}>
-                      {tab.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <button
               type="button"
               className="dash-action-btn focus-ring-light"
@@ -681,24 +628,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               <RefreshCw size={18} className={loading ? "dash-spin" : undefined} />
               Refresh
             </button>
-            {listId === "master-events" && (
-              <label className="dash-sheet-select-wrap" onClick={(e) => e.stopPropagation()}>
-                <span className="dash-sheet-select-label">Filter by event</span>
-                <select
-                  className="dash-select focus-ring-light"
-                  value={selectedEvent}
-                  onChange={(e) => setSelectedEvent(e.target.value)}
-                  disabled={eventTabs.length === 0}
-                >
-                  {eventTabs.length === 0 && <option value="">No event tabs found</option>}
-                  {eventTabs.map((tab) => (
-                    <option key={tab.title} value={tab.title}>
-                      {tab.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <button
               type="button"
               className="dash-sheet-action focus-ring-light"
@@ -844,6 +773,25 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                         <td key={col.index}>
                           {isTimestamp ? (
                             row[col.index] || "—"
+                          ) : listId === "master-vendor" && /^status$/i.test((rows.headers[col.index] ?? "").trim()) ? (
+                            <select
+                              className="dash-select focus-ring-light"
+                              aria-label="Vendor status"
+                              value={editValues[col.index] || "Pending"}
+                              onChange={(e) =>
+                                setEditValues((prev) => {
+                                  const next = [...prev];
+                                  next[col.index] = e.target.value;
+                                  return next;
+                                })
+                              }
+                            >
+                              {VENDOR_STATUSES.map((v) => (
+                                <option key={v} value={v}>
+                                  {v}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             <input
                               className="dash-cell-input focus-ring-light"
@@ -860,7 +808,13 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                         </td>
                       ) : (
                         <td key={col.index} className={emailColumns[col.index] ? "dash-cell-email" : undefined}>
-                          {row[col.index] || "—"}
+                          {listId === "master-vendor" && /^status$/i.test((rows.headers[col.index] ?? "").trim()) ? (
+                            <span className={`dash-status-chip dash-status-chip--${(row[col.index] || "pending").toLowerCase()}`}>
+                              {row[col.index] || "Pending"}
+                            </span>
+                          ) : (
+                            row[col.index] || "—"
+                          )}
                         </td>
                       );
                     })}

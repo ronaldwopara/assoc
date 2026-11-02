@@ -9,6 +9,8 @@ export const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/gmail.readonly",
+  // Sending follow-up emails and invoices from support@asosc.ca (lib/mailer.ts).
+  "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/spreadsheets",
 ] as const;

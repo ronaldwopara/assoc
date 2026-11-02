@@ -320,6 +320,28 @@ export async function appendSheetRow(
   return Number(match[1]);
 }
 
+/** Append several rows in one request (one write against the per-minute quota). */
+export async function appendSheetRows(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+  rows: string[][],
+): Promise<void> {
+  if (rows.length === 0) return;
+  const range = encodeURIComponent(tabTitle);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ values: rows }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || `Failed to add rows (${response.status})`);
+  }
+  invalidateReadCache(spreadsheetId, tabTitle);
+}
+
 /** Overwrite a single cell. `row` and `column` are 1-indexed. */
 export async function updateSheetCell(
   accessToken: string,

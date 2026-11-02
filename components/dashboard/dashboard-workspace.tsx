@@ -6,7 +6,8 @@ import type { DashboardListId } from "@/lib/dashboard-lists";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardListPanel } from "@/components/dashboard/dashboard-list-panel";
 import { DashboardInteracPanel } from "@/components/dashboard/dashboard-interac-panel";
-import { DashboardEmailTemplatePanel } from "@/components/dashboard/dashboard-email-template-panel";
+import { DashboardEmailsPanel } from "@/components/dashboard/dashboard-emails-panel";
+import { DashboardComposePanel } from "@/components/dashboard/dashboard-compose-panel";
 import { DashboardOverviewPanel } from "@/components/dashboard/dashboard-overview-panel";
 
 interface DashboardWorkspaceProps {
@@ -75,8 +76,10 @@ export function DashboardWorkspace({
         <div className="dash-content">
           {activeId === "overview" ? (
             <DashboardOverviewPanel />
-          ) : activeId === "email-membership-followup" ? (
-            <DashboardEmailTemplatePanel />
+          ) : activeId === "emails" ? (
+            <DashboardEmailsPanel />
+          ) : activeId === "compose" ? (
+            <DashboardComposePanel />
           ) : activeId === "payment-review-membership" ? (
             <DashboardInteracPanel />
           ) : (

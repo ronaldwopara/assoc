@@ -17,7 +17,7 @@
  * PDF rendered from the email itself, so there's always a saved copy backing the row.
  */
 
-import { resolveDashboardSheetId } from "@/lib/dashboard-sheets";
+import { MASTER_HEADERS, MASTER_TABS, masterSheetId } from "@/lib/master-sheet";
 import { findOrCreateFolder, uploadDriveFile } from "@/lib/google-drive";
 import {
   appendSheetRow,
@@ -35,24 +35,14 @@ import {
   type GmailMessage,
   type GmailPart,
   type GmailSession,
-} from "@/lib/interac-payments";
+} from "@/lib/gmail";
 import { formatTimestamp } from "@/lib/sheet-dates";
 import { renderEmailAsPdf } from "@/lib/pdf-receipt";
 
 export type ExpenseKind = "debit" | "invoice" | "receipt";
 
-const EXPENSE_TAB = "Expenses";
-const EXPENSE_HEADERS = [
-  "Logged At",
-  "Inbox",
-  "Gmail Message ID",
-  "Type",
-  "Payee",
-  "Amount",
-  "Description",
-  "Reference",
-  "Attachment Link",
-];
+const EXPENSE_TAB = MASTER_TABS.expenses;
+const EXPENSE_HEADERS = [...MASTER_HEADERS.expenses];
 
 const DEBIT_FROM = "catch@payments.interac.ca";
 const DEBIT_SUBJECT_OK = /successfully deposited|has accepted your transfer/i;
@@ -341,7 +331,7 @@ async function captureVendorMail(
 
 export async function runExpenseCapture(): Promise<ExpenseRunResult> {
   const { accessToken } = await getAccessTokenForAccount();
-  const spreadsheetId = resolveDashboardSheetId("interac");
+  const spreadsheetId = masterSheetId();
   const headers = await ensureExpenseHeaders(accessToken, spreadsheetId);
   const seen = await loadSeenExpenseIds(accessToken, spreadsheetId, headers);
 
@@ -364,7 +354,7 @@ export type ExpenseLog = {
 
 export async function getExpenseLog(kind?: ExpenseKind): Promise<ExpenseLog> {
   const { accessToken } = await getAccessTokenForAccount();
-  const spreadsheetId = resolveDashboardSheetId("interac");
+  const spreadsheetId = masterSheetId();
   const headers = await ensureExpenseHeaders(accessToken, spreadsheetId);
   const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);
   const rows = values.slice(1);

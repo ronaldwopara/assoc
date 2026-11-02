@@ -2,9 +2,9 @@
  * source is optional (an unconfigured spreadsheet just drops that slice) since not
  * every deployment has every sheet wired up. */
 
-import { resolveDashboardSheetId, type DashboardSheetSource } from "@/lib/dashboard-sheets";
 import { getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
-import { headerIndex, isPaid, loadMatchTargets, type PayableSheet } from "@/lib/interac-payments";
+import { headerIndex, isPaid } from "@/lib/gmail";
+import { MASTER_TABS, colIndex, masterSheetId } from "@/lib/master-sheet";
 import { parseSheetDate } from "@/lib/sheet-dates";
 
 export const DEFAULT_MONTHS_BACK = 6;
@@ -49,35 +49,31 @@ function toAmount(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function optionalSheetValues(
-  accessToken: string,
-  source: DashboardSheetSource,
-  tab: string,
-  errors: string[],
-): Promise<{ headers: string[]; rows: string[][] } | null> {
+type Sheet = { headers: string[]; rows: string[][] };
+
+function masterTab(accessToken: string, tab: string, errors: string[]): Promise<Sheet | null> {
   let spreadsheetId: string;
   try {
-    spreadsheetId = resolveDashboardSheetId(source);
-  } catch {
+    spreadsheetId = masterSheetId();
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
     return Promise.resolve(null);
   }
   return getSheetValues(accessToken, spreadsheetId, tab)
-    .then((values) => {
-      const [headers = [], ...rows] = values;
-      return { headers, rows };
-    })
+    .then(([headers = [], ...rows]) => ({ headers, rows }))
     .catch((error) => {
-      errors.push(`${source}/${tab}: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(`${tab}: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     });
 }
 
-function rosterStat(label: string, sheet: PayableSheet | null): RosterStat {
-  if (!sheet || sheet.paidCol < 0) return { label, paid: 0, unpaid: 0 };
+function rosterStat(label: string, sheet: Sheet | null, keep: (row: string[]) => boolean = () => true): RosterStat {
+  const paidCol = sheet ? colIndex(sheet.headers, "Paid") : -1;
+  if (!sheet || paidCol < 0) return { label, paid: 0, unpaid: 0 };
   let paid = 0;
   let unpaid = 0;
-  for (const row of sheet.rows) {
-    if (isPaid(String(row[sheet.paidCol] ?? ""))) paid += 1;
+  for (const row of sheet.rows.filter(keep)) {
+    if (isPaid(String(row[paidCol] ?? ""))) paid += 1;
     else unpaid += 1;
   }
   return { label, paid, unpaid };
@@ -92,32 +88,32 @@ export async function getOverview(monthsBack: number = DEFAULT_MONTHS_BACK): Pro
     months.map((m) => [m.key, { month: m.key, label: m.label, in: 0, out: 0 }]),
   );
 
-  const [interacLog, expensesLog, matchTargets, volunteers, newsletter, contacts] = await Promise.all([
-    optionalSheetValues(accessToken, "interac", "Interac Log", errors),
-    optionalSheetValues(accessToken, "interac", "Expenses", errors),
-    loadMatchTargets(accessToken).catch((error) => {
-      errors.push(error instanceof Error ? error.message : String(error));
-      return { membership: null, donation: null, vendor: null, master: null };
-    }),
-    optionalSheetValues(accessToken, "volunteer", "Sheet1", errors),
-    optionalSheetValues(accessToken, "newsletter", "Newsletter", errors),
-    optionalSheetValues(accessToken, "contact", "Sheet1", errors),
-  ]);
+  const [payments, expensesLog, masterList, donations, vendors, volunteers, newsletter, contacts] =
+    await Promise.all([
+      masterTab(accessToken, MASTER_TABS.payments, errors),
+      masterTab(accessToken, MASTER_TABS.expenses, errors),
+      masterTab(accessToken, MASTER_TABS.masterList, errors),
+      masterTab(accessToken, MASTER_TABS.donations, errors),
+      masterTab(accessToken, MASTER_TABS.vendors, errors),
+      masterTab(accessToken, MASTER_TABS.volunteers, errors),
+      masterTab(accessToken, MASTER_TABS.newsletter, errors),
+      masterTab(accessToken, MASTER_TABS.contact, errors),
+    ]);
 
   let matched = 0;
   let unmatched = 0;
   let totalIn = 0;
-  if (interacLog) {
-    const { headers, rows } = interacLog;
-    const dateCol = headerIndex(headers, "logged at");
-    const amountCol = headerIndex(headers, "amount");
-    const statusCol = headerIndex(headers, "status");
+  if (payments) {
+    const { headers, rows } = payments;
+    const dateCol = colIndex(headers, "Received");
+    const amountCol = colIndex(headers, "Amount");
+    const typeCol = colIndex(headers, "Type");
     for (const row of rows) {
       const amount = amountCol >= 0 ? toAmount(String(row[amountCol] ?? "")) : 0;
       totalIn += amount;
-      const status = statusCol >= 0 ? String(row[statusCol] ?? "") : "";
-      if (/unmatched/i.test(status)) unmatched += 1;
-      else matched += 1;
+      // "Matched" = we know what the payment was for.
+      if (typeCol >= 0 && String(row[typeCol] ?? "").trim()) matched += 1;
+      else unmatched += 1;
 
       const parsed = dateCol >= 0 ? parseSheetDate(String(row[dateCol] ?? "")) : null;
       if (!parsed) continue;
@@ -155,16 +151,20 @@ export async function getOverview(monthsBack: number = DEFAULT_MONTHS_BACK): Pro
     }
   }
 
+  const sourceCol = masterList ? colIndex(masterList.headers, "Source") : -1;
+  const isMember = (row: string[]) => sourceCol >= 0 && /^membership$/i.test(String(row[sourceCol] ?? "").trim());
+
   const rosters: RosterStat[] = [
-    rosterStat("Members", matchTargets.membership),
-    rosterStat("Donations", matchTargets.donation),
-    rosterStat("Vendors", matchTargets.vendor),
+    rosterStat("Members", masterList, isMember),
+    rosterStat("Donations", donations),
+    rosterStat("Vendors", vendors),
   ];
 
   const counts = [
-    { label: "Members", value: (matchTargets.membership?.rows.length ?? 0) },
+    { label: "Master List", value: masterList?.rows.length ?? 0 },
+    { label: "Members", value: masterList?.rows.filter(isMember).length ?? 0 },
     { label: "Volunteers", value: volunteers?.rows.length ?? 0 },
-    { label: "Vendors", value: matchTargets.vendor?.rows.length ?? 0 },
+    { label: "Vendors", value: vendors?.rows.length ?? 0 },
     { label: "Newsletter", value: newsletter?.rows.length ?? 0 },
     { label: "Contacts", value: contacts?.rows.length ?? 0 },
   ];

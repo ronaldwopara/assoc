@@ -9,95 +9,26 @@ import {
   membershipCategoryOptions,
   membershipSteps,
   newsletterSteps,
-  valuesToPayload,
   vendorSteps,
   volunteerSteps,
 } from "@/lib/join-community-forms";
 import type { FormDraft, FormDraftMap } from "@/lib/join-community-drafts";
 import { JOIN_ACTIONS, JOIN_SUCCESS_MESSAGES, joinActionFromSlug } from "@/lib/join-actions";
 import { renderMembershipCardPng } from "@/lib/membership-card-image";
+import { E_TRANSFER_EMAIL } from "@/lib/payment-links";
 
-const NEWSLETTER_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbzVF8QsexivXYnaGj6pvzThDl3sMTauPGAfzVuXOStQ1kYH8bXV2PyTmAMFKmF9lt3NWA/exec";
-
-const VENDOR_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbyeLzT4WE8mlM-Ya4fTdPH1xG0lWN0P3OFjBjexNXkM5MdyMBK5CMxJQC4am4DxQxoq_w/exec";
-
-const VOLUNTEER_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbyRP0rWt41S-vFPL9ItxnR_8hZninBTCrFHbyF7h04VjlpRCZjpE0BeD-a6tiufsv2eqg/exec";
-
-const CONTACT_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbwE4D-Q446q9jXgjHjJD-q07EVRWg6DSvEvGpKKZIGHXszFIdpc3f243jbYNWd6YA/exec";
-
-const DONATE_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbzhDyDeUjLnTQnfaevz5bt6dSQNj-FHnBs38mTX9vogj8zbtBvw4fUDyca-HvOBoBcP/exec";
-
-function postToAppsScript(endpoint: string, payload: Record<string, string>) {
-  return new Promise<void>((resolve) => {
-    try {
-      const body = JSON.stringify(payload);
-      const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
-
-      if (navigator.sendBeacon(endpoint, blob)) {
-        resolve();
-        return;
-      }
-
-      const frameName = `apps-script-submit-${Date.now()}`;
-      const iframe = document.createElement("iframe");
-      const form = document.createElement("form");
-
-      iframe.name = frameName;
-      iframe.style.display = "none";
-
-      form.method = "POST";
-      form.action = endpoint;
-      form.target = frameName;
-      form.style.display = "none";
-
-      Object.entries(payload).forEach(([name, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(iframe);
-      document.body.appendChild(form);
-      form.submit();
-
-      window.setTimeout(() => {
-        iframe.remove();
-        form.remove();
-      }, 2000);
-    } finally {
-      // Apps Script is cross-origin, so submission is intentionally fire-and-forget.
-      resolve();
-    }
+/** Posts a form to /api/forms/[kind] (writes to the master sheet). Membership and
+ *  donation responses carry a payment code, stashed on `values` so the success
+ *  screen (which receives this same object) can show it. */
+async function submitForm(kind: string, values: FormValues) {
+  const res = await fetch(`/api/forms/${kind}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
   });
-}
-
-async function handleNewsletterSubmit(values: FormValues) {
-  const payload = {
-    firstName: String(values.firstName ?? ""),
-    lastName: String(values.lastName ?? ""),
-    email: String(values.email ?? ""),
-    strathconaResident: String(values.strathconaResident ?? ""),
-  };
-  await postToAppsScript(NEWSLETTER_ENDPOINT, payload);
-}
-
-async function handleVendorSubmit(values: FormValues) {
-  await postToAppsScript(VENDOR_ENDPOINT, valuesToPayload(values));
-}
-
-async function handleVolunteerSubmit(values: FormValues) {
-  await postToAppsScript(VOLUNTEER_ENDPOINT, valuesToPayload(values));
-}
-
-async function handleContactSubmit(values: FormValues) {
-  await postToAppsScript(CONTACT_ENDPOINT, valuesToPayload(values));
+  const data = (await res.json().catch(() => ({}))) as { error?: string; paymentCode?: string };
+  if (!res.ok) throw new Error(data.error || "We couldn't send your form. Please try again.");
+  if (data.paymentCode) values.paymentCode = data.paymentCode;
 }
 
 async function uploadMembershipCard(values: FormValues): Promise<string | null> {
@@ -126,26 +57,13 @@ async function uploadMembershipCard(values: FormValues): Promise<string | null> 
 }
 
 async function handleMembershipSubmit(values: FormValues) {
-  const payload: FormValues = { ...values };
   try {
     const cardUrl = await uploadMembershipCard(values);
-    if (cardUrl) payload.membershipCardUrl = cardUrl;
+    if (cardUrl) values.membershipCardUrl = cardUrl;
   } catch {
     // Card image upload is best-effort — the membership submission must still go through.
   }
-
-  const res = await fetch("/api/membership/submit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    throw new Error("Couldn't record your membership. Please try again.");
-  }
-}
-
-async function handleDonateSubmit(values: FormValues) {
-  await postToAppsScript(DONATE_ENDPOINT, valuesToPayload(values));
+  await submitForm("membership", values);
 }
 
 const FORM_DEFAULTS: Record<string, FormValues> = {
@@ -170,19 +88,19 @@ const FORM_CONFIG: Record<
     steps: newsletterSteps,
     info: "Receive ASOSC news, events, and community updates by email.",
     submitLabel: "Subscribe",
-    onSubmit: handleNewsletterSubmit,
+    onSubmit: (values) => submitForm("newsletter", values),
   },
   volunteer: {
     steps: volunteerSteps,
     info: "Share your time and skills with the African community in Strathcona County.",
     submitLabel: "Submit",
-    onSubmit: handleVolunteerSubmit,
+    onSubmit: (values) => submitForm("volunteer", values),
   },
   donate: {
     steps: donateSteps,
     info: "Supports African community programs in Strathcona County.",
     submitLabel: "Donate",
-    onSubmit: handleDonateSubmit,
+    onSubmit: (values) => submitForm("donate", values),
   },
   membership: {
     steps: membershipSteps,
@@ -194,13 +112,13 @@ const FORM_CONFIG: Record<
     steps: vendorSteps,
     info: "Register to sell food, crafts, or services at ASOSC events.",
     submitLabel: "Submit Registration",
-    onSubmit: handleVendorSubmit,
+    onSubmit: (values) => submitForm("vendor", values),
   },
   contact: {
     steps: contactSteps,
     info: "Send a message to the ASOSC team — we typically reply within a few days.",
     submitLabel: "Send Message",
-    onSubmit: handleContactSubmit,
+    onSubmit: (values) => submitForm("contact", values),
   },
 };
 
@@ -264,6 +182,8 @@ export function JoinFormPanel({
         .join(" ")
     : "";
 
+  const successPaymentCode = successValues ? String(successValues.paymentCode ?? "") : "";
+
   const handleDownloadMembershipCard = async () => {
     const node = membershipCardRef.current;
     if (!node) return;
@@ -286,6 +206,16 @@ export function JoinFormPanel({
           <span className="guided-success__tick" />
         </div>
         <p className="guided-success__message">{successMessage || "Sent."}</p>
+        {successPaymentCode && (
+          <div className="guided-payment-code">
+            <p className="guided-payment-code__label">Your payment code</p>
+            <p className="guided-payment-code__value">{successPaymentCode}</p>
+            <p className="guided-payment-code__hint">
+              Paying by e-Transfer? Send it to {E_TRANSFER_EMAIL} and type{" "}
+              <strong>{successPaymentCode}</strong> in the message box so we can match your payment.
+            </p>
+          </div>
+        )}
         {membershipSuccessCategory && (
           <div className="w-full pt-1">
             <button

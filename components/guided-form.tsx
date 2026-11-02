@@ -735,8 +735,8 @@ function PaymentPanel({
             </button>
           </div>
           <p className="guided-payment__etransfer-hint">
-            Include &ldquo;{kind === "membership" ? "Membership" : "Donation"}&rdquo; in the
-            memo so we can match your payment.
+            After you submit, we&rsquo;ll give you a payment code to type in the e-Transfer
+            message so we can match your payment.
           </p>
         </div>
       )}

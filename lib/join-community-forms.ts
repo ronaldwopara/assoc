@@ -216,7 +216,7 @@ export const donateSteps: GuidedStep[] = [
     id: "payment",
     title: "How would you like to pay?",
     helper:
-      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include \"Donation\" in the memo so we can match your payment.",
+      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — you'll get a payment code to put in the message once you submit.",
     fields: [
       { type: "payment", kind: "donate" },
       { type: "hint", text: "Paying by e-Transfer? Send it from the email you gave us." },
@@ -441,7 +441,7 @@ export const membershipSteps: GuidedStep[] = [
     id: "payment",
     title: "How would you like to pay?",
     helper:
-      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — include \"Membership\" in the memo so we can match your payment.",
+      "Card is instant through Stripe. Prefer banking from home? Send an e-transfer — you'll get a payment code to put in the message once you submit.",
     fields: [
       { type: "payment", kind: "membership" },
       { type: "hint", text: "Paying by e-Transfer? Send it from the email you gave us." },

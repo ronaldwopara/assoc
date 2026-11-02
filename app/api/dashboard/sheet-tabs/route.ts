@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { isDashboardSheetSource, resolveDashboardSheetId } from "@/lib/dashboard-sheets";
+import { masterSheetId } from "@/lib/master-sheet";
 import { getAccessTokenForAccount, getSpreadsheetTabs } from "@/lib/google-sheets";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     if (!(await isUpgradeAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const sourceParam = new URL(request.url).searchParams.get("source") ?? "master";
-    if (!isDashboardSheetSource(sourceParam)) {
-      return NextResponse.json({ error: "Invalid source" }, { status: 400 });
-    }
-
-    const spreadsheetId = resolveDashboardSheetId(sourceParam);
+    const spreadsheetId = masterSheetId();
     const { accessToken } = await getAccessTokenForAccount();
     const { title, tabs } = await getSpreadsheetTabs(accessToken, spreadsheetId);
 

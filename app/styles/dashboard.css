@@ -1588,3 +1588,50 @@ button.dash-match-option {
 .dash-overview-note {
   font-size: 0.78em;
 }
+
+/* Email editor: event photo, attachments, recipients, send confirmation, progress */
+.dash-email-hint { font-family: inherit; font-size: 0.8125rem; line-height: 1.45; margin: 0; }
+.dash-email-textarea { font-family: inherit; resize: vertical; line-height: 1.5; }
+.dash-image-field { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.dash-image-thumb { width: 132px; height: 72px; object-fit: cover; border-radius: 0.375rem; border: 1px solid rgba(var(--ink-rgb), 0.15); }
+.dash-image-empty {
+  display: grid; place-items: center; width: 132px; height: 72px; font-size: 0.75rem; text-align: center; padding: 0.25rem;
+  border: 1px dashed rgba(var(--ink-rgb), 0.25); border-radius: 0.375rem;
+}
+.dash-image-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.dash-attachments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.375rem; }
+.dash-attachment {
+  display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.375rem 0.5rem;
+  border: 1px solid rgba(var(--ink-rgb), 0.12); border-radius: 0.5rem; background: #fff;
+}
+.dash-attachment a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: inherit; }
+.dash-recipients {
+  margin: 0; padding: 0.875rem 1rem 1rem; border: 1px solid rgba(var(--ink-rgb), 0.15); border-radius: 0.75rem;
+  display: flex; flex-direction: column; gap: 0.875rem; min-width: 0;
+}
+.dash-recipients legend { padding: 0 0.375rem; font-weight: 600; font-size: var(--text-sm); }
+.dash-recipient-lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.5rem 1rem; }
+.dash-check { display: flex; align-items: center; gap: 0.5rem; font-size: var(--text-sm); cursor: pointer; }
+.dash-check input { width: 1rem; height: 1rem; accent-color: var(--orange); }
+.dash-confirm {
+  padding: 0.875rem 1rem; border: 1px solid var(--orange); border-radius: 0.75rem; background: var(--cream-light);
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.dash-confirm p { margin: 0; }
+.dash-progress { display: flex; flex-direction: column; gap: 0.375rem; }
+.dash-progress-bar { height: 8px; border-radius: 999px; background: rgba(var(--ink-rgb), 0.1); overflow: hidden; }
+.dash-progress-bar span { display: block; height: 100%; background: var(--orange); transition: width 200ms ease; }
+@media (prefers-reduced-motion: reduce) { .dash-progress-bar span { transition: none; } }
+
+/* Vendor status chips */
+.dash-status-chip { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: rgba(var(--ink-rgb), 0.08); }
+.dash-status-chip--approved { background: #dcefdc; color: #1f5a2a; }
+.dash-status-chip--declined { background: #f6dede; color: #8a1f1f; }
+
+/* Reminder schedule card */
+.dash-reminders {
+  margin: 1rem 1.25rem 0; padding: 1rem; border: 1px solid rgba(var(--ink-rgb), 0.15); border-radius: 0.75rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.dash-reminder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.75rem; }
+.dash-reminder-grid input { width: 100%; }
