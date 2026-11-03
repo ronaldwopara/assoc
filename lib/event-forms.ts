@@ -110,7 +110,7 @@ export function readResponse(headers: string[], row: string[]) {
     return cells[i].a;
   };
 
-  let name = take(find(/^(full\s*)?name\b/i));
+  let name = take(find(/^(your\s+)?(full\s*)?name\b/i));
   if (!name) {
     name = [take(find(/first\s*name|name:\s*first/i)), take(find(/last\s*name|surname|name:\s*last/i))].filter(Boolean).join(" ");
   }
