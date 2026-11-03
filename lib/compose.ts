@@ -11,7 +11,7 @@ import { isPaid } from "@/lib/gmail";
 import { listEventForms } from "@/lib/event-forms";
 import { sendEmail, type EmailAttachment } from "@/lib/mailer";
 import { MASTER_TABS, colIndex, masterSheetId } from "@/lib/master-sheet";
-import { formatTimestamp } from "@/lib/sheet-dates";
+import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { SITE_ORIGIN, unsubscribedEmails, unsubscribeToken, unsubscribeUrl } from "@/lib/unsubscribe";
 
 export const RECIPIENT_LISTS = {
@@ -114,12 +114,20 @@ export async function resolveRecipients(opts: {
   const spreadsheetId = masterSheetId();
   const { accessToken } = await getAccessTokenForAccount();
   const byEmail = new Map<string, Recipient>();
-  const add = (email: string, name: string) => {
+  /** When each person's name was written: someone in several rows is greeted by the name they used most recently. */
+  const nameTime = new Map<string, number>();
+  const add = (email: string, name: string, when = -1) => {
     const e = email.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) return false;
-    if (!byEmail.has(e) || (!byEmail.get(e)!.name && name)) byEmail.set(e, { email: e, name: name.trim() });
+    const n = name.trim();
+    if (!byEmail.has(e)) byEmail.set(e, { email: e, name: "" });
+    if (n && (!byEmail.get(e)!.name || when > (nameTime.get(e) ?? -Infinity))) {
+      byEmail.get(e)!.name = n;
+      nameTime.set(e, when);
+    }
     return true;
   };
+  const rowTime = (headers: string[], row: string[]) => parseSheetDate(String(row[colIndex(headers, "Timestamp")] ?? ""))?.getTime() ?? -1;
 
   const tabs = [...new Set(opts.lists.map((l) => TAB_FOR[l]))];
   const values = new Map(
@@ -144,30 +152,31 @@ export async function resolveRecipients(opts: {
         if (opts.memberFilter === "paid" && !isP) continue;
         if (opts.memberFilter === "unpaid" && isP) continue;
       }
-      add(String(row[e] ?? ""), String(row[n] ?? ""));
+      add(String(row[e] ?? ""), String(row[n] ?? ""), rowTime(headers, row));
     }
   }
 
   const invalid: string[] = [];
   const typed: string[] = [];
   for (const { email, name } of parseTyped(opts.extra ?? "")) {
-    if (!add(email, name)) invalid.push(email);
+    // A name typed with the address always wins.
+    if (!add(email, name, name ? Number.MAX_SAFE_INTEGER : -1)) invalid.push(email);
     else typed.push(email.trim().toLowerCase());
   }
 
-  // Typed addresses come without a name; use the one we already have for them, so the email says "Hi Ada" not "Hi there".
-  if ([...byEmail.values()].some((r) => !r.name)) {
+  // Typed addresses come without a name: use the most recent one we have for them anywhere,
+  // so the email says "Hi Ronald" (latest sign-up) rather than "Hi there" or an old spelling.
+  const typedEmails = new Set(parseTyped(opts.extra ?? "").map((t) => t.email.trim().toLowerCase()));
+  if ([...typedEmails].some((e) => byEmail.has(e) && (nameTime.get(e) ?? -1) < Number.MAX_SAFE_INTEGER)) {
     const nameTabs = [MASTER_TABS.masterList, MASTER_TABS.volunteers, MASTER_TABS.registrations, MASTER_TABS.donations, MASTER_TABS.vendors, MASTER_TABS.newsletter, MASTER_TABS.contact];
     for (const tab of nameTabs) {
-      if (![...byEmail.values()].some((r) => !r.name)) break;
       const [headers = [], ...rows] = values.get(tab) ?? (await getSheetValues(accessToken, spreadsheetId, tab).catch(() => [] as string[][]));
       const e = colIndex(headers, "Email");
       const n = colIndex(headers, "Full Name");
       if (e < 0 || n < 0) continue;
       for (const row of rows) {
-        const r = byEmail.get(String(row[e] ?? "").trim().toLowerCase());
-        const name = String(row[n] ?? "").trim();
-        if (r && !r.name && name) r.name = name;
+        const email = String(row[e] ?? "").trim().toLowerCase();
+        if (typedEmails.has(email)) add(email, String(row[n] ?? ""), rowTime(headers, row));
       }
     }
   }
