@@ -737,8 +737,8 @@ export function DashboardComposePanel() {
                   }}
                   multiline
                   rows={3}
-                  placeholder="ada@example.com, kemi@example.com"
-                  hint="They get the real email, the same as a list would. They don't need to be on any list."
+                  placeholder={"ada@example.com, kemi@example.com\nor with a name: Ada Okafor <ada@example.com>"}
+                  hint="They get the real email, not a test, and don't need to be on any list. We use the name we have for them; for anyone new, add it like Ada Okafor <ada@example.com>."
                 />
               )}
               <div className="dash-count" role="status">

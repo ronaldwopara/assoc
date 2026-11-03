@@ -84,6 +84,23 @@ export async function audienceOptions(): Promise<{ volunteerFrom: Array<{ value:
   };
 }
 
+/**
+ * Addresses typed by hand: "ada@x.com, kemi@y.com", one per line, or with a
+ * name the way email apps write it: "Ada Okafor <ada@x.com>".
+ */
+export function parseTyped(text: string): Array<{ email: string; name: string }> {
+  const out: Array<{ email: string; name: string }> = [];
+  for (const part of text.split(/[,;\n]+/)) {
+    const named = part.match(/^\s*"?([^"<]*?)"?\s*<\s*([^>\s]+)\s*>\s*$/);
+    if (named) {
+      out.push({ email: named[2], name: named[1].trim() });
+      continue;
+    }
+    for (const word of part.split(/\s+/).filter(Boolean)) out.push({ email: word.replace(/^<|>$/g, ""), name: "" });
+  }
+  return out;
+}
+
 /** Deduped, valid, not-unsubscribed recipients for the chosen lists plus any typed addresses. */
 export async function resolveRecipients(opts: {
   lists: RecipientListId[];
@@ -133,9 +150,26 @@ export async function resolveRecipients(opts: {
 
   const invalid: string[] = [];
   const typed: string[] = [];
-  for (const raw of (opts.extra ?? "").split(/[\s,;]+/).filter(Boolean)) {
-    if (!add(raw, "")) invalid.push(raw);
-    else typed.push(raw.trim().toLowerCase());
+  for (const { email, name } of parseTyped(opts.extra ?? "")) {
+    if (!add(email, name)) invalid.push(email);
+    else typed.push(email.trim().toLowerCase());
+  }
+
+  // Typed addresses come without a name; use the one we already have for them, so the email says "Hi Ada" not "Hi there".
+  if ([...byEmail.values()].some((r) => !r.name)) {
+    const nameTabs = [MASTER_TABS.masterList, MASTER_TABS.volunteers, MASTER_TABS.registrations, MASTER_TABS.donations, MASTER_TABS.vendors, MASTER_TABS.newsletter, MASTER_TABS.contact];
+    for (const tab of nameTabs) {
+      if (![...byEmail.values()].some((r) => !r.name)) break;
+      const [headers = [], ...rows] = values.get(tab) ?? (await getSheetValues(accessToken, spreadsheetId, tab).catch(() => [] as string[][]));
+      const e = colIndex(headers, "Email");
+      const n = colIndex(headers, "Full Name");
+      if (e < 0 || n < 0) continue;
+      for (const row of rows) {
+        const r = byEmail.get(String(row[e] ?? "").trim().toLowerCase());
+        const name = String(row[n] ?? "").trim();
+        if (r && !r.name && name) r.name = name;
+      }
+    }
   }
 
   const unsubscribed = await unsubscribedEmails();
