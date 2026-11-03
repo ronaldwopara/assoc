@@ -6,7 +6,7 @@ import { Busy, Segmented } from "@/components/dashboard/ui";
 import { EmailField } from "@/components/dashboard/email-editor";
 import { parseSheetDate } from "@/lib/sheet-dates";
 
-type Invoice = {
+type Receipt = {
   number: string;
   date: string;
   payerName: string;
@@ -16,19 +16,15 @@ type Invoice = {
   messageId: string;
   status: string;
   sentAt: string;
-  dueDate?: string;
   paidOn?: string;
-  paid: boolean;
+  paidBy?: string;
   pdfUrl?: string;
 };
 
-type Filter = "all" | "waiting" | "paid" | "draft";
+type Filter = "all" | "sent" | "unsent";
+type ListResponse = { invoices?: Receipt[]; canSend?: boolean; sender?: string; error?: string };
 
-function statusOf(inv: Invoice): Exclude<Filter, "all"> {
-  return inv.paid ? "paid" : inv.status === "Sent" ? "waiting" : "draft";
-}
-
-type ListResponse = { invoices?: Invoice[]; canSend?: boolean; sender?: string; error?: string };
+const PAID_BY = ["Interac e-Transfer", "Cash", "Card", "Cheque"] as const;
 
 function money(value: string): string {
   const n = Number(String(value ?? "").replace(/[^0-9.]/g, ""));
@@ -41,7 +37,12 @@ function day(value?: string): string {
   return d ? d.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" }) : value;
 }
 
-/** Invoices sent (and their status), plus writing and emailing a new one. */
+function today(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Every receipt ASOSC has made (searchable, PDFs kept on Cloudinary), plus writing and emailing a new one. */
 export function DashboardInvoicesPanel() {
   const [data, setData] = useState<ListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,29 +57,28 @@ export function DashboardInvoicesPanel() {
       fetch("/api/dashboard/invoices", { cache: "no-store" })
         .then((r) => r.json() as Promise<ListResponse>)
         .then(setData)
-        .catch(() => setData({ error: "Couldn't load invoices" }))
+        .catch(() => setData({ error: "Couldn't load receipts" }))
         .finally(() => setLoading(false)),
     [],
   );
-  // Reload keeps the current list on screen (no blanking).
   const load = useCallback(() => void fetchList(), [fetchList]);
 
   useEffect(() => {
     void fetchList();
   }, [fetchList]);
 
-  const email = async (inv: Invoice) => {
-    setBusy(`send:${inv.number}`);
+  const email = async (r: Receipt) => {
+    setBusy(r.number);
     setNotice("");
     try {
       const res = await fetch("/api/dashboard/invoices/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ number: inv.number }),
+        body: JSON.stringify({ number: r.number }),
       });
       const d = (await res.json()) as { to?: string; error?: string };
       if (!res.ok || d.error) throw new Error(d.error || "Couldn't send");
-      setNotice(`${inv.number.startsWith("RCT") || inv.paid ? "Receipt" : "Invoice"} ${inv.number} emailed to ${d.to}.`);
+      setNotice(`Receipt ${r.number} emailed to ${d.to}.`);
       load();
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Couldn't send");
@@ -87,38 +87,19 @@ export function DashboardInvoicesPanel() {
     }
   };
 
-  const markPaid = async (inv: Invoice, paid: boolean) => {
-    setBusy(`paid:${inv.number}`);
-    setNotice("");
-    try {
-      const res = await fetch("/api/dashboard/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "paid", number: inv.number, paid }),
-      });
-      const d = (await res.json()) as { error?: string };
-      if (!res.ok || d.error) throw new Error(d.error || "Couldn't save");
-      load();
-    } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Couldn't save");
-    } finally {
-      setBusy("");
-    }
-  };
-
   const canSend = data?.canSend !== false;
   const all = data?.invoices ?? [];
+  const sent = (r: Receipt) => r.status === "Sent";
   const q = query.trim().toLowerCase();
-  const invoices = all.filter(
-    (inv) =>
-      (filter === "all" || statusOf(inv) === filter) &&
-      (!q || `${inv.number} ${inv.payerName} ${inv.payerEmail} ${inv.description} ${inv.amount}`.toLowerCase().includes(q)),
+  const receipts = all.filter(
+    (r) =>
+      (filter === "all" || (filter === "sent" ? sent(r) : !sent(r))) &&
+      (!q || `${r.number} ${r.payerName} ${r.payerEmail} ${r.description} ${r.amount}`.toLowerCase().includes(q)),
   );
-  const count = (f: Exclude<Filter, "all">) => all.filter((inv) => statusOf(inv) === f).length;
 
   if (writing) {
     return (
-      <NewInvoice
+      <NewReceipt
         canSend={canSend}
         sender={data?.sender ?? "support@asosc.ca"}
         onBack={() => setWriting(false)}
@@ -135,8 +116,8 @@ export function DashboardInvoicesPanel() {
     <div className="dash-panel">
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
-          <h2 className="dash-panel-title">Invoices &amp; receipts</h2>
-          <p className="dash-panel-sub">Every invoice and receipt ASOSC has made, with its PDF. Write a new invoice to email it.</p>
+          <h2 className="dash-panel-title">Receipts</h2>
+          <p className="dash-panel-sub">Every receipt ASOSC has made, with its PDF. Write a new one to email it.</p>
           {all.length > 0 && (
             <div className="dash-panel-tabs">
               <Segmented
@@ -145,9 +126,8 @@ export function DashboardInvoicesPanel() {
                 onChange={setFilter}
                 options={[
                   { value: "all", label: `All ${all.length}` },
-                  { value: "waiting", label: `Waiting for payment ${count("waiting")}` },
-                  { value: "paid", label: `Paid ${count("paid")}` },
-                  { value: "draft", label: `Not sent ${count("draft")}` },
+                  { value: "sent", label: `Emailed ${all.filter(sent).length}` },
+                  { value: "unsent", label: `Not emailed ${all.filter((r) => !sent(r)).length}` },
                 ]}
               />
             </div>
@@ -163,13 +143,13 @@ export function DashboardInvoicesPanel() {
                 placeholder="Search name, email or number…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search invoices and receipts"
+                aria-label="Search receipts"
               />
             </div>
           )}
           <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => setWriting(true)}>
             <Plus size={16} aria-hidden />
-            New invoice
+            New receipt
           </button>
         </div>
       </header>
@@ -178,7 +158,7 @@ export function DashboardInvoicesPanel() {
         {data && !canSend && (
           <div className="dash-notice">
             <span>
-              You can write invoices, but they can&rsquo;t be emailed until you sign in with <strong>{data.sender}</strong>.
+              You can write receipts, but they can&rsquo;t be emailed until you sign in with <strong>{data.sender}</strong>.
             </span>
             <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
               Sign in with {data.sender}
@@ -194,32 +174,32 @@ export function DashboardInvoicesPanel() {
         )}
         {data?.error && (
           <div className="dash-empty">
-            <p className="dash-empty-title">This page couldn&rsquo;t load</p>
+            <p className="dash-empty-title">Receipts couldn&rsquo;t load</p>
             <p className="dash-empty-text">{data.error}</p>
             <button type="button" className="dash-action-btn focus-ring-light" onClick={load}>
               Try again
             </button>
           </div>
         )}
-        {all.length > 0 && invoices.length === 0 && (
+        {all.length > 0 && receipts.length === 0 && (
           <div className="dash-empty">
-            <p className="dash-empty-title">Nothing matches</p>
-            <p className="dash-empty-text">Try a different name, email or invoice number.</p>
+            <p className="dash-empty-title">No receipts match</p>
+            <p className="dash-empty-text">Try a different name, email or receipt number.</p>
           </div>
         )}
         {data && !data.error && all.length === 0 && (
           <div className="dash-empty">
-            <p className="dash-empty-title">No invoices or receipts yet</p>
+            <p className="dash-empty-title">No receipts yet</p>
             <p className="dash-empty-text">
-              Invoices you write here, and receipts for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
+              Receipts you write here, and receipts for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
             </p>
             <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => setWriting(true)}>
-              Write an invoice
+              Write a receipt
             </button>
           </div>
         )}
 
-        {invoices.length > 0 && (
+        {receipts.length > 0 && (
           <div className="dash-table-wrap">
             <table className="dash-table">
               <thead>
@@ -227,43 +207,35 @@ export function DashboardInvoicesPanel() {
                   <th>Who</th>
                   <th>For</th>
                   <th>Amount</th>
-                  <th>Status</th>
+                  <th>Emailed</th>
                   <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.number}>
+                {receipts.map((r) => (
+                  <tr key={r.number}>
                     <td>
                       <span className="dash-invoice-who">
-                        <strong>{inv.payerName || inv.payerEmail}</strong>
+                        <strong>{r.payerName || r.payerEmail}</strong>
                         <span className="dash-cell-note">
-                          {inv.number.startsWith("RCT") ? "Receipt" : inv.paid ? "Paid invoice" : "Invoice"} {inv.number}, {day(inv.date)}
+                          {r.number}, paid {day(r.paidOn || r.date)}
                         </span>
                       </span>
                     </td>
-                    <td className="dash-td-memo">{inv.description}</td>
-                    <td>{money(inv.amount)}</td>
+                    <td className="dash-td-memo">{r.description}</td>
+                    <td>{money(r.amount)}</td>
                     <td>
-                      {inv.paid ? (
-                        <span className="dash-status-cell">
-                          <span className="dash-status-chip dash-status-chip--approved">Paid</span>
-                          {inv.paidOn && <span className="dash-cell-note">{day(inv.paidOn)}</span>}
-                        </span>
-                      ) : inv.status === "Sent" ? (
-                        <span className="dash-status-cell">
-                          <span className="dash-status-chip dash-status-chip--waiting">Waiting for payment</span>
-                          <span className="dash-cell-note">{inv.dueDate ? `Due ${day(inv.dueDate)}` : `Sent ${day(inv.sentAt)}`}</span>
-                        </span>
+                      {sent(r) ? (
+                        <span className="dash-status-chip dash-status-chip--approved">{day(r.sentAt) || "Emailed"}</span>
                       ) : (
-                        <span className="dash-status-chip">Not sent yet</span>
+                        <span className="dash-status-chip">Not yet</span>
                       )}
                     </td>
                     <td>
                       <span className="dash-row-buttons">
                         <a
                           className="dash-action-btn dash-action-btn--small focus-ring-light"
-                          href={inv.pdfUrl || `/api/dashboard/invoices/pdf?number=${encodeURIComponent(inv.number)}`}
+                          href={r.pdfUrl || `/api/dashboard/invoices/pdf?number=${encodeURIComponent(r.number)}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -272,31 +244,11 @@ export function DashboardInvoicesPanel() {
                         <button
                           type="button"
                           className="dash-action-btn dash-action-btn--small focus-ring-light"
-                          onClick={() => email(inv)}
+                          onClick={() => email(r)}
                           disabled={Boolean(busy) || !canSend}
                         >
-                          <Busy busy={busy === `send:${inv.number}`}>{inv.status === "Sent" ? "Email again" : "Email it"}</Busy>
+                          <Busy busy={busy === r.number}>{sent(r) ? "Email again" : "Email it"}</Busy>
                         </button>
-                        {!inv.paid && (
-                          <button
-                            type="button"
-                            className="dash-action-btn dash-action-btn--small focus-ring-light"
-                            onClick={() => markPaid(inv, true)}
-                            disabled={Boolean(busy)}
-                          >
-                            <Busy busy={busy === `paid:${inv.number}`}>Mark paid</Busy>
-                          </button>
-                        )}
-                        {inv.paid && !inv.messageId && (
-                          <button
-                            type="button"
-                            className="dash-text-btn focus-ring-light"
-                            onClick={() => markPaid(inv, false)}
-                            disabled={Boolean(busy)}
-                          >
-                            Not paid
-                          </button>
-                        )}
                       </span>
                     </td>
                   </tr>
@@ -310,9 +262,9 @@ export function DashboardInvoicesPanel() {
   );
 }
 
-type Draft = { name: string; email: string; description: string; amount: string; dueDate: string };
+type Draft = { name: string; email: string; description: string; amount: string; paidOn: string; paidBy: string };
 
-function NewInvoice({
+function NewReceipt({
   canSend,
   sender,
   onBack,
@@ -323,14 +275,21 @@ function NewInvoice({
   onBack: () => void;
   onDone: (message: string) => void;
 }) {
-  const [draft, setDraft] = useState<Draft>({ name: "", email: "", description: "", amount: "", dueDate: "" });
+  const [draft, setDraft] = useState<Draft>({
+    name: "",
+    email: "",
+    description: "",
+    amount: "",
+    paidOn: today(),
+    paidBy: "Interac e-Transfer",
+  });
   const [pdfUrl, setPdfUrl] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const urlRef = useRef("");
   const set = (k: keyof Draft) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
 
-  // Live PDF preview of the unsaved invoice.
+  // Live PDF preview of the unsaved receipt.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       fetch("/api/dashboard/invoices/preview", {
@@ -351,9 +310,12 @@ function NewInvoice({
     return () => window.clearTimeout(timer);
   }, [draft]);
 
-  useEffect(() => () => {
-    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    },
+    [],
+  );
 
   const ready = Boolean(draft.email.trim() && draft.description.trim() && Number(draft.amount.replace(/[^0-9.]/g, "")) > 0);
 
@@ -366,14 +328,14 @@ function NewInvoice({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "new", ...draft, send }),
       });
-      const d = (await res.json()) as { invoice?: Invoice; sent?: boolean; sendError?: string; error?: string };
+      const d = (await res.json()) as { invoice?: Receipt; sent?: boolean; sendError?: string; error?: string };
       if (!res.ok || !d.invoice) throw new Error(d.error || "Couldn't save");
       onDone(
         d.sent
-          ? `Invoice ${d.invoice.number} emailed to ${d.invoice.payerEmail}.`
+          ? `Receipt ${d.invoice.number} emailed to ${d.invoice.payerEmail}.`
           : d.sendError
-            ? `Invoice ${d.invoice.number} was saved but couldn't be emailed: ${d.sendError}`
-            : `Invoice ${d.invoice.number} saved. Email it from the list when you're ready.`,
+            ? `Receipt ${d.invoice.number} was saved but couldn't be emailed: ${d.sendError}`
+            : `Receipt ${d.invoice.number} saved. Email it from the list when you're ready.`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save");
@@ -389,8 +351,8 @@ function NewInvoice({
             <ChevronLeft size={16} aria-hidden />
             Back
           </button>
-          <h2 className="dash-panel-title">New invoice</h2>
-          <p className="dash-panel-sub">They get an email with the invoice attached and how to pay by e-Transfer.</p>
+          <h2 className="dash-panel-title">New receipt</h2>
+          <p className="dash-panel-sub">For money ASOSC has already received. They get an email with the receipt attached.</p>
         </div>
       </header>
 
@@ -398,7 +360,7 @@ function NewInvoice({
         {!canSend && (
           <div className="dash-notice">
             <span>
-              You can save this invoice, but it can&rsquo;t be emailed until you sign in with <strong>{sender}</strong>.
+              You can save this receipt, but it can&rsquo;t be emailed until you sign in with <strong>{sender}</strong>.
             </span>
             <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
               Sign in with {sender}
@@ -408,15 +370,15 @@ function NewInvoice({
         <div className="dash-compose">
           <div className="dash-compose-form">
             <section className="dash-emails-section">
-              <h3 className="dash-step-title">Who is it for?</h3>
-              <EmailField id="inv-name" label="Name or business" value={draft.name} onChange={set("name")} />
-              <EmailField id="inv-email" label="Email address" value={draft.email} onChange={set("email")} placeholder="name@example.com" />
+              <h3 className="dash-step-title">Who paid?</h3>
+              <EmailField id="rct-name" label="Name or business" value={draft.name} onChange={set("name")} />
+              <EmailField id="rct-email" label="Email address" value={draft.email} onChange={set("email")} placeholder="name@example.com" />
             </section>
             <section className="dash-emails-section">
-              <h3 className="dash-step-title">What is it for?</h3>
+              <h3 className="dash-step-title">What did they pay?</h3>
               <EmailField
-                id="inv-desc"
-                label="Description"
+                id="rct-desc"
+                label="What it was for"
                 value={draft.description}
                 onChange={set("description")}
                 multiline
@@ -425,11 +387,11 @@ function NewInvoice({
               />
               <div className="dash-email-row">
                 <div className="dash-field">
-                  <label htmlFor="inv-amount">Amount</label>
+                  <label htmlFor="rct-amount">Amount</label>
                   <span className="dash-money-input">
                     <span aria-hidden>$</span>
                     <input
-                      id="inv-amount"
+                      id="rct-amount"
                       inputMode="decimal"
                       value={draft.amount}
                       onChange={(e) => set("amount")(e.target.value)}
@@ -438,28 +400,37 @@ function NewInvoice({
                   </span>
                 </div>
                 <div className="dash-field">
-                  <label htmlFor="inv-due">Pay by (optional)</label>
-                  <input id="inv-due" type="date" className="dash-input" value={draft.dueDate} onChange={(e) => set("dueDate")(e.target.value)} />
+                  <label htmlFor="rct-date">Date received</label>
+                  <input id="rct-date" type="date" className="dash-input" value={draft.paidOn} onChange={(e) => set("paidOn")(e.target.value)} />
                 </div>
+              </div>
+              <div className="dash-field">
+                <span className="dash-field-label">How they paid</span>
+                <Segmented
+                  label="How they paid"
+                  value={draft.paidBy as (typeof PAID_BY)[number]}
+                  onChange={(v) => set("paidBy")(v)}
+                  options={PAID_BY.map((p) => ({ value: p, label: p === "Interac e-Transfer" ? "e-Transfer" : p }))}
+                />
               </div>
               {error && <p className="dash-error">{error}</p>}
               <div className="dash-savebar dash-savebar--inline">
                 <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => save(true)} disabled={!ready || Boolean(busy) || !canSend}>
-                  <Busy busy={busy === "send"}>Email invoice</Busy>
+                  <Busy busy={busy === "send"}>Email receipt</Busy>
                 </button>
                 <button type="button" className="dash-text-btn focus-ring-light" onClick={() => save(false)} disabled={!ready || Boolean(busy)}>
                   <Busy busy={busy === "save"}>Save without emailing</Busy>
                 </button>
               </div>
-              {!ready && <p className="dash-field-hint">Add an email address, a description and an amount.</p>}
+              {!ready && <p className="dash-field-hint">Add an email address, what it was for, and an amount.</p>}
             </section>
           </div>
           <aside className="dash-compose-preview">
             <div className="dash-preview-sticky">
-              <p className="dash-preview-label">The invoice they&rsquo;ll get</p>
+              <p className="dash-preview-label">The receipt they&rsquo;ll get</p>
               {pdfUrl ? (
                 <div className="dash-pdf-box">
-                  <iframe title="Invoice preview" src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} />
+                  <iframe title="Receipt preview" src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} />
                 </div>
               ) : (
                 <p className="dash-field-hint">Loading preview…</p>

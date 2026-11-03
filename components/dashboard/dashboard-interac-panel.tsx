@@ -71,7 +71,7 @@ const VIEW_LABEL: Record<PaymentsView, string> = {
   transfers: "e-Transfers in",
   debit: "e-Transfers out",
   invoice: "Bills",
-  receipt: "Receipts",
+  receipt: "Purchase receipts",
 };
 
 const EXPENSE_COLUMNS: Array<{ header: string; label: string }> = [

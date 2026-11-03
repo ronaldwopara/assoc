@@ -304,7 +304,6 @@ export type AutoEmailId =
   | "paid-donation"
   | "paid-vendor"
   | "invoice"
-  | "invoice-due"
   | "vendor-approved"
   | "reminder-membership"
   | "reminder-donation"
@@ -326,8 +325,7 @@ export const AUTO_EMAILS: Array<{
   { id: "paid-membership", label: "Membership paid", when: "When an e-Transfer is matched to their membership.", placeholders: ["first_name", "category", "amount"], defaultHero: HERO.people },
   { id: "paid-donation", label: "Donation paid", when: "When an e-Transfer is matched to their donation.", placeholders: ["first_name", "amount"], defaultHero: HERO.wraps },
   { id: "paid-vendor", label: "Vendor fee paid", when: "When an e-Transfer is matched to their vendor application.", placeholders: ["first_name", "amount"], defaultHero: HERO.market },
-  { id: "invoice", label: "Receipt", when: "When you create a receipt for a payment marked \"Something else\" (the PDF is attached).", placeholders: ["first_name", "receipt_number", "amount"], defaultHero: HERO.people },
-  { id: "invoice-due", label: "Invoice to pay", when: "When you send someone an invoice from the Invoices page (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount", "due_date"], defaultHero: HERO.people },
+  { id: "invoice", label: "Receipt", when: "When you email a receipt from the Receipts or Payments page (the PDF is attached).", placeholders: ["first_name", "receipt_number", "amount"], defaultHero: HERO.people },
   { id: "vendor-approved", label: "Vendor approved", when: "When staff set a vendor's Status to Approved (includes their fee and payment code).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
   { id: "reminder-membership", label: "Membership reminder", when: "Weekly while a membership is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
   { id: "reminder-donation", label: "Donation reminder", when: "Weekly while a donation is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "amount", "payment_code"], defaultHero: HERO.wraps },
@@ -435,15 +433,6 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     subhead: "Your receipt is attached",
     intro: "Hi {first_name},\n\nThanks for your payment. Your receipt is attached to this email for your records.",
     outro: "If anything on the receipt needs changing, like a business name or address, just reply and we will send a new one.",
-  },
-  "invoice-due": {
-    subject: "Invoice {invoice_number} from ASOSC",
-    preheader: "{amount} by Interac e-Transfer. The invoice is attached.",
-    banner: "Invoice",
-    headline: "Your invoice",
-    subhead: "From the Africans Society of Strathcona County",
-    intro: "Hi {first_name},\n\nHere is your invoice from ASOSC. The PDF is attached to this email.",
-    outro: "Questions about this invoice? Just reply to this email.",
   },
   "vendor-approved": {
     subject: "You're approved to vend with ASOSC",
@@ -782,31 +771,6 @@ export function invoiceEmail(inv: InvoiceSummary, overrides?: CopyOverrides): Ou
   );
 }
 
-/** An invoice that still needs paying: e-Transfer instructions with the invoice number as the message. */
-export function invoiceDueEmail(inv: InvoiceSummary & { dueDate?: string }, overrides?: CopyOverrides): OutgoingEmail {
-  const amount = money(inv.amount);
-  const due = inv.dueDate ? new Date(`${inv.dueDate}T12:00:00`) : null;
-  const dueLabel = due && !Number.isNaN(due.getTime()) ? due.toLocaleDateString("en-CA", { dateStyle: "long" }) : "";
-  return buildFromCopy(
-    "invoice-due",
-    inv.payerEmail,
-    {
-      first_name: (inv.payerName || "").trim().split(/\s+/)[0] || "there",
-      invoice_number: inv.number,
-      amount,
-      due_date: dueLabel,
-    },
-    overrides,
-    {
-      box: {
-        heading: { text: `Send **${amount}** by Interac e-Transfer to`, strong: E_TRANSFER_EMAIL },
-        code: { label: "Type this in the message box", value: inv.number },
-        note: `${inv.description || "Services"}.${dueLabel ? ` Please pay by ${dueLabel}.` : ""} The invoice number is how we match your payment.`,
-      },
-    },
-  );
-}
-
 export const SAMPLE_INVOICE: InvoiceSummary = {
   number: "RCT-2026-0001",
   payerName: "Black Spice Services",
@@ -903,7 +867,6 @@ export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides): Out
   if (id === "paid-donation") return paymentReceivedEmail("Donation", SAMPLE_FIELDS.donation, { amount: "50.00", date }, overrides);
   if (id === "paid-vendor") return paymentReceivedEmail("Vendor", SAMPLE_FIELDS.vendor, { amount: "150.00", date }, overrides);
   if (id === "invoice") return invoiceEmail(SAMPLE_INVOICE, overrides);
-  if (id === "invoice-due") return invoiceDueEmail({ ...SAMPLE_INVOICE, number: "INV-2026-0001", paidOn: undefined, dueDate: "2026-12-01" }, overrides);
   if (id === "vendor-approved") return vendorApprovedEmail(SAMPLE_VENDOR, overrides);
   if (id === "reminder-membership") return reminderEmail("membership", SAMPLE_FIELDS.membership, overrides);
   if (id === "reminder-donation") return reminderEmail("donation", SAMPLE_FIELDS.donation, overrides);
