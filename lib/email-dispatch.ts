@@ -20,6 +20,7 @@ const KIND_BY_TAB: Partial<Record<MasterTabName, ConfirmationKind>> = {
   [MASTER_TABS.vendors]: "vendor",
   [MASTER_TABS.contact]: "contact",
   [MASTER_TABS.newsletter]: "newsletter",
+  [MASTER_TABS.registrations]: "event",
 };
 
 export const CONFIRMATION_TABS = Object.keys(KIND_BY_TAB) as MasterTabName[];

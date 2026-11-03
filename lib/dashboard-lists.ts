@@ -9,6 +9,7 @@ export type DashboardListId =
   | "master-vendor"
   | "master-newsletter"
   | "master-contact"
+  | "master-registrations"
   | "payment-review-membership"
   | "payment-review-donations"
   | "invoices"
@@ -27,6 +28,7 @@ export const DASHBOARD_LISTS: Array<{
   { id: "master-vendor", title: "Vendors", sheetTab: MASTER_TABS.vendors },
   { id: "master-newsletter", title: "Newsletter", sheetTab: MASTER_TABS.newsletter },
   { id: "master-contact", title: "Contact", sheetTab: MASTER_TABS.contact },
+  { id: "master-registrations", title: "Event registrations", sheetTab: MASTER_TABS.registrations },
   // Own panel; rebuilt in the payments step.
   { id: "payment-review-membership", title: "Payments", sheetTab: MASTER_TABS.payments },
   { id: "payment-review-donations", title: "Donations", sheetTab: MASTER_TABS.donations },

@@ -9,14 +9,15 @@
  */
 
 import { randomInt } from "node:crypto";
-import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
+import { appendSheetRow, ensureSheetTab, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
 import { membershipCategoryOptions } from "@/lib/join-community-forms";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
 import { formatTimestamp } from "@/lib/sheet-dates";
 import { autoConfirm } from "@/lib/email-dispatch";
 
 export const FORM_KINDS = ["membership", "donate", "volunteer", "vendor", "contact", "newsletter"] as const;
-export type FormKind = (typeof FORM_KINDS)[number];
+/** Website form kinds, plus "event" (registrations copied in from event Google Forms; not a public form). */
+export type FormKind = (typeof FORM_KINDS)[number] | "event";
 
 export function isFormKind(value: string): value is FormKind {
   return (FORM_KINDS as readonly string[]).includes(value);
@@ -32,6 +33,7 @@ const CONFIRM_TAB: Record<FormKind, keyof typeof MASTER_TABS> = {
   vendor: "vendors",
   contact: "contact",
   newsletter: "newsletter",
+  event: "registrations",
 };
 
 const SOURCE_LABEL: Record<FormKind, string> = {
@@ -41,6 +43,7 @@ const SOURCE_LABEL: Record<FormKind, string> = {
   vendor: "Vendor",
   contact: "Contact",
   newsletter: "Newsletter",
+  event: "Event",
 };
 
 const MAX_FIELD_LENGTH = 5000;
@@ -193,7 +196,19 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
     opts: { update?: boolean; match?: (headers: string[], row: string[]) => boolean; clear?: string[] } = {},
   ) => {
     const name = MASTER_TABS[tab];
-    const [liveHeaders = [], ...rows] = await getSheetValues(accessToken, spreadsheetId, name);
+    let values: string[][];
+    try {
+      values = await getSheetValues(accessToken, spreadsheetId, name);
+    } catch {
+      // Tab added to the schema after the sheet was built (e.g. Event Registrations).
+      await ensureSheetTab(accessToken, spreadsheetId, name);
+      values = [];
+    }
+    if (values.length === 0) {
+      await updateSheetRow(accessToken, spreadsheetId, name, 1, [...MASTER_HEADERS[tab]]);
+      values = [[...MASTER_HEADERS[tab]]];
+    }
+    const [liveHeaders = [], ...rows] = values;
     const headers = liveHeaders.length ? liveHeaders : [...MASTER_HEADERS[tab]];
     if (opts.update) {
       const match = opts.match ?? sameEmail;
@@ -251,6 +266,16 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
       break;
     case "contact":
       await append("contact", { ...person, Message: str(values, "message") });
+      break;
+    case "event":
+      await save("registrations", {
+        ...person,
+        Event: str(values, "event"),
+        Details: str(values, "details"),
+      }, {
+        update: true,
+        match: (h, r) => sameEmail(h, r) && cellOf(h, r, "Event").toLowerCase() === str(values, "event").toLowerCase(),
+      });
       break;
     case "newsletter":
       await save("newsletter", {

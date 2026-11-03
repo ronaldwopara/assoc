@@ -1,6 +1,6 @@
 "use client";
 
-import { Busy } from "@/components/dashboard/ui";
+import { Busy, Segmented } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { parseSheetDate } from "@/lib/sheet-dates";
@@ -255,6 +255,7 @@ export function DashboardEmailsPanel() {
                       </li>
                     ))}
                   </ul>
+                  {group.title === "Events" && <EventFormsCard />}
                 </section>
               );
             })}
@@ -282,7 +283,8 @@ const EMAILS: Record<string, { name: string; about: string }> = {
   "vendor-approved": { name: "When you approve them", about: "Sent when you set their status to Approved on the Vendors page. Tells them the fee and how to pay." },
   "paid-vendor": { name: "When they pay", about: "Confirms their vendor fee and sends their receipt." },
   "reminder-vendor": { name: "If they haven't paid", about: "A reminder to pay their vendor fee." },
-  volunteer: { name: "When they sign up", about: "Thanks them for offering to help." },
+  volunteer: { name: "When they sign up", about: "Thanks them for offering to help. Also sent to people who sign up through an event's volunteer Google Form." },
+  event: { name: "When they register for an event", about: "Confirms their spot. Sent to people who register through an event's Google Form." },
   newsletter: { name: "When someone subscribes", about: "Welcomes them to the newsletter." },
   contact: { name: "When someone sends us a message", about: "Lets them know we got it and will reply." },
   invoice: { name: "When you send a receipt", about: "Sent when you email a receipt from the Receipts or Payments page. The PDF is attached." },
@@ -294,6 +296,7 @@ const PEOPLE: Array<{ title: string; ids: string[] }> = [
   { title: "Donors", ids: ["donation", "paid-donation", "reminder-donation"] },
   { title: "Vendors", ids: ["vendor", "vendor-approved", "paid-vendor", "reminder-vendor"] },
   { title: "Volunteers", ids: ["volunteer"] },
+  { title: "Events", ids: ["event"] },
   { title: "Newsletter and messages", ids: ["newsletter", "contact"] },
   { title: "Receipts", ids: ["invoice"] },
 ];
@@ -498,6 +501,150 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
         </button>
         {status && <span className="dash-savebar-status">{status}</span>}
       </div>
+    </div>
+  );
+}
+
+type EventForm = { id: string; name: string; kind: "volunteer" | "event"; tab: string; copied: number | null; lastRun?: string; lastError?: string };
+
+/** The event Google Forms whose responses are copied into the master sheet every morning. */
+function EventFormsCard() {
+  const [forms, setForms] = useState<EventForm[] | null>(null);
+  const [busy, setBusy] = useState("");
+  const [status, setStatus] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({ name: "", kind: "event" as "volunteer" | "event", link: "" });
+
+  useEffect(() => {
+    fetch("/api/dashboard/event-forms", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ forms?: EventForm[]; error?: string }>)
+      .then((d) => (d.forms ? setForms(d.forms) : setStatus(d.error || "Couldn't load the event forms")))
+      .catch(() => setStatus("Couldn't load the event forms"));
+  }, []);
+
+  const post = async (body: Record<string, unknown>, key: string) => {
+    setBusy(key);
+    setStatus("");
+    try {
+      const res = await fetch("/api/dashboard/event-forms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = (await res.json()) as {
+        forms?: EventForm[];
+        result?: { copied: number; skipped: number; errors: string[] };
+        error?: string;
+      };
+      if (!res.ok || d.error) throw new Error(d.error || "Something went wrong");
+      if (d.forms) setForms(d.forms);
+      return d;
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Something went wrong");
+      return null;
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const syncNow = async () => {
+    const d = await post({ action: "sync" }, "sync");
+    if (!d?.result) return;
+    const { copied, errors } = d.result;
+    setStatus(
+      (copied === 0 ? "No new responses." : `Copied ${copied} new response${copied === 1 ? "" : "s"}.`) +
+        (errors.length ? ` ${errors.join(" ")}` : ""),
+    );
+  };
+
+  const add = async () => {
+    const d = await post({ action: "add", ...draft }, "add");
+    if (d) {
+      setAdding(false);
+      setDraft({ name: "", kind: "event", link: "" });
+      setStatus("Form added. Responses from now on will be copied in.");
+    }
+  };
+
+  return (
+    <div className="dash-subcard">
+      <p className="dash-subcard-title">Event Google Forms</p>
+      <p className="dash-field-hint">
+        New responses are copied into the master sheet every morning and get the email above. Responses from before a form was added
+        aren&rsquo;t emailed.
+      </p>
+      {forms && forms.length > 0 && (
+        <ul className="dash-email-list">
+          {forms.map((f) => (
+            <li key={f.id} className="dash-email-item dash-email-item--static">
+              <span className="dash-email-item-text">
+                <span className="dash-email-item-name">
+                  {f.name} {f.kind === "volunteer" ? "volunteers" : "registrations"}
+                </span>
+                <span className="dash-email-item-meta">
+                  {f.lastError
+                    ? `Couldn't read it: ${f.lastError}`
+                    : f.lastRun
+                      ? `Last checked ${new Date(f.lastRun).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}`
+                      : "Starts with the next check"}
+                </span>
+              </span>
+              <button
+                type="button"
+                className="dash-text-btn focus-ring-light"
+                onClick={() => post({ action: "remove", id: f.id }, `rm:${f.id}`)}
+                disabled={Boolean(busy)}
+              >
+                Stop copying
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {adding ? (
+        <div className="dash-subcard-form">
+          <EmailField id="ef-name" label="Event name" value={draft.name} onChange={(v) => setDraft((d) => ({ ...d, name: v }))} placeholder="Family Wellness Day 2027" />
+          <div className="dash-field">
+            <span className="dash-field-label">What the form is for</span>
+            <Segmented
+              label="What the form is for"
+              value={draft.kind}
+              onChange={(v) => setDraft((d) => ({ ...d, kind: v }))}
+              options={[
+                { value: "event", label: "Registering to attend" },
+                { value: "volunteer", label: "Volunteering" },
+              ]}
+            />
+          </div>
+          <EmailField
+            id="ef-link"
+            label="Link to the form's response spreadsheet"
+            value={draft.link}
+            onChange={(v) => setDraft((d) => ({ ...d, link: v }))}
+            placeholder="https://docs.google.com/spreadsheets/d/…"
+            hint="In the Google Form, open Responses, then Link to Sheets. Share that sheet with africanssocietyofsc@gmail.com."
+          />
+          <div className="dash-savebar dash-savebar--inline">
+            <button type="button" className="dash-primary-btn focus-ring-light" onClick={add} disabled={Boolean(busy) || !draft.name.trim() || !draft.link.trim()}>
+              <Busy busy={busy === "add"}>Add form</Busy>
+            </button>
+            <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setAdding(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="dash-savebar dash-savebar--inline">
+          <button type="button" className="dash-action-btn focus-ring-light" onClick={syncNow} disabled={Boolean(busy)}>
+            <Busy busy={busy === "sync"}>Copy new responses now</Busy>
+          </button>
+          <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setAdding(true)}>
+            Add another form
+          </button>
+        </div>
+      )}
+      {status && <p className="dash-savebar-status">{status}</p>}
     </div>
   );
 }

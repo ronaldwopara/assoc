@@ -17,6 +17,8 @@ export const MASTER_TABS = {
   payments: "Payments",
   invoices: "Invoices",
   expenses: "Expenses",
+  /** People who registered for an event through its Google Form (copied in daily). */
+  registrations: "Event Registrations",
 } as const;
 
 export type MasterTabKey = keyof typeof MASTER_TABS;
@@ -124,6 +126,7 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
     "Reference",
     "Attachment Link",
   ],
+  registrations: ["Timestamp", "Full Name", "Email", "Phone Number", "Event", "Details", "Confirmation Sent"],
 };
 
 export function masterSheetId(): string {

@@ -13,7 +13,7 @@ import { membershipCategoryOptions } from "@/lib/join-community-forms";
 import { E_TRANSFER_EMAIL, STRIPE_DONATE, STRIPE_MEMBERSHIP } from "@/lib/payment-links";
 
 export type Fields = Record<string, string>;
-export type ConfirmationKind = "membership" | "donation" | "volunteer" | "vendor" | "contact" | "newsletter";
+export type ConfirmationKind = "membership" | "donation" | "volunteer" | "vendor" | "contact" | "newsletter" | "event";
 
 const SITE_URL = "https://asosc.ca";
 const CLOUDINARY = "https://res.cloudinary.com/daldas2e7/image/upload";
@@ -300,6 +300,7 @@ export type AutoEmailId =
   | "vendor"
   | "contact"
   | "newsletter"
+  | "event"
   | "paid-membership"
   | "paid-donation"
   | "paid-vendor"
@@ -321,6 +322,7 @@ export const AUTO_EMAILS: Array<{
   { id: "volunteer", label: "Volunteer signup", when: "Right after the volunteer form is submitted.", placeholders: ["first_name"], defaultHero: HERO.people },
   { id: "vendor", label: "Vendor application", when: "Right after a vendor application is submitted.", placeholders: ["first_name", "business"], defaultHero: HERO.market },
   { id: "contact", label: "Contact message", when: "Right after the contact form is submitted.", placeholders: ["first_name"], defaultHero: HERO.people },
+  { id: "event", label: "Event registration", when: "Right after someone registers for an event through its Google Form.", placeholders: ["first_name", "event"], defaultHero: HERO.people },
   { id: "newsletter", label: "Newsletter signup", when: "Right after someone subscribes.", placeholders: ["first_name"], defaultHero: HERO.people },
   { id: "paid-membership", label: "Membership paid", when: "When an e-Transfer is matched to their membership.", placeholders: ["first_name", "category", "amount"], defaultHero: HERO.people },
   { id: "paid-donation", label: "Donation paid", when: "When an e-Transfer is matched to their donation.", placeholders: ["first_name", "amount"], defaultHero: HERO.wraps },
@@ -356,6 +358,15 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     intro: "Hi {first_name},",
     outro:
       "Your donation goes straight into the work: cultural celebrations, youth programming, wellness sessions, and community outreach across Strathcona County.\n\nIf you need anything for your records, reply to this email and we will sort it out.",
+  },
+  event: {
+    subject: "You're registered for {event}",
+    preheader: "Thanks for registering. We've saved your spot.",
+    banner: "Event",
+    headline: "You're registered",
+    subhead: "{event}",
+    intro: "Hi {first_name},\n\nThanks for registering for {event}. We've saved your spot and will send any details you need closer to the day.",
+    outro: "Can't make it anymore? Just reply to this email and let us know.",
   },
   volunteer: {
     subject: "Thanks for signing up to volunteer with ASOSC",
@@ -627,6 +638,8 @@ export function confirmationEmail(kind: ConfirmationKind, f: Fields, overrides?:
           : undefined,
       });
     }
+    case "event":
+      return buildFromCopy("event", to, { ...base, event: (f["Event"] ?? "").trim() || "our event" }, overrides);
     case "vendor":
       return buildFromCopy("vendor", to, { ...base, business: (f["Business Name"] ?? "").trim() || "your business" }, overrides, {
         box: {
@@ -855,6 +868,7 @@ export const SAMPLE_FIELDS: Record<ConfirmationKind, Fields> = {
   },
   donation: { "Full Name": "Ada Okafor", Email: "ada@example.com", Amount: "50", "Payment Method": "e-Transfer", "Payment Code": "D-3307" },
   volunteer: { "Full Name": "Ada Okafor", Email: "ada@example.com", Interests: "Fundraising, Youth Mentorship" },
+  event: { "Full Name": "Ada Okafor", Email: "ada@example.com", Event: "Black History Month 2027" },
   vendor: { "Full Name": "Ada Okafor", Email: "ada@example.com", "Business Name": "Ada's Kitchen" },
   contact: { "Full Name": "Ada Okafor", Email: "ada@example.com", Message: "Hi! Do you have events coming up in December?" },
   newsletter: { "Full Name": "Ada Okafor", Email: "ada@example.com" },

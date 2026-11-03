@@ -69,6 +69,12 @@ const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match
     { label: "Email", match: /email/i },
     { label: "Strathcona Resident", match: /strathcona/i },
   ],
+  "master-registrations": [
+    { label: "Date", match: /^timestamp$/i },
+    { label: "Full Name", match: NAME_HEADER },
+    { label: "Email", match: /email/i },
+    { label: "Event", match: /^event$/i },
+  ],
   "master-contact": [
     { label: "Date", match: /^timestamp$/i },
     { label: "Full Name", match: NAME_HEADER },
