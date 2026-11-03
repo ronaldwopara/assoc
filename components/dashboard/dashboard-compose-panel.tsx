@@ -13,9 +13,58 @@ const LISTS = [
   { id: "vendors", label: "Vendors" },
   { id: "newsletter", label: "Newsletter subscribers" },
   { id: "donors", label: "Donors" },
-  { id: "contact", label: "People who messaged us" },
+  { id: "events", label: "Event registrations" },
+  { id: "contact", label: "Contact" },
 ] as const;
 type ListId = (typeof LISTS)[number]["id"];
+type FromOption = { value: string; count: number };
+
+/** "All" or any mix of the forms / events a list came from. */
+function FromPicker({
+  id,
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  options?: FromOption[];
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const total = (options ?? []).reduce((n, o) => n + o.count, 0);
+  const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+  return (
+    <div className="dash-field">
+      <span className="dash-field-label">{label}</span>
+      {!options ? (
+        <p className="dash-field-hint">Loading…</p>
+      ) : (
+        <div className="dash-chip-checks">
+          <label className="dash-chip-check" htmlFor={`compose-from-${id}-all`}>
+            <input id={`compose-from-${id}-all`} type="checkbox" className="sr-only" checked={value.length === 0} onChange={() => onChange([])} />
+            <Check size={14} aria-hidden className="dash-chip-check-icon" />
+            All ({total})
+          </label>
+          {options.map((o, i) => (
+            <label key={o.value} className="dash-chip-check" htmlFor={`compose-from-${id}-${i}`}>
+              <input
+                id={`compose-from-${id}-${i}`}
+                type="checkbox"
+                className="sr-only"
+                checked={value.includes(o.value)}
+                onChange={() => toggle(o.value)}
+              />
+              <Check size={14} aria-hidden className="dash-chip-check-icon" />
+              {o.value} ({o.count})
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Starts filled in so the preview reads like a real email; every field is editable. */
 const STARTER: ComposerContent = {
@@ -52,6 +101,10 @@ export function DashboardComposePanel() {
 
   const [lists, setLists] = useState<ListId[]>([]);
   const [memberFilter, setMemberFilter] = useState<"all" | "paid" | "unpaid">("all");
+  /** Narrowing volunteers / event registrations by where they came from (empty = all). */
+  const [volunteerFrom, setVolunteerFrom] = useState<string[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
+  const [fromOptions, setFromOptions] = useState<{ volunteerFrom: FromOption[]; events: FromOption[] } | null>(null);
   const [extra, setExtra] = useState("");
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
   const [recipientInfo, setRecipientInfo] = useState("");
@@ -79,6 +132,16 @@ export function DashboardComposePanel() {
   useEffect(() => {
     loadTemplates();
   }, [loadTemplates]);
+
+  // The From choices, loaded the first time Volunteers or Event registrations is picked.
+  const wantsFrom = lists.includes("volunteers") || lists.includes("events");
+  useEffect(() => {
+    if (!wantsFrom || fromOptions) return;
+    fetch("/api/dashboard/compose/recipients", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ volunteerFrom?: FromOption[]; events?: FromOption[] }>)
+      .then((d) => setFromOptions({ volunteerFrom: d.volunteerFrom ?? [], events: d.events ?? [] }))
+      .catch(() => undefined);
+  }, [wantsFrom, fromOptions]);
 
   /** Any change to who it's going to makes the last count stale. */
   const staleRecipients = () => {
@@ -147,7 +210,7 @@ export function DashboardComposePanel() {
       const res = await fetch("/api/dashboard/compose/recipients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lists, memberFilter, extra }),
+        body: JSON.stringify({ lists, memberFilter, volunteerFrom, events, extra }),
       });
       const d = (await res.json()) as { recipients?: Recipient[]; skippedUnsubscribed?: number; invalid?: string[]; error?: string };
       if (!res.ok || !d.recipients) throw new Error(d.error || "Couldn't load recipients");
@@ -169,7 +232,7 @@ export function DashboardComposePanel() {
     const timer = window.setTimeout(() => void checkRecipients(), 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lists, memberFilter, extra]);
+  }, [lists, memberFilter, volunteerFrom, events, extra]);
 
   const sendBatches = async (to: Recipient[], test: boolean) => {
     setSending(true);
@@ -368,6 +431,30 @@ export function DashboardComposePanel() {
                     ]}
                   />
                 </div>
+              )}
+              {lists.includes("volunteers") && (
+                <FromPicker
+                  id="volunteers"
+                  label="Volunteers from"
+                  options={fromOptions?.volunteerFrom}
+                  value={volunteerFrom}
+                  onChange={(v) => {
+                    staleRecipients();
+                    setVolunteerFrom(v);
+                  }}
+                />
+              )}
+              {lists.includes("events") && (
+                <FromPicker
+                  id="events"
+                  label="Registered for"
+                  options={fromOptions?.events}
+                  value={events}
+                  onChange={(v) => {
+                    staleRecipients();
+                    setEvents(v);
+                  }}
+                />
               )}
               <EmailField
                 id="compose-extra"

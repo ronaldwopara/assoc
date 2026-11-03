@@ -263,6 +263,12 @@ export async function recordSubmission(kind: FormKind, values: Values, options: 
     }
     const [liveHeaders = [], ...rows] = values;
     const headers = liveHeaders.length ? liveHeaders : [...MASTER_HEADERS[tab]];
+    // Columns added to the schema after the tab was built (e.g. Volunteers' "From").
+    const missing = MASTER_HEADERS[tab].filter((h) => colIndex(headers, h) < 0);
+    if (missing.length) {
+      headers.push(...missing);
+      await updateSheetRow(accessToken, spreadsheetId, name, 1, headers);
+    }
     if (opts.update) {
       const match = opts.match ?? sameEmail;
       for (let i = rows.length - 1; i >= 0; i--) {
@@ -316,13 +322,21 @@ export async function recordSubmission(kind: FormKind, values: Values, options: 
         "Payment Code": paymentCode!,
       });
       break;
-    case "volunteer":
+    case "volunteer": {
+      // Event Google Forms pass source "Google Form: <name>"; everything else is the website form.
+      const from = options.source?.replace(/^google form:\s*/i, "").trim() || "Website";
       await save("volunteers", {
         ...person,
         Interests: str(values, "volunteerInterests"),
         Comments: str(values, "comments"),
-      }, { update: true });
+        From: from,
+      }, {
+        update: true,
+        // Volunteering through a different form is its own row (African Festival and BHM are separate sign-ups).
+        match: (h, r) => sameEmail(h, r) && (cellOf(h, r, "From") || "Website").toLowerCase() === from.toLowerCase(),
+      });
       break;
+    }
     case "vendor":
       await save("vendors", {
         ...person,

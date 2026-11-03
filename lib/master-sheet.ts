@@ -52,7 +52,8 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
     "Reminder Round",
     "Stop Reminders",
   ],
-  volunteers: [...PERSON, "Interests", "Comments", "Confirmation Sent"],
+  // From: which form they volunteered through ("Website", or the event Google Form's name).
+  volunteers: [...PERSON, "Interests", "Comments", "Confirmation Sent", "From"],
   vendors: [
     ...PERSON,
     "Business Name",

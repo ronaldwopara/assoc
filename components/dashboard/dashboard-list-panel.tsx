@@ -1,6 +1,6 @@
 "use client";
 
-import { Busy } from "@/components/dashboard/ui";
+import { Busy, Segmented } from "@/components/dashboard/ui";
 import { PushToggle } from "@/components/dashboard/push-toggle";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -57,7 +57,7 @@ const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match
     { label: "Amount", match: /^amount$/i },
     { label: "Paid", match: /^paid$/i },
   ],
-  "master-volunteer": PERSON_COLUMNS,
+  "master-volunteer": [...PERSON_COLUMNS, { label: "From", match: /^from$/i }],
   "master-vendor": [
     ...PERSON_COLUMNS,
     { label: "Paid", match: /^paid$/i },
@@ -93,6 +93,12 @@ const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match
 };
 
 const VENDOR_STATUSES = ["Pending", "Approved", "Declined"];
+
+/** Lists that can be narrowed by where people came from: the column, and what a blank cell means. */
+const FROM_FILTER: Partial<Record<DashboardListId, { column: RegExp; label: string; blank: string }>> = {
+  "master-volunteer": { column: /^from$/i, label: "Volunteered through", blank: "Website" },
+  "master-registrations": { column: /^event$/i, label: "Event", blank: "" },
+};
 
 /** Narrows headers down to a curated set, in that set's order, skipping any
  * header excluded (e.g. "Spouse's Email" shouldn't win the "Email" slot). */
@@ -195,6 +201,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const [rowsError, setRowsError] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  const [fromFilter, setFromFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [dateOpen, setDateOpen] = useState(false);
@@ -224,6 +231,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
 
   useEffect(() => {
     setQuery("");
+    setFromFilter("");
     setDateFrom("");
     setDateTo("");
     setDateOpen(false);
@@ -243,6 +251,26 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     [rows],
   );
   const dateFilterActive = Boolean(dateFrom || dateTo);
+
+  // "From" chips: where people came from (volunteer form, event), with counts.
+  const fromConfig = FROM_FILTER[listId];
+  const fromColumnIndex = useMemo(
+    () => (fromConfig ? (rows?.headers ?? []).findIndex((h) => fromConfig.column.test(h.trim())) : -1),
+    [rows, fromConfig],
+  );
+  const fromValue = useCallback(
+    (row: string[]) => (String(row[fromColumnIndex] ?? "").trim() || fromConfig?.blank || ""),
+    [fromColumnIndex, fromConfig],
+  );
+  const fromOptions = useMemo(() => {
+    if (!rows || fromColumnIndex < 0) return [];
+    const counts = new Map<string, number>();
+    for (const row of rows.rows) {
+      const v = fromValue(row);
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return [...counts].sort((a, b) => b[1] - a[1]);
+  }, [rows, fromColumnIndex, fromValue]);
 
   useEffect(() => {
     if (!dateOpen) return;
@@ -279,6 +307,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     const withRowNumbers = rows.rows.map((row, i) => ({ row, rowNumber: i + 2 }));
     const q = query.trim().toLowerCase();
     const matching = withRowNumbers.filter(({ row }) => {
+      if (fromFilter && fromValue(row) !== fromFilter) return false;
       if (dateFilterActive && !rowMatchesDateFilter(row, dateColumnIndex, dateFrom, dateTo)) {
         return false;
       }
@@ -294,7 +323,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       .map((r) => ({ ...r, t: time(r.row) }))
       .sort((a, b) => (b.t === a.t ? a.rowNumber - b.rowNumber : b.t - a.t))
       .map(({ row, rowNumber }) => ({ row, rowNumber }));
-  }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive]);
+  }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive, fromFilter, fromValue]);
 
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<string[]>([]);
@@ -483,6 +512,19 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
             <p className="dash-panel-sub">
               {rows.rows.length} {rows.rows.length === 1 ? "person" : "people"}
             </p>
+          )}
+          {fromConfig && fromOptions.length > 1 && (
+            <div className="dash-panel-tabs">
+              <Segmented
+                label={fromConfig.label}
+                value={fromFilter}
+                onChange={setFromFilter}
+                options={[
+                  { value: "", label: `All ${rows?.rows.length ?? 0}` },
+                  ...fromOptions.map(([v, n]) => ({ value: v, label: `${v} ${n}` })),
+                ]}
+              />
+            </div>
           )}
         </div>
         <div className="dash-panel-actions">

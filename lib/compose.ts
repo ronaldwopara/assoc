@@ -8,6 +8,7 @@
 import { appendSheetRows, ensureSheetTab, getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
 import { composerEmail, type ComposerAttachment, type ComposerContent } from "@/lib/emails";
 import { isPaid } from "@/lib/gmail";
+import { listEventForms } from "@/lib/event-forms";
 import { sendEmail, type EmailAttachment } from "@/lib/mailer";
 import { MASTER_TABS, colIndex, masterSheetId } from "@/lib/master-sheet";
 import { formatTimestamp } from "@/lib/sheet-dates";
@@ -21,6 +22,7 @@ export const RECIPIENT_LISTS = {
   newsletter: "Newsletter",
   contact: "Contact form",
   donors: "Donors",
+  events: "Event registrations",
 } as const;
 export type RecipientListId = keyof typeof RECIPIENT_LISTS;
 export type MemberFilter = "all" | "paid" | "unpaid";
@@ -43,12 +45,53 @@ const TAB_FOR: Record<RecipientListId, string> = {
   newsletter: MASTER_TABS.newsletter,
   contact: MASTER_TABS.contact,
   donors: MASTER_TABS.donations,
+  events: MASTER_TABS.registrations,
 };
+
+/** Which form a volunteer came through (blank on rows from before the column existed = the website). */
+const volunteerFrom = (value: string) => value.trim() || "Website";
+
+/**
+ * The "From" choices for narrowing a list: where volunteers signed up, and
+ * which event people registered for, each with how many rows it has.
+ */
+export async function audienceOptions(): Promise<{ volunteerFrom: Array<{ value: string; count: number }>; events: Array<{ value: string; count: number }> }> {
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const count = async (tab: string, col: string, norm: (v: string) => string) => {
+    const [headers = [], ...rows] = await getSheetValues(accessToken, spreadsheetId, tab).catch(() => [] as string[][]);
+    const c = colIndex(headers, col);
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const v = norm(String(row[c] ?? ""));
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return [...counts].map(([value, n]) => ({ value, count: n })).sort((a, b) => b.count - a.count);
+  };
+  const [volunteers, events, forms] = await Promise.all([
+    count(MASTER_TABS.volunteers, "From", volunteerFrom),
+    count(MASTER_TABS.registrations, "Event", (v) => v.trim()),
+    listEventForms().catch(() => []),
+  ]);
+  // Every linked event form shows up, even before anyone has signed up through it.
+  const withForms = (list: Array<{ value: string; count: number }>, names: string[]) => {
+    const have = new Set(list.map((o) => o.value.toLowerCase()));
+    return [...list, ...[...new Set(names)].filter((n) => !have.has(n.toLowerCase())).map((value) => ({ value, count: 0 }))];
+  };
+  return {
+    volunteerFrom: withForms(volunteers, ["Website", ...forms.filter((f) => f.kind === "volunteer").map((f) => f.name)]),
+    events: withForms(events, forms.filter((f) => f.kind === "event").map((f) => f.name)),
+  };
+}
 
 /** Deduped, valid, not-unsubscribed recipients for the chosen lists plus any typed addresses. */
 export async function resolveRecipients(opts: {
   lists: RecipientListId[];
   memberFilter?: MemberFilter;
+  /** Only volunteers from these forms (empty = all). */
+  volunteerFrom?: string[];
+  /** Only people registered for these events (empty = all events). */
+  events?: string[];
   extra?: string;
 }): Promise<{ recipients: Recipient[]; skippedUnsubscribed: number; invalid: string[] }> {
   const spreadsheetId = masterSheetId();
@@ -71,7 +114,13 @@ export async function resolveRecipients(opts: {
     const n = colIndex(headers, "Full Name");
     const source = colIndex(headers, "Source");
     const paid = colIndex(headers, "Paid");
+    const from = colIndex(headers, "From");
+    const event = colIndex(headers, "Event");
+    const wantFrom = new Set((opts.volunteerFrom ?? []).map((v) => v.toLowerCase()));
+    const wantEvents = new Set((opts.events ?? []).map((v) => v.toLowerCase()));
     for (const row of rows) {
+      if (list === "volunteers" && wantFrom.size && !wantFrom.has(volunteerFrom(String(row[from] ?? "")).toLowerCase())) continue;
+      if (list === "events" && wantEvents.size && !wantEvents.has(String(row[event] ?? "").trim().toLowerCase())) continue;
       if (list === "members") {
         if (!/^membership$/i.test(String(row[source] ?? "").trim())) continue;
         const isP = isPaid(String(row[paid] ?? ""));
