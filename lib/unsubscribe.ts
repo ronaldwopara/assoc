@@ -10,6 +10,7 @@ import {
   ensureSheetTab,
   getAccessTokenForAccount,
   getSheetValues,
+  invalidateReadCache,
   updateSheetRow,
 } from "@/lib/google-sheets";
 import { masterSheetId } from "@/lib/master-sheet";
@@ -55,9 +56,12 @@ export async function setUnsubscribed(email: string, unsubscribed: boolean): Pro
   const spreadsheetId = masterSheetId();
   const { accessToken } = await getAccessTokenForAccount();
   await ensureSheetTab(accessToken, spreadsheetId, TAB);
+  // Always read the tab fresh: a cached copy could miss a row added moments ago (unsubscribe, then resubscribe).
+  invalidateReadCache(spreadsheetId, TAB);
   const all = await getSheetValues(accessToken, spreadsheetId, TAB);
   if (all.length === 0) await updateSheetRow(accessToken, spreadsheetId, TAB, 1, ["Email", "Unsubscribed At"]);
-  const index = all.findIndex((r, i) => i > 0 && norm(String(r[0] ?? "")) === target);
-  if (unsubscribed && index < 0) await appendSheetRow(accessToken, spreadsheetId, TAB, [target, formatTimestamp(new Date())]);
-  if (!unsubscribed && index > 0) await updateSheetRow(accessToken, spreadsheetId, TAB, index + 1, ["", ""]);
+  const rows = all.flatMap((r, i) => (i > 0 && norm(String(r[0] ?? "")) === target ? [i + 1] : []));
+  if (unsubscribed && rows.length === 0) await appendSheetRow(accessToken, spreadsheetId, TAB, [target, formatTimestamp(new Date())]);
+  // Clear every row for them (there can be more than one if they unsubscribed twice).
+  if (!unsubscribed) for (const row of rows) await updateSheetRow(accessToken, spreadsheetId, TAB, row, ["", ""]);
 }

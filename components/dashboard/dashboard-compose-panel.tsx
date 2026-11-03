@@ -150,6 +150,12 @@ export function DashboardComposePanel() {
   const [extra, setExtra] = useState("");
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
   const [recipientInfo, setRecipientInfo] = useState("");
+  /** Why typed addresses were left out (unsubscribed / not an email address). */
+  const [leftOut, setLeftOut] = useState<{
+    unsubscribed: string[];
+    invalid: string[];
+    skipped: number;
+  }>({ unsubscribed: [], invalid: [], skipped: 0 });
   const [loadingRecipients, setLoadingRecipients] = useState(false);
 
   const [testTo, setTestTo] = useState("");
@@ -295,6 +301,15 @@ export function DashboardComposePanel() {
     }
   };
 
+  const resubscribe = async (emails: string[]) => {
+    await fetch("/api/dashboard/compose/recipients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "resubscribe", emails }),
+    }).catch(() => undefined);
+    void checkRecipients();
+  };
+
   async function checkRecipients() {
     setLoadingRecipients(true);
     setRecipientInfo("");
@@ -312,11 +327,17 @@ export function DashboardComposePanel() {
         recipients?: Recipient[];
         skippedUnsubscribed?: number;
         invalid?: string[];
+        unsubscribedTyped?: string[];
         error?: string;
       };
       if (!res.ok || !d.recipients)
         throw new Error(d.error || "Couldn't load recipients");
       setRecipients(d.recipients);
+      setLeftOut({
+        unsubscribed: d.unsubscribedTyped ?? [],
+        invalid: d.invalid ?? [],
+        skipped: d.skippedUnsubscribed ?? 0,
+      });
       const bits = [
         `${d.recipients.length} ${d.recipients.length === 1 ? "person" : "people"}`,
       ];
@@ -720,35 +741,64 @@ export function DashboardComposePanel() {
                   hint="They get the real email, the same as a list would. They don't need to be on any list."
                 />
               )}
-              <p className="dash-count" role="status">
+              <div className="dash-count" role="status">
                 {loadingRecipients ? (
-                  "Counting…"
-                ) : count > 0 ? (
-                  <>
-                    This will go to{" "}
-                    <strong>
-                      {count} {count === 1 ? "person" : "people"}
-                    </strong>
-                    .
-                    {recipientInfo.includes("unsubscribed")
-                      ? " People who unsubscribed are left out."
-                      : ""}
-                    {recipientInfo.includes("ignored")
-                      ? ` ${recipientInfo.slice(recipientInfo.indexOf("ignored"))}.`
-                      : ""}
-                  </>
-                ) : audience === "people" ? (
-                  extra.trim() && recipientInfo ? (
-                    "None of those are valid email addresses."
-                  ) : (
-                    "Type at least one email address."
-                  )
-                ) : recipientInfo && lists.length > 0 ? (
-                  "Nobody found in those lists."
+                  <p>Counting…</p>
                 ) : (
-                  "Pick at least one list above."
+                  <>
+                    <p>
+                      {count > 0 ? (
+                        <>
+                          This will go to{" "}
+                          <strong>
+                            {count} {count === 1 ? "person" : "people"}
+                          </strong>
+                          .
+                        </>
+                      ) : audience === "people" ? (
+                        extra.trim() && recipientInfo ? (
+                          "Nobody to send to yet."
+                        ) : (
+                          "Type at least one email address."
+                        )
+                      ) : recipientInfo && lists.length > 0 ? (
+                        "Nobody found in those lists."
+                      ) : (
+                        "Pick at least one list above."
+                      )}
+                      {audience === "lists" &&
+                      leftOut.skipped - leftOut.unsubscribed.length > 0
+                        ? ` ${leftOut.skipped - leftOut.unsubscribed.length} who unsubscribed ${leftOut.skipped - leftOut.unsubscribed.length === 1 ? "is" : "are"} left out.`
+                        : ""}
+                    </p>
+                    {recipientInfo && leftOut.unsubscribed.length > 0 && (
+                      <p className="dash-count-note">
+                        <strong>{leftOut.unsubscribed.join(", ")}</strong>{" "}
+                        unsubscribed from our emails, so{" "}
+                        {leftOut.unsubscribed.length === 1
+                          ? "they won’t"
+                          : "they won’t"}{" "}
+                        get it.{" "}
+                        <button
+                          type="button"
+                          className="dash-text-btn focus-ring-light"
+                          onClick={() => resubscribe(leftOut.unsubscribed)}
+                        >
+                          {leftOut.unsubscribed.length === 1
+                            ? "They asked to get emails again"
+                            : "They asked to get emails again"}
+                        </button>
+                      </p>
+                    )}
+                    {recipientInfo && leftOut.invalid.length > 0 && (
+                      <p className="dash-count-note">
+                        Not an email address:{" "}
+                        <strong>{leftOut.invalid.join(", ")}</strong>
+                      </p>
+                    )}
+                  </>
                 )}
-              </p>
+              </div>
             </section>
 
             <section className="dash-emails-section">

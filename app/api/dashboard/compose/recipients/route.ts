@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { audienceOptions, isRecipientListId, resolveRecipients, type MemberFilter } from "@/lib/compose";
+import { setUnsubscribed } from "@/lib/unsubscribe";
 
 const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 200)).slice(0, 100) : []);
 
@@ -17,13 +18,27 @@ export async function GET() {
   }
 }
 
-/** Who an email would go to: { lists, memberFilter, volunteerFrom, events, extra }. */
+/** Who an email would go to: { lists, memberFilter, volunteerFrom, events, extra }. Or { action: "resubscribe", emails }. */
 export async function POST(request: Request) {
   try {
     if (!(await isUpgradeAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const body = (await request.json()) as { lists?: unknown[]; memberFilter?: string; volunteerFrom?: unknown; events?: unknown; extra?: string };
+    const body = (await request.json()) as {
+      action?: string;
+      emails?: unknown;
+      lists?: unknown[];
+      memberFilter?: string;
+      volunteerFrom?: unknown;
+      events?: unknown;
+      extra?: string;
+    };
+    // Staff confirmed these people asked to get emails again.
+    if (body.action === "resubscribe") {
+      const emails = strings(body.emails).slice(0, 20);
+      for (const email of emails) await setUnsubscribed(email, false);
+      return NextResponse.json({ ok: true, resubscribed: emails });
+    }
     const lists = (body.lists ?? []).filter(isRecipientListId);
     const memberFilter: MemberFilter = body.memberFilter === "paid" || body.memberFilter === "unpaid" ? body.memberFilter : "all";
     const result = await resolveRecipients({

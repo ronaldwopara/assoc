@@ -93,7 +93,7 @@ export async function resolveRecipients(opts: {
   /** Only people registered for these events (empty = all events). */
   events?: string[];
   extra?: string;
-}): Promise<{ recipients: Recipient[]; skippedUnsubscribed: number; invalid: string[] }> {
+}): Promise<{ recipients: Recipient[]; skippedUnsubscribed: number; invalid: string[]; unsubscribedTyped: string[] }> {
   const spreadsheetId = masterSheetId();
   const { accessToken } = await getAccessTokenForAccount();
   const byEmail = new Map<string, Recipient>();
@@ -132,8 +132,10 @@ export async function resolveRecipients(opts: {
   }
 
   const invalid: string[] = [];
+  const typed: string[] = [];
   for (const raw of (opts.extra ?? "").split(/[\s,;]+/).filter(Boolean)) {
     if (!add(raw, "")) invalid.push(raw);
+    else typed.push(raw.trim().toLowerCase());
   }
 
   const unsubscribed = await unsubscribedEmails();
@@ -145,7 +147,9 @@ export async function resolveRecipients(opts: {
     }
     return true;
   });
-  return { recipients, skippedUnsubscribed, invalid };
+  // Addresses typed in by hand that are on the unsubscribe list, so the screen can say who and why.
+  const unsubscribedTyped = [...new Set(typed.filter((e) => unsubscribed.has(e)))];
+  return { recipients, skippedUnsubscribed, invalid, unsubscribedTyped };
 }
 
 /** Only our own Cloudinary uploads can be attached (never an arbitrary URL). */

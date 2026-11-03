@@ -2285,3 +2285,7 @@ body:has(.dash-page) { height: 100%; overflow: hidden; overscroll-behavior: none
 .dash-from-select { max-width: 16rem; min-height: 2.5rem; text-overflow: ellipsis; }
 .dash-from-select--on { border-color: var(--orange); background: #fff7ef; font-weight: 500; }
 @media (max-width: 640px) { .dash-from-select { max-width: none; flex: 1; } }
+.dash-count p { margin: 0; }
+.dash-count { display: flex; flex-direction: column; gap: 0.375rem; }
+.dash-count-note { font-size: 0.8125rem; color: rgba(var(--ink-rgb), 0.75); }
+.dash-count-note .dash-text-btn { font-size: 0.8125rem; padding: 0; min-height: 0; }

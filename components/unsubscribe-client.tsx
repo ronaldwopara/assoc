@@ -8,8 +8,8 @@ type State = "working" | "done" | "resubscribed" | "error";
  * Unsubscribes as soon as the page opens in a browser (link scanners in mail
  * systems usually don't run scripts, so they don't trigger it), with an undo.
  */
-export function UnsubscribeClient({ email, token }: { email: string; token: string }) {
-  const [state, setState] = useState<State>(email && token ? "working" : "error");
+export function UnsubscribeClient({ email, token, kept = false }: { email: string; token: string; kept?: boolean }) {
+  const [state, setState] = useState<State>(!email || !token ? "error" : kept ? "resubscribed" : "working");
   const [error, setError] = useState(email && token ? "" : "This unsubscribe link is incomplete.");
   const started = useRef(false);
 
@@ -23,6 +23,11 @@ export function UnsubscribeClient({ email, token }: { email: string; token: stri
       const data = (await res.json()) as { error?: string };
       if (!res.ok || data.error) throw new Error(data.error || "Something went wrong.");
       setState(undo ? "resubscribed" : "done");
+      // Remember a resubscribe in the address, so reloading or reopening this page doesn't unsubscribe them again.
+      const url = new URL(window.location.href);
+      if (undo) url.searchParams.set("kept", "1");
+      else url.searchParams.delete("kept");
+      window.history.replaceState(null, "", url.toString());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setState("error");
@@ -30,7 +35,7 @@ export function UnsubscribeClient({ email, token }: { email: string; token: stri
   };
 
   useEffect(() => {
-    if (started.current || !email || !token) return;
+    if (started.current || !email || !token || kept) return;
     started.current = true;
     void call(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,6 +63,11 @@ export function UnsubscribeClient({ email, token }: { email: string; token: stri
           <h1 className="text-3xl font-bold">You&rsquo;re back on the list</h1>
           <p>
             <strong>{email}</strong> will get ASOSC emails again.
+          </p>
+          <p>
+            <button type="button" className="underline underline-offset-4" onClick={() => call(false)}>
+              Unsubscribe after all
+            </button>
           </p>
         </>
       )}

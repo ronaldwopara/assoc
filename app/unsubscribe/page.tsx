@@ -15,12 +15,14 @@ export default async function UnsubscribePage({
   const q = await searchParams;
   const email = typeof q.e === "string" ? q.e : "";
   const token = typeof q.t === "string" ? q.t : "";
+  // Set after resubscribing, so reloading the page doesn't unsubscribe them again.
+  const kept = q.kept === "1";
   return (
     <>
       <Navbar />
       <main id="main-content" className="site-main">
         <section className="section-shell bg-(--cream-light)" aria-label="Unsubscribe">
-          <UnsubscribeClient email={email} token={token} />
+          <UnsubscribeClient email={email} token={token} kept={kept} />
         </section>
       </main>
     </>
