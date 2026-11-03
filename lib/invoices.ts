@@ -1,18 +1,22 @@
 /**
- * Receipts (RCT-YYYY-NNNN), one row each on the master sheet's Invoices tab
- * (the tab keeps its old name). The PDF is drawn from that row and a copy is
+ * Invoices (INV-YYYY-NNNN) and receipts (RCT-YYYY-NNNN), one row each on the
+ * master sheet's Invoices tab. The PDF is drawn from that row and a copy is
  * kept on Cloudinary.
  *
- *  - From a payment marked "Something else" on the Payments page.
- *  - Written by hand on the Receipts page, for money received any way
- *    (e-Transfer, cash, card, cheque).
+ *  - Receipts: from a payment marked "Something else" on the Payments page, or
+ *    written by hand for money received any way (e-Transfer, cash, card, cheque).
+ *  - Invoices: written by hand for money still owed. The PDF and email say how
+ *    to pay; an e-Transfer quoting the invoice number marks it paid (or staff
+ *    mark it paid by hand), and its PDF then shows PAID.
  *
- * The email is the editable automatic email "invoice" (shown as "Receipt").
+ * Emails are the editable automatic emails "invoice" (Receipt) and
+ * "invoice-due" (Invoice to pay), with the PDF attached.
  */
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetCell, updateSheetRow } from "@/lib/google-sheets";
-import { EMAIL_LOGO_URL, invoiceEmail } from "@/lib/emails";
+import { EMAIL_LOGO_URL, invoiceDueEmail, invoiceEmail } from "@/lib/emails";
+import { E_TRANSFER_EMAIL } from "@/lib/payment-links";
 import { uploadInvoicePdf } from "@/lib/documents-cms/cloudinary";
 import { getCopyOverrides } from "@/lib/email-store";
 import { sendEmail } from "@/lib/mailer";
@@ -32,10 +36,12 @@ export type Invoice = {
   sentAt: string;
   /** How it was paid, for receipts written by hand. */
   paidBy?: string;
+  /** yyyy-mm-dd, invoices to pay only. */
+  dueDate?: string;
   /** When the money arrived (Paid On column, or the linked Payments row). */
   paidOn?: string;
   reference?: string;
-  /** Paid when it came from an e-Transfer, or has a Paid On date. */
+  /** Receipts are always paid; invoices once they have a Paid On date. */
   paid: boolean;
   /** Saved copy on Cloudinary. */
   pdfUrl?: string;
@@ -67,6 +73,9 @@ async function loadTab(tab: string): Promise<Tab> {
   return { headers, rows };
 }
 
+/** INV-… numbers are invoices to pay; everything else (RCT-…) is a receipt. */
+export const isInvoiceNumber = (number: string) => /^INV-/i.test(number);
+
 const cell = (t: Tab, row: string[], col: string) => String(row[colIndex(t.headers, col)] ?? "").trim();
 
 function toInvoice(t: Tab, row: string[]): Invoice {
@@ -82,8 +91,8 @@ function toInvoice(t: Tab, row: string[]): Invoice {
     sentAt: cell(t, row, "Sent At"),
     paidBy: cell(t, row, "Paid By") || undefined,
     paidOn: cell(t, row, "Paid On") || undefined,
-    // Everything here is a receipt for money already received.
-    paid: true,
+    dueDate: cell(t, row, "Due Date") || undefined,
+    paid: isInvoiceNumber(cell(t, row, "Invoice Number")) ? Boolean(cell(t, row, "Paid On")) : true,
     pdfUrl: cell(t, row, "PDF URL") || undefined,
   };
 }
@@ -220,7 +229,7 @@ async function setStatus(number: string, status: string) {
 }
 
 export function invoiceFilename(inv: Invoice) {
-  return inv.paid ? `ASOSC-receipt-${inv.number}.pdf` : `ASOSC-invoice-${inv.number}.pdf`;
+  return isInvoiceNumber(inv.number) ? `ASOSC-invoice-${inv.number}.pdf` : `ASOSC-receipt-${inv.number}.pdf`;
 }
 
 /** Emails the invoice with its PDF attached and marks it Sent. */
@@ -229,7 +238,7 @@ export async function sendInvoice(number: string): Promise<{ to: string }> {
   if (!invoice) throw new Error("Invoice not found");
   const pdf = await renderInvoicePdf(invoice);
   const overrides = await getCopyOverrides();
-  const email = invoiceEmail(invoice, overrides);
+  const email = invoice.paid ? invoiceEmail(invoice, overrides) : invoiceDueEmail(invoice, overrides);
   await sendEmail({
     ...email,
     attachments: [{ filename: invoiceFilename(invoice), contentType: "application/pdf", content: pdf }],
@@ -327,6 +336,112 @@ export function draftReceipt(input: NewReceipt): Invoice {
   };
 }
 
+// ---------------------------------------------------------------- invoices to pay
+
+export type NewInvoice = { name: string; email: string; description: string; amount: string; dueDate?: string };
+
+function cleanInvoice(input: NewInvoice) {
+  const amount = String(input.amount ?? "").replace(/[^0-9.]/g, "");
+  return {
+    name: input.name.trim().slice(0, 200),
+    email: input.email.trim(),
+    description: input.description.trim().slice(0, 2000),
+    amount: Number(amount) > 0 ? Number(amount).toFixed(2) : "",
+    dueDate: /^\d{4}-\d{2}-\d{2}$/.test(input.dueDate ?? "") ? input.dueDate! : "",
+  };
+}
+
+/** An invoice written by hand on the dashboard. Unpaid until marked paid or matched to an e-Transfer. */
+export async function createManualInvoice(input: NewInvoice): Promise<Invoice> {
+  const r = cleanInvoice(input);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) throw new Error("Enter a valid email address");
+  if (!r.amount) throw new Error("Enter an amount");
+  if (!r.description) throw new Error("Say what the invoice is for");
+
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const invoices = await loadTab(MASTER_TABS.invoices);
+  const invoice: Invoice = {
+    number: nextNumber(invoices, new Date().getFullYear(), "INV"),
+    date: formatTimestamp(new Date()),
+    payerName: r.name,
+    payerEmail: r.email,
+    description: r.description,
+    amount: r.amount,
+    messageId: "",
+    status: "Created",
+    sentAt: "",
+    dueDate: r.dueDate || undefined,
+    paid: false,
+  };
+  await appendSheetRow(
+    accessToken,
+    spreadsheetId,
+    MASTER_TABS.invoices,
+    rowFromFields(invoices.headers, {
+      "Invoice Number": invoice.number,
+      Date: invoice.date,
+      "Payer Name": invoice.payerName,
+      "Payer Email": invoice.payerEmail,
+      Description: invoice.description,
+      Amount: invoice.amount,
+      Status: invoice.status,
+      "Due Date": r.dueDate,
+    }),
+  );
+  await archivePdf(invoice.number);
+  return invoice;
+}
+
+/** An invoice that hasn't been saved yet, for previewing the PDF. */
+export function draftInvoice(input: NewInvoice): Invoice {
+  const r = cleanInvoice(input);
+  return {
+    number: `INV-${new Date().getFullYear()}-0000`,
+    date: formatTimestamp(new Date()),
+    payerName: r.name,
+    payerEmail: r.email,
+    description: r.description,
+    amount: r.amount || "0",
+    messageId: "",
+    status: "Draft",
+    sentAt: "",
+    dueDate: r.dueDate || undefined,
+    paid: false,
+  };
+}
+
+/** Mark an invoice paid (or not), optionally recording the e-Transfer that paid it. */
+export async function setInvoicePaid(number: string, paid: boolean, payment?: { messageId: string; when: Date }): Promise<void> {
+  if (!isInvoiceNumber(number)) throw new Error("Only invoices (INV-…) can be marked paid or unpaid");
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const invoices = await loadTab(MASTER_TABS.invoices);
+  const index = invoices.rows.findIndex((r) => cell(invoices, r, "Invoice Number") === number);
+  if (index < 0) throw new Error("Invoice not found");
+  const writes: Array<[string, string]> = [
+    ["Paid On", paid ? formatTimestamp(payment?.when ?? new Date()) : ""],
+    ["Paid By", paid ? "Interac e-Transfer" : ""],
+  ];
+  if (payment) writes.push(["Gmail Message ID", payment.messageId]);
+  for (const [col, value] of writes) {
+    const c = colIndex(invoices.headers, col);
+    if (c >= 0) await updateSheetCell(accessToken, spreadsheetId, MASTER_TABS.invoices, index + 2, c + 1, value);
+  }
+  // The saved PDF now needs to say PAID (or not).
+  await archivePdf(number);
+}
+
+const INVOICE_RE = /\bINV\s*-?\s*(\d{4})\s*-?\s*(\d{1,})\b/i;
+
+/** The unpaid invoice an e-Transfer memo quotes ("INV-2026-0003"), if any. */
+export async function unpaidInvoiceInMemo(memo: string): Promise<Invoice | null> {
+  const m = memo.match(INVOICE_RE);
+  if (!m) return null;
+  const invoice = await getInvoice(`INV-${m[1]}-${m[2].padStart(4, "0")}`);
+  return invoice && !invoice.paid ? invoice : null;
+}
+
 // ---------------------------------------------------------------- PDF
 
 /** Standard PDF fonts only cover Latin-1; fold the rest so pdf-lib doesn't throw. */
@@ -385,8 +500,8 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 
 export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   const doc = await PDFDocument.create();
-  // Paid ones are receipts; ones still to pay are invoices.
-  const kind = inv.paid ? "receipt" : "invoice";
+  // INV-… numbers are invoices (with a PAID stamp once paid); everything else is a receipt.
+  const kind = isInvoiceNumber(inv.number) ? "invoice" : "receipt";
   doc.setTitle(`ASOSC ${kind} ${inv.number}`);
   doc.setAuthor(ORG.name);
   const page: PDFPage = doc.addPage([612, 792]);
@@ -414,9 +529,11 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   // Invoice meta + PAID stamp
   let y = 792 - 168;
   const meta: Array<[string, string]> = [
-    [inv.paid ? "Receipt number" : "Invoice number", inv.number],
+    [kind === "invoice" ? "Invoice number" : "Receipt number", inv.number],
     ["Date issued", longDate(inv.date)],
-    ["Payment received", inv.paidOn ? longDate(inv.paidOn) : "-"],
+    inv.paid || !isInvoiceNumber(inv.number)
+      ? ["Payment received", inv.paidOn ? longDate(inv.paidOn) : "-"]
+      : ["Due date", inv.dueDate ? longDate(`${inv.dueDate}T12:00:00`) : "On receipt"],
   ];
   text(inv.paid ? "RECEIVED FROM" : "BILL TO", M, y, 9, bold, INK_SOFT);
   meta.forEach(([k, v], i) => {
@@ -471,6 +588,10 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
       y - 18,
       11,
     );
+  } else {
+    text("HOW TO PAY", M, y, 9, bold, INK_SOFT);
+    text(`Send an Interac e-Transfer to ${E_TRANSFER_EMAIL}`, M, y - 18, 11, bold);
+    text(`and type ${inv.number} in the message box so we can match your payment.`, M, y - 34, 11);
   }
 
   // Footer

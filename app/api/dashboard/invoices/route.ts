@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { createInvoiceForPayment, createManualReceipt, listInvoices, sendInvoice } from "@/lib/invoices";
+import { createInvoiceForPayment, createManualInvoice, createManualReceipt, listInvoices, sendInvoice, setInvoicePaid } from "@/lib/invoices";
 import { SENDER_EMAIL, senderCanSend } from "@/lib/mailer";
 
 export const maxDuration = 60;
@@ -21,20 +21,28 @@ export async function GET() {
 /**
  * { messageId }                                                        → receipt for an e-Transfer marked "Something else" (created, not sent)
  * { action: "new", name, email, description, amount, paidOn?, paidBy?, send? } → write a receipt by hand, optionally email it
+ * { action: "invoice", name, email, description, amount, dueDate?, send? }    → write an invoice to pay, optionally email it
+ * { action: "paid", number, paid }                                     → mark an invoice paid / not paid
  */
 export async function POST(request: Request) {
   if (!(await isUpgradeAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    if (body.action === "new") {
-      const invoice = await createManualReceipt({
+    if (body.action === "new" || body.action === "invoice") {
+      const common = {
         name: String(body.name ?? ""),
         email: String(body.email ?? ""),
         description: String(body.description ?? ""),
         amount: String(body.amount ?? ""),
-        paidOn: typeof body.paidOn === "string" ? body.paidOn : undefined,
-        paidBy: typeof body.paidBy === "string" ? body.paidBy : undefined,
-      });
+      };
+      const invoice =
+        body.action === "invoice"
+          ? await createManualInvoice({ ...common, dueDate: typeof body.dueDate === "string" ? body.dueDate : undefined })
+          : await createManualReceipt({
+              ...common,
+              paidOn: typeof body.paidOn === "string" ? body.paidOn : undefined,
+              paidBy: typeof body.paidBy === "string" ? body.paidBy : undefined,
+            });
       if (body.send) {
         try {
           await sendInvoice(invoice.number);
@@ -45,6 +53,12 @@ export async function POST(request: Request) {
         }
       }
       return NextResponse.json({ invoice, sent: false });
+    }
+    if (body.action === "paid") {
+      const number = String(body.number ?? "");
+      if (!/^INV-\d{4}-\d{4,}$/.test(number)) return fail(new Error("Invalid invoice number"), 400);
+      await setInvoicePaid(number, body.paid !== false);
+      return NextResponse.json({ ok: true });
     }
     if (typeof body.messageId === "string" && body.messageId) {
       return NextResponse.json({ invoice: await createInvoiceForPayment(body.messageId) });

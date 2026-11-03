@@ -298,7 +298,7 @@ const PEOPLE: Array<{ title: string; ids: string[] }> = [
   { title: "Volunteers", ids: ["volunteer"] },
   { title: "Events", ids: ["event"] },
   { title: "Newsletter and messages", ids: ["newsletter", "contact"] },
-  { title: "Receipts", ids: ["invoice"] },
+  { title: "Invoices & receipts", ids: ["invoice-due", "invoice"] },
 ];
 
 function personFor(id: string): string {

@@ -110,9 +110,11 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
     "Gmail Message ID",
     "Status",
     "Sent At",
-    // Receipts written by hand: when the money came in and how (e-Transfer, cash, card, cheque).
+    // When the money came in and how (e-Transfer, cash, card, cheque). Empty on an unpaid invoice.
     "Paid On",
     "Paid By",
+    // Invoices to pay (INV-…) only.
+    "Due Date",
     // Copy of the PDF kept on Cloudinary (the invoice library links to it).
     "PDF URL",
   ],
