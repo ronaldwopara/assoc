@@ -1,9 +1,10 @@
 "use client";
 
-import { Busy, Segmented } from "@/components/dashboard/ui";
+import { Busy } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { parseSheetDate } from "@/lib/sheet-dates";
+import { AddFormFields } from "@/components/dashboard/add-form";
 import { EmailField, EmailPreviewFrame, EventImageField, useEmailPreview } from "@/components/dashboard/email-editor";
 
 type Copy = {
@@ -513,14 +514,15 @@ function EventFormsCard() {
   const [busy, setBusy] = useState("");
   const [status, setStatus] = useState("");
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ name: "", kind: "event" as "volunteer" | "event", link: "" });
-
-  useEffect(() => {
+  const loadForms = useCallback(() => {
     fetch("/api/dashboard/event-forms", { cache: "no-store" })
       .then((r) => r.json() as Promise<{ forms?: EventForm[]; error?: string }>)
       .then((d) => (d.forms ? setForms(d.forms) : setStatus(d.error || "Couldn't load the event forms")))
       .catch(() => setStatus("Couldn't load the event forms"));
   }, []);
+  useEffect(() => {
+    loadForms();
+  }, [loadForms]);
 
   const post = async (body: Record<string, unknown>, key: string) => {
     setBusy(key);
@@ -557,14 +559,6 @@ function EventFormsCard() {
     );
   };
 
-  const add = async () => {
-    const d = await post({ action: "add", ...draft }, "add");
-    if (d) {
-      setAdding(false);
-      setDraft({ name: "", kind: "event", link: "" });
-      setStatus("Form added. Responses from now on will be copied in.");
-    }
-  };
 
   return (
     <div className="dash-subcard">
@@ -603,37 +597,14 @@ function EventFormsCard() {
       )}
 
       {adding ? (
-        <div className="dash-subcard-form">
-          <EmailField id="ef-name" label="Event name" value={draft.name} onChange={(v) => setDraft((d) => ({ ...d, name: v }))} placeholder="Family Wellness Day 2027" />
-          <div className="dash-field">
-            <span className="dash-field-label">What the form is for</span>
-            <Segmented
-              label="What the form is for"
-              value={draft.kind}
-              onChange={(v) => setDraft((d) => ({ ...d, kind: v }))}
-              options={[
-                { value: "event", label: "Registering to attend" },
-                { value: "volunteer", label: "Volunteering" },
-              ]}
-            />
-          </div>
-          <EmailField
-            id="ef-link"
-            label="Link to the form's response spreadsheet"
-            value={draft.link}
-            onChange={(v) => setDraft((d) => ({ ...d, link: v }))}
-            placeholder="https://docs.google.com/spreadsheets/d/…"
-            hint="In the Google Form, open Responses, then Link to Sheets. Share that sheet with africanssocietyofsc@gmail.com."
-          />
-          <div className="dash-savebar dash-savebar--inline">
-            <button type="button" className="dash-primary-btn focus-ring-light" onClick={add} disabled={Boolean(busy) || !draft.name.trim() || !draft.link.trim()}>
-              <Busy busy={busy === "add"}>Add form</Busy>
-            </button>
-            <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setAdding(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
+        <AddFormFields
+          onCancel={() => setAdding(false)}
+          onDone={(message) => {
+            setAdding(false);
+            setStatus(message);
+            loadForms();
+          }}
+        />
       ) : (
         <div className="dash-savebar dash-savebar--inline">
           <button type="button" className="dash-action-btn focus-ring-light" onClick={syncNow} disabled={Boolean(busy)}>

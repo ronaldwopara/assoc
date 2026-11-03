@@ -31,6 +31,8 @@ export type EventForm = {
   tab: string;
   /** Response rows already copied (null = not started; the first run starts from the current count). */
   copied: number | null;
+  /** Rows before this were already there when the form was added: copied in without emailing anyone. */
+  quietUntil?: number;
   lastRun?: string;
   lastError?: string;
 };
@@ -68,8 +70,12 @@ export function sheetIdFromLink(link: string): string | null {
   return m ? m[1] : null;
 }
 
-/** Adds a form after checking the site can read its response sheet. */
-export async function addEventForm(input: { name: string; kind: EventFormKind; link: string; tab?: string }): Promise<EventForm> {
+/**
+ * Adds a form after checking the site can read its response sheet. With
+ * `importExisting`, people who already filled it in are copied in too (no
+ * emails), via importEventForm; otherwise only new responses are copied.
+ */
+export async function addEventForm(input: { name: string; kind: EventFormKind; link: string; tab?: string; importExisting?: boolean }): Promise<EventForm> {
   const sheetId = sheetIdFromLink(input.link);
   if (!sheetId) throw new Error("Paste the link to the form's response spreadsheet (it starts with docs.google.com/spreadsheets).");
   const name = input.name.trim().slice(0, 120);
@@ -85,9 +91,101 @@ export async function addEventForm(input: { name: string; kind: EventFormKind; l
   const tabs = ((await meta.json()) as { sheets?: Array<{ properties: { title: string } }> }).sheets?.map((s) => s.properties.title) ?? [];
   const tab = input.tab?.trim() || tabs.find((t) => /form responses/i.test(t)) || tabs[0];
   if (!tab || !tabs.includes(tab)) throw new Error(`That spreadsheet has no tab called "${input.tab}".`);
+  const existing = await listEventForms();
+  if (existing.some((f) => f.sheetId === sheetId && f.tab === tab)) throw new Error("That form is already being copied in.");
   const form: EventForm = { id: randomBytes(4).toString("hex"), name, kind: input.kind === "event" ? "event" : "volunteer", sheetId, tab, copied: null };
-  await saveForms([...(await listEventForms()), form]);
+  if (input.importExisting) {
+    const [, ...rows] = await getSheetValues(accessToken, sheetId, tab);
+    form.copied = 0;
+    form.quietUntil = rows.length;
+  }
+  await saveForms([...existing, form]);
   return form;
+}
+
+/** Copies one response into the master sheet (Volunteers or Event Registrations + Master List). False if it has no usable name/email. */
+async function copyResponse(form: EventForm, headers: string[], row: string[], quiet: boolean): Promise<boolean> {
+  const r = readResponse(headers, row);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email) || !r.name) return false;
+  const [first, ...rest] = r.name.split(/\s+/);
+  await recordSubmission(
+    form.kind,
+    {
+      firstName: first ?? "",
+      lastName: rest.join(" "),
+      name: r.name,
+      email: r.email,
+      phone: r.phone,
+      ...(form.kind === "volunteer" ? { volunteerInterests: form.name, comments: r.details } : { event: form.name, details: r.details }),
+    },
+    { timestamp: String(row[0] ?? ""), source: `Google Form: ${form.name}`, quiet },
+  );
+  return true;
+}
+
+export type ImportProgress = { copied: number; skipped: number; remaining: number; total: number; waitSeconds?: number };
+
+/**
+ * Copies in a newly added form's earlier responses (no emails), for up to
+ * `budgetMs` so it fits in one request. Call again while `remaining` > 0;
+ * `waitSeconds` means Google's rate limit was hit, so wait that long first.
+ * The daily run also finishes anything left, still without emails.
+ */
+export async function importEventForm(id: string, budgetMs = 25_000): Promise<ImportProgress> {
+  try {
+    return await importBatch(id, budgetMs);
+  } catch (error) {
+    // Google's per-minute read limit: nothing is lost, the caller just waits and calls again.
+    if (!isRateLimit(error)) throw error;
+    const form = (await listEventForms().catch(() => [])).find((f) => f.id === id);
+    const total = form?.quietUntil ?? 0;
+    return { copied: 0, skipped: 0, remaining: Math.max(1, total - (form?.copied ?? 0)), total, waitSeconds: 60 };
+  }
+}
+
+const isRateLimit = (error: unknown) => /quota|rate limit|429/i.test(String(error));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Saves progress, riding out a short rate limit so finished work isn't lost. */
+async function saveFormsRetrying(forms: EventForm[]) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await saveForms(forms);
+    } catch (error) {
+      if (!isRateLimit(error) || attempt >= 2) throw error;
+      await sleep(15_000);
+    }
+  }
+}
+
+async function importBatch(id: string, budgetMs: number): Promise<ImportProgress> {
+  const started = Date.now();
+  const forms = await listEventForms();
+  const form = forms.find((f) => f.id === id);
+  if (!form) throw new Error("Form not found");
+  const total = form.quietUntil ?? 0;
+  const progress: ImportProgress = { copied: 0, skipped: 0, remaining: Math.max(0, total - (form.copied ?? 0)), total };
+  if (!progress.remaining) return progress;
+
+  const { accessToken } = await getAccessTokenForAccount();
+  const [headers = [], ...rows] = await getSheetValues(accessToken, form.sheetId, form.tab);
+  const end = Math.min(total, rows.length);
+  try {
+    for (let i = form.copied ?? 0; i < end; i++) {
+      if (Date.now() - started > budgetMs) break;
+      if (await copyResponse(form, headers, rows[i], true)) progress.copied += 1;
+      else progress.skipped += 1;
+      form.copied = i + 1;
+    }
+  } catch (error) {
+    if (!isRateLimit(error)) throw error;
+    progress.waitSeconds = 60;
+  } finally {
+    progress.remaining = Math.max(0, end - (form.copied ?? 0));
+    if (!progress.remaining) form.quietUntil = undefined;
+    await saveFormsRetrying(forms);
+  }
+  return progress;
 }
 
 export async function removeEventForm(id: string): Promise<void> {
@@ -144,31 +242,17 @@ export async function syncEventForms(): Promise<EventFormRunResult> {
 
       const end = Math.min(rows.length, form.copied + MAX_PER_RUN);
       for (let i = form.copied; i < end; i++) {
-        const r = readResponse(headers, rows[i]);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) {
-          result.skipped += 1;
-        } else {
-          const [first, ...rest] = r.name.split(/\s+/);
-          if (!r.name) {
-            result.skipped += 1;
-            form.copied = i + 1;
-            continue;
-          }
-          await recordSubmission(form.kind, {
-            firstName: first ?? "",
-            lastName: rest.join(" "),
-            name: r.name,
-            email: r.email,
-            phone: r.phone,
-            ...(form.kind === "volunteer"
-              ? { volunteerInterests: form.name, comments: r.details }
-              : { event: form.name, details: r.details }),
-          }, { timestamp: String(rows[i][0] ?? ""), source: `Google Form: ${form.name}` });
+        // Responses from before the form was added (an import still finishing) aren't emailed.
+        const quiet = form.quietUntil !== undefined && i < form.quietUntil;
+        if (await copyResponse(form, headers, rows[i], quiet)) {
           summary.copied += 1;
           result.copied += 1;
+        } else {
+          result.skipped += 1;
         }
         form.copied = i + 1;
       }
+      if (form.quietUntil !== undefined && form.copied >= form.quietUntil) form.quietUntil = undefined;
       summary.waiting = rows.length - form.copied;
       form.lastError = undefined;
     } catch (error) {

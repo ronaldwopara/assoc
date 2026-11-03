@@ -2,6 +2,7 @@
 
 import { Busy, Segmented } from "@/components/dashboard/ui";
 import { PushToggle } from "@/components/dashboard/push-toggle";
+import { AddFormFields } from "@/components/dashboard/add-form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
@@ -98,6 +99,12 @@ const VENDOR_STATUSES = ["Pending", "Approved", "Declined"];
 const FROM_FILTER: Partial<Record<DashboardListId, { column: RegExp; label: string; blank: string }>> = {
   "master-volunteer": { column: /^from$/i, label: "Volunteered through", blank: "Website" },
   "master-registrations": { column: /^event$/i, label: "Event", blank: "" },
+};
+
+/** Lists fed by Google Forms: "New form" links another one straight into this list. */
+const FORM_KIND: Partial<Record<DashboardListId, "volunteer" | "event">> = {
+  "master-volunteer": "volunteer",
+  "master-registrations": "event",
 };
 
 /** Narrows headers down to a curated set, in that set's order, skipping any
@@ -202,6 +209,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [fromFilter, setFromFilter] = useState("");
+  const formKind = FORM_KIND[listId];
+  const [addingForm, setAddingForm] = useState(false);
+  const [formNotice, setFormNotice] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [dateOpen, setDateOpen] = useState(false);
@@ -232,6 +242,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   useEffect(() => {
     setQuery("");
     setFromFilter("");
+    setAddingForm(false);
+    setFormNotice("");
     setDateFrom("");
     setDateTo("");
     setDateOpen(false);
@@ -603,6 +615,21 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
             </div>
           </div>
           <div className="dash-actions-row dash-actions-row--primary">
+            {formKind && (
+              <button
+                type="button"
+                className="dash-action-btn focus-ring-light"
+                onClick={() => {
+                  setFormNotice("");
+                  setAddingForm((v) => !v);
+                }}
+                aria-expanded={addingForm}
+                title="Copy a Google Form's responses into this list"
+              >
+                <Plus size={16} />
+                New form
+              </button>
+            )}
             <button
               type="button"
               className="dash-action-btn focus-ring-light"
@@ -655,6 +682,29 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
 
       </header>
+      {formKind && (addingForm || formNotice) && (
+        <div className="dash-emails-body">
+          {formNotice && <p className="dash-notice dash-notice--plain">{formNotice}</p>}
+          {addingForm && (
+            <div className="dash-subcard">
+              <p className="dash-subcard-title">{formKind === "volunteer" ? "New volunteer form" : "New event form"}</p>
+              <p className="dash-field-hint">
+                Its responses go into {formKind === "volunteer" ? "Volunteers" : "Event registrations"} and the Master List. New ones are copied
+                every morning and get the confirmation email from Automatic emails.
+              </p>
+              <AddFormFields
+                kind={formKind}
+                onCancel={() => setAddingForm(false)}
+                onDone={(message) => {
+                  setAddingForm(false);
+                  setFormNotice(message);
+                  if (activeTab) loadRows(activeTab);
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {listId === "form-log" && <PushToggle />}
 

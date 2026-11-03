@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { addEventForm, listEventForms, removeEventForm, syncEventForms } from "@/lib/event-forms";
+import { addEventForm, importEventForm, listEventForms, removeEventForm, syncEventForms } from "@/lib/event-forms";
 
 export const maxDuration = 60;
 
@@ -16,7 +16,10 @@ export async function GET() {
   }
 }
 
-/** { action: "add", name, kind, link, tab? } | { action: "remove", id } | { action: "sync" } */
+/**
+ * { action: "add", name, kind, link, tab?, importExisting? } | { action: "import", id } (call again while remaining > 0)
+ * | { action: "remove", id } | { action: "sync" }
+ */
 export async function POST(request: Request) {
   if (!(await isUpgradeAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
@@ -27,8 +30,12 @@ export async function POST(request: Request) {
         kind: body.kind === "event" ? "event" : "volunteer",
         link: String(body.link ?? ""),
         tab: typeof body.tab === "string" ? body.tab : undefined,
+        importExisting: body.importExisting === true,
       });
       return NextResponse.json({ form, forms: await listEventForms() });
+    }
+    if (body.action === "import" && typeof body.id === "string") {
+      return NextResponse.json({ progress: await importEventForm(body.id) });
     }
     if (body.action === "remove" && typeof body.id === "string") {
       await removeEventForm(body.id);
