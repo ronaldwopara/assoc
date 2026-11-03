@@ -9,7 +9,7 @@
  */
 
 import { randomInt } from "node:crypto";
-import { appendSheetRow, getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
+import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
 import { membershipCategoryOptions } from "@/lib/join-community-forms";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
 import { formatTimestamp } from "@/lib/sheet-dates";
@@ -130,6 +130,19 @@ export async function newPaymentCode(accessToken: string, spreadsheetId: string,
 
 export type SubmissionResult = { paymentCode?: string };
 
+/** A resubmission refreshes an existing row: new values win, blanks keep the old value, `clear` columns are emptied. */
+export function mergeRow(headers: string[], row: string[], fields: Record<string, string>, clear: string[] = []): string[] {
+  const merged = headers.map((h, c) => {
+    const next = fields[h.trim()];
+    return next !== undefined && next !== "" ? next : String(row[c] ?? "");
+  });
+  for (const col of clear) {
+    const c = colIndex(headers, col);
+    if (c >= 0) merged[c] = "";
+  }
+  return merged;
+}
+
 export async function recordSubmission(kind: FormKind, values: Values): Promise<SubmissionResult> {
   const name = fullName(values);
   const email = str(values, "email").toLowerCase();
@@ -145,21 +158,56 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
     "Phone Number": str(values, "phone"),
   };
 
-  const paymentCode =
-    kind === "membership" || kind === "donate"
-      ? await newPaymentCode(accessToken, spreadsheetId, kind === "membership" ? "M" : "D")
-      : undefined;
+  const sameEmail = (headers: string[], row: string[]) =>
+    String(row[colIndex(headers, "Email")] ?? "").trim().toLowerCase() === email;
+  const cellOf = (headers: string[], row: string[], col: string) => String(row[colIndex(headers, col)] ?? "").trim();
+  const isUnpaidMembership = (headers: string[], row: string[]) =>
+    sameEmail(headers, row) &&
+    /^membership$/i.test(cellOf(headers, row, "Source")) &&
+    !/^paid$/i.test(cellOf(headers, row, "Paid"));
+
+  // An unpaid member signing up again keeps the payment code they were already given.
+  let paymentCode: string | undefined;
+  if (kind === "membership") {
+    const [headers = [], ...rows] = await getSheetValues(accessToken, spreadsheetId, MASTER_TABS.masterList);
+    const existing = [...rows].reverse().find((r) => isUnpaidMembership(headers, r));
+    paymentCode = (existing && cellOf(headers, existing, "Payment Code")) || undefined;
+  }
+  if (!paymentCode && (kind === "membership" || kind === "donate")) {
+    paymentCode = await newPaymentCode(accessToken, spreadsheetId, kind === "membership" ? "M" : "D");
+  }
 
   const masterFields: Record<string, string> = { ...person, Source: SOURCE_LABEL[kind] };
   const rowNumbers: Partial<Record<keyof typeof MASTER_TABS, number>> = {};
-  const append = async (tab: keyof typeof MASTER_TABS, fields: Record<string, string>) => {
-    rowNumbers[tab] = await appendSheetRow(
-      accessToken,
-      spreadsheetId,
-      MASTER_TABS[tab],
-      rowFromFields(MASTER_HEADERS[tab], fields),
-    );
+
+  /**
+   * Saves the submission to a tab. With `update`, a row for the same person
+   * (same email, plus `match`) is refreshed in place (new date and details,
+   * anything left blank keeps its old value) instead of adding a duplicate.
+   * `clear` columns are emptied on update so the person is treated as new
+   * (e.g. a fresh confirmation email, reminders restarted).
+   */
+  const save = async (
+    tab: keyof typeof MASTER_TABS,
+    fields: Record<string, string>,
+    opts: { update?: boolean; match?: (headers: string[], row: string[]) => boolean; clear?: string[] } = {},
+  ) => {
+    const name = MASTER_TABS[tab];
+    const [liveHeaders = [], ...rows] = await getSheetValues(accessToken, spreadsheetId, name);
+    const headers = liveHeaders.length ? liveHeaders : [...MASTER_HEADERS[tab]];
+    if (opts.update) {
+      const match = opts.match ?? sameEmail;
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (!match(headers, rows[i])) continue;
+        const merged = mergeRow(headers, rows[i], fields, ["Confirmation Sent", ...(opts.clear ?? [])]);
+        await updateSheetRow(accessToken, spreadsheetId, name, i + 2, merged);
+        rowNumbers[tab] = i + 2;
+        return;
+      }
+    }
+    rowNumbers[tab] = await appendSheetRow(accessToken, spreadsheetId, name, rowFromFields(headers, fields));
   };
+  const append = (tab: keyof typeof MASTER_TABS, fields: Record<string, string>) => save(tab, fields);
 
   switch (kind) {
     case "membership": {
@@ -186,33 +234,59 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
       });
       break;
     case "volunteer":
-      await append("volunteers", {
+      await save("volunteers", {
         ...person,
         Interests: str(values, "volunteerInterests"),
         Comments: str(values, "comments"),
-      });
+      }, { update: true });
       break;
     case "vendor":
-      await append("vendors", {
+      await save("vendors", {
         ...person,
         "Business Name": str(values, "businessName"),
         "Vendor Type": str(values, "vendorType"),
         Description: str(values, "productsServices"),
         Details: details(values, VENDOR_DETAIL_FIELDS),
-      });
+      }, { update: true });
       break;
     case "contact":
       await append("contact", { ...person, Message: str(values, "message") });
       break;
     case "newsletter":
-      await append("newsletter", {
+      await save("newsletter", {
         ...person,
         "Strathcona Resident": str(values, "strathconaResident"),
-      });
+      }, { update: true });
       break;
   }
 
-  await append("masterList", masterFields);
+  // Master List: one row per person. Membership keeps its own row (payment code,
+  // paid status and reminders live there; a paid member renewing gets a new one).
+  // Every other sign-up refreshes the person's other row: newest date, and
+  // "Signed up for" lists everything they've done ("Volunteer, Contact").
+  if (kind === "membership") {
+    await save("masterList", masterFields, {
+      update: true,
+      match: isUnpaidMembership,
+      clear: ["Stop Reminders", "Last Reminder"],
+    });
+  } else {
+    const [headers = [], ...rows] = await getSheetValues(accessToken, spreadsheetId, MASTER_TABS.masterList);
+    const personRow = [...rows]
+      .reverse()
+      .find((r) => sameEmail(headers, r) && !/^membership$/i.test(cellOf(headers, r, "Source")));
+    if (personRow) {
+      const kinds = cellOf(headers, personRow, "Source")
+        .split(/\s*,\s*/)
+        .filter((k) => k && !/^imported$/i.test(k));
+      if (!kinds.some((k) => k.toLowerCase() === SOURCE_LABEL[kind].toLowerCase())) kinds.push(SOURCE_LABEL[kind]);
+      masterFields.Source = kinds.join(", ");
+    }
+    await save("masterList", masterFields, {
+      update: true,
+      match: (h, r) => sameEmail(h, r) && !/^membership$/i.test(cellOf(h, r, "Source")),
+    });
+  }
 
   const confirmTab = CONFIRM_TAB[kind];
   const confirmRow = rowNumbers[confirmTab];

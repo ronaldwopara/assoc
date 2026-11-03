@@ -21,6 +21,7 @@ import {
   findDateColumnIndex,
   formatIsoDayLabel,
   isTimestampHeader,
+  parseSheetDate,
   rowMatchesDateFilter,
 } from "@/lib/sheet-dates";
 
@@ -262,7 +263,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     if (!rows) return [];
     const withRowNumbers = rows.rows.map((row, i) => ({ row, rowNumber: i + 2 }));
     const q = query.trim().toLowerCase();
-    return withRowNumbers.filter(({ row }) => {
+    const matching = withRowNumbers.filter(({ row }) => {
       if (dateFilterActive && !rowMatchesDateFilter(row, dateColumnIndex, dateFrom, dateTo)) {
         return false;
       }
@@ -271,6 +272,13 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       if (textMatch) return true;
       return row.some((cell) => cellMatchesDateQuery(cell ?? "", query.trim()));
     });
+    // Newest first; rows without a date go to the end, in sheet order.
+    if (dateColumnIndex < 0) return matching;
+    const time = (row: string[]) => parseSheetDate(row[dateColumnIndex] ?? "")?.getTime() ?? -Infinity;
+    return matching
+      .map((r) => ({ ...r, t: time(r.row) }))
+      .sort((a, b) => (b.t === a.t ? a.rowNumber - b.rowNumber : b.t - a.t))
+      .map(({ row, rowNumber }) => ({ row, rowNumber }));
   }, [rows, query, dateFrom, dateTo, dateColumnIndex, dateFilterActive]);
 
   const [editingRow, setEditingRow] = useState<number | null>(null);
