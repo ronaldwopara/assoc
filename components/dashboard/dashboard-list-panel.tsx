@@ -1,6 +1,6 @@
 "use client";
 
-import { Busy, Segmented } from "@/components/dashboard/ui";
+import { Busy } from "@/components/dashboard/ui";
 import { PushToggle } from "@/components/dashboard/push-toggle";
 import { AddFormDialog } from "@/components/dashboard/add-form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -97,9 +97,9 @@ const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match
 const VENDOR_STATUSES = ["Pending", "Approved", "Declined"];
 
 /** Lists that can be narrowed by where people came from: the column, and what a blank cell means. */
-const FROM_FILTER: Partial<Record<DashboardListId, { column: RegExp; label: string; blank: string }>> = {
-  "master-volunteer": { column: /^from$/i, label: "Volunteered through", blank: "Website" },
-  "master-registrations": { column: /^event$/i, label: "Event", blank: "" },
+const FROM_FILTER: Partial<Record<DashboardListId, { column: RegExp; label: string; all: string; blank: string }>> = {
+  "master-volunteer": { column: /^from$/i, label: "Volunteered through", all: "Everyone", blank: "Website" },
+  "master-registrations": { column: /^event$/i, label: "Event", all: "All events", blank: "" },
 };
 
 /** Lists fed by Google Forms: "New form" links another one straight into this list. */
@@ -526,25 +526,29 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               {rows.rows.length} {rows.rows.length === 1 ? "person" : "people"}
             </p>
           )}
-          {fromConfig && fromOptions.length > 1 && (
-            <div className="dash-panel-tabs">
-              <Segmented
-                label={fromConfig.label}
-                value={fromFilter}
-                onChange={setFromFilter}
-                options={[
-                  { value: "", label: `All ${rows?.rows.length ?? 0}` },
-                  ...fromOptions.map(([v, n]) => ({ value: v, label: `${v} ${n}` })),
-                ]}
-              />
-            </div>
-          )}
         </div>
         <div className="dash-panel-actions">
           {/* Grouped into rows (dash-actions-row is `display:contents` on
               desktop). On small screens search gets its own row and the
               other actions shrink to icon buttons; nothing is hidden. */}
           <div className="dash-actions-row dash-actions-row--search">
+            {fromConfig && fromOptions.length > 1 && (
+              <select
+                className={`dash-select dash-from-select focus-ring-light${fromFilter ? " dash-from-select--on" : ""}`}
+                aria-label={fromConfig.label}
+                value={fromFilter}
+                onChange={(e) => setFromFilter(e.target.value)}
+              >
+                <option value="">
+                  {fromConfig.all} ({rows?.rows.length ?? 0})
+                </option>
+                {fromOptions.map(([v, n]) => (
+                  <option key={v} value={v}>
+                    {v} ({n})
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="dash-search-wrap">
               <Search size={15} aria-hidden />
               <input

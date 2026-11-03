@@ -3,8 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Paperclip, Send, X } from "lucide-react";
 import { Segmented, Busy } from "@/components/dashboard/ui";
-import { HERO, type ComposerAttachment, type ComposerContent } from "@/lib/emails";
-import { EmailField, EmailPreviewFrame, EventImageField, useEmailPreview } from "@/components/dashboard/email-editor";
+import {
+  HERO,
+  type ComposerAttachment,
+  type ComposerContent,
+} from "@/lib/emails";
+import {
+  EmailField,
+  EmailPreviewFrame,
+  EventImageField,
+  useEmailPreview,
+} from "@/components/dashboard/email-editor";
 
 const LISTS = [
   { id: "masterList", label: "Everyone" },
@@ -34,7 +43,8 @@ function FromPicker({
   onChange: (v: string[]) => void;
 }) {
   const total = (options ?? []).reduce((n, o) => n + o.count, 0);
-  const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+  const toggle = (v: string) =>
+    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   return (
     <div className="dash-field">
       <span className="dash-field-label">{label}</span>
@@ -43,12 +53,22 @@ function FromPicker({
       ) : (
         <div className="dash-chip-checks">
           <label className="dash-chip-check" htmlFor={`compose-from-${id}-all`}>
-            <input id={`compose-from-${id}-all`} type="checkbox" className="sr-only" checked={value.length === 0} onChange={() => onChange([])} />
+            <input
+              id={`compose-from-${id}-all`}
+              type="checkbox"
+              className="sr-only"
+              checked={value.length === 0}
+              onChange={() => onChange([])}
+            />
             <Check size={14} aria-hidden className="dash-chip-check-icon" />
             All ({total})
           </label>
           {options.map((o, i) => (
-            <label key={o.value} className="dash-chip-check" htmlFor={`compose-from-${id}-${i}`}>
+            <label
+              key={o.value}
+              className="dash-chip-check"
+              htmlFor={`compose-from-${id}-${i}`}
+            >
               <input
                 id={`compose-from-${id}-${i}`}
                 type="checkbox"
@@ -84,11 +104,18 @@ const STARTER: ComposerContent = {
 };
 
 type Recipient = { email: string; name: string };
-type SavedTemplate = { id: string; name: string; updated: string; content: ComposerContent };
+type SavedTemplate = {
+  id: string;
+  name: string;
+  updated: string;
+  content: ComposerContent;
+};
 const BATCH = 10;
 
 function formatBytes(n: number) {
-  return n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+  return n > 1024 * 1024
+    ? `${(n / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(n / 1024))} KB`;
 }
 
 /** Write an email in the ASOSC design and send it to lists of people. */
@@ -97,14 +124,29 @@ export function DashboardComposePanel() {
   const [templates, setTemplates] = useState<SavedTemplate[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [notice, setNotice] = useState("");
-  const [sender, setSender] = useState<{ canSend: boolean; email: string } | null>(null);
+  /** What the last send did, shown next to the send buttons. */
+  const [sendNotice, setSendNotice] = useState<{
+    test: boolean;
+    text: string;
+  } | null>(null);
+  const [sender, setSender] = useState<{
+    canSend: boolean;
+    email: string;
+  } | null>(null);
 
+  /** Who it's for: people on lists, or addresses typed in by hand (a real send, not a test). */
+  const [audience, setAudience] = useState<"lists" | "people">("lists");
   const [lists, setLists] = useState<ListId[]>([]);
-  const [memberFilter, setMemberFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [memberFilter, setMemberFilter] = useState<"all" | "paid" | "unpaid">(
+    "all",
+  );
   /** Narrowing volunteers / event registrations by where they came from (empty = all). */
   const [volunteerFrom, setVolunteerFrom] = useState<string[]>([]);
   const [events, setEvents] = useState<string[]>([]);
-  const [fromOptions, setFromOptions] = useState<{ volunteerFrom: FromOption[]; events: FromOption[] } | null>(null);
+  const [fromOptions, setFromOptions] = useState<{
+    volunteerFrom: FromOption[];
+    events: FromOption[];
+  } | null>(null);
   const [extra, setExtra] = useState("");
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
   const [recipientInfo, setRecipientInfo] = useState("");
@@ -112,20 +154,40 @@ export function DashboardComposePanel() {
 
   const [testTo, setTestTo] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number; failed: Array<{ email: string; error?: string }> } | null>(null);
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    failed: Array<{ email: string; error?: string }>;
+  } | null>(null);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const attachInput = useRef<HTMLInputElement>(null);
 
-  const set = <K extends keyof ComposerContent>(k: K) => (v: ComposerContent[K]) => setContent((c) => ({ ...c, [k]: v }));
-  const preview = useEmailPreview({ kind: "composer", content }, [JSON.stringify(content)]);
+  const set =
+    <K extends keyof ComposerContent>(k: K) =>
+    (v: ComposerContent[K]) =>
+      setContent((c) => ({ ...c, [k]: v }));
+  const preview = useEmailPreview({ kind: "composer", content }, [
+    JSON.stringify(content),
+  ]);
 
   const loadTemplates = useCallback(() => {
     fetch("/api/dashboard/compose/templates", { cache: "no-store" })
-      .then((r) => r.json() as Promise<{ templates?: SavedTemplate[]; canSend?: boolean; sender?: string }>)
+      .then(
+        (r) =>
+          r.json() as Promise<{
+            templates?: SavedTemplate[];
+            canSend?: boolean;
+            sender?: string;
+          }>,
+      )
       .then((d) => {
         setTemplates(d.templates ?? []);
-        if (typeof d.canSend === "boolean") setSender({ canSend: d.canSend, email: d.sender ?? "support@asosc.ca" });
+        if (typeof d.canSend === "boolean")
+          setSender({
+            canSend: d.canSend,
+            email: d.sender ?? "support@asosc.ca",
+          });
       })
       .catch(() => undefined);
   }, []);
@@ -138,8 +200,19 @@ export function DashboardComposePanel() {
   useEffect(() => {
     if (!wantsFrom || fromOptions) return;
     fetch("/api/dashboard/compose/recipients", { cache: "no-store" })
-      .then((r) => r.json() as Promise<{ volunteerFrom?: FromOption[]; events?: FromOption[] }>)
-      .then((d) => setFromOptions({ volunteerFrom: d.volunteerFrom ?? [], events: d.events ?? [] }))
+      .then(
+        (r) =>
+          r.json() as Promise<{
+            volunteerFrom?: FromOption[];
+            events?: FromOption[];
+          }>,
+      )
+      .then((d) =>
+        setFromOptions({
+          volunteerFrom: d.volunteerFrom ?? [],
+          events: d.events ?? [],
+        }),
+      )
       .catch(() => undefined);
   }, [wantsFrom, fromOptions]);
 
@@ -164,7 +237,14 @@ export function DashboardComposePanel() {
       const res = await fetch("/api/dashboard/compose/templates", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: templateId || undefined, name: templates.find((t) => t.id === templateId)?.name || content.subject || "Untitled", content }),
+        body: JSON.stringify({
+          id: templateId || undefined,
+          name:
+            templates.find((t) => t.id === templateId)?.name ||
+            content.subject ||
+            "Untitled",
+          content,
+        }),
       });
       const d = (await res.json()) as { id?: string; error?: string };
       if (!res.ok || !d.id) throw new Error(d.error || "Couldn't save");
@@ -178,7 +258,10 @@ export function DashboardComposePanel() {
 
   const deleteTemplate = async () => {
     if (!templateId) return;
-    await fetch(`/api/dashboard/compose/templates?id=${encodeURIComponent(templateId)}`, { method: "DELETE" });
+    await fetch(
+      `/api/dashboard/compose/templates?id=${encodeURIComponent(templateId)}`,
+      { method: "DELETE" },
+    );
     pickTemplate("");
     setNotice("Deleted.");
     loadTemplates();
@@ -191,10 +274,19 @@ export function DashboardComposePanel() {
       const form = new FormData();
       form.append("file", file);
       form.append("kind", "attachment");
-      const res = await fetch("/api/dashboard/compose/upload", { method: "POST", body: form });
-      const d = (await res.json()) as { attachment?: ComposerAttachment; error?: string };
+      const res = await fetch("/api/dashboard/compose/upload", {
+        method: "POST",
+        body: form,
+      });
+      const d = (await res.json()) as {
+        attachment?: ComposerAttachment;
+        error?: string;
+      };
       if (!res.ok || !d.attachment) throw new Error(d.error || "Upload failed");
-      setContent((c) => ({ ...c, attachments: [...(c.attachments ?? []), d.attachment!] }));
+      setContent((c) => ({
+        ...c,
+        attachments: [...(c.attachments ?? []), d.attachment!],
+      }));
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -210,17 +302,32 @@ export function DashboardComposePanel() {
       const res = await fetch("/api/dashboard/compose/recipients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lists, memberFilter, volunteerFrom, events, extra }),
+        body: JSON.stringify(
+          audience === "people"
+            ? { lists: [], extra }
+            : { lists, memberFilter, volunteerFrom, events, extra },
+        ),
       });
-      const d = (await res.json()) as { recipients?: Recipient[]; skippedUnsubscribed?: number; invalid?: string[]; error?: string };
-      if (!res.ok || !d.recipients) throw new Error(d.error || "Couldn't load recipients");
+      const d = (await res.json()) as {
+        recipients?: Recipient[];
+        skippedUnsubscribed?: number;
+        invalid?: string[];
+        error?: string;
+      };
+      if (!res.ok || !d.recipients)
+        throw new Error(d.error || "Couldn't load recipients");
       setRecipients(d.recipients);
-      const bits = [`${d.recipients.length} ${d.recipients.length === 1 ? "person" : "people"}`];
-      if (d.skippedUnsubscribed) bits.push(`${d.skippedUnsubscribed} unsubscribed skipped`);
+      const bits = [
+        `${d.recipients.length} ${d.recipients.length === 1 ? "person" : "people"}`,
+      ];
+      if (d.skippedUnsubscribed)
+        bits.push(`${d.skippedUnsubscribed} unsubscribed skipped`);
       if (d.invalid?.length) bits.push(`ignored: ${d.invalid.join(", ")}`);
       setRecipientInfo(bits.join(" · "));
     } catch (e) {
-      setRecipientInfo(e instanceof Error ? e.message : "Couldn't load recipients");
+      setRecipientInfo(
+        e instanceof Error ? e.message : "Couldn't load recipients",
+      );
     } finally {
       setLoadingRecipients(false);
     }
@@ -228,15 +335,17 @@ export function DashboardComposePanel() {
 
   // Recount whenever who it's going to changes (debounced).
   useEffect(() => {
-    if (lists.length === 0 && !extra.trim()) return;
+    // Nothing to count (the change handlers already cleared the last count).
+    if ((audience === "people" || lists.length === 0) && !extra.trim()) return;
     const timer = window.setTimeout(() => void checkRecipients(), 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lists, memberFilter, volunteerFrom, events, extra]);
+  }, [audience, lists, memberFilter, volunteerFrom, events, extra]);
 
   const sendBatches = async (to: Recipient[], test: boolean) => {
     setSending(true);
     setConfirming(false);
+    setSendNotice(null);
     setNotice("");
     const failed: Array<{ email: string; error?: string }> = [];
     setProgress({ done: 0, total: to.length, failed });
@@ -248,18 +357,36 @@ export function DashboardComposePanel() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content, recipients: batch, test }),
         });
-        const d = (await res.json()) as { results?: Array<{ email: string; ok: boolean; error?: string }>; error?: string };
+        const d = (await res.json()) as {
+          results?: Array<{ email: string; ok: boolean; error?: string }>;
+          error?: string;
+        };
         if (!res.ok || !d.results) throw new Error(d.error || "Send failed");
         failed.push(...d.results.filter((r) => !r.ok));
-        setProgress({ done: Math.min(i + BATCH, to.length), total: to.length, failed: [...failed] });
+        setProgress({
+          done: Math.min(i + BATCH, to.length),
+          total: to.length,
+          failed: [...failed],
+        });
       }
-      setNotice(
-        test
-          ? failed.length ? `Test failed: ${failed[0].error}` : `Test sent to ${to[0].email}.`
-          : `Sent to ${to.length - failed.length} of ${to.length} people.`,
-      );
+      setSendNotice({
+        test,
+        text: test
+          ? failed.length
+            ? `Test failed: ${failed[0].error}`
+            : `Test sent to ${to[0].email}. Only you got it.`
+          : failed.length
+            ? `Sent to ${to.length - failed.length} of ${to.length} people.`
+            : `Sent to ${to.length === 1 ? to[0].email : `all ${to.length} people`}.`,
+      });
     } catch (e) {
-      setNotice(e instanceof Error ? `${e.message}. Anything above was already sent.` : "Send failed");
+      setSendNotice({
+        test,
+        text:
+          e instanceof Error
+            ? `${e.message}. Anything above was already sent.`
+            : "Send failed",
+      });
     } finally {
       setSending(false);
     }
@@ -269,8 +396,13 @@ export function DashboardComposePanel() {
     staleRecipients();
     setLists((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
   };
-  const ready = Boolean(content.subject.trim() && content.headline.trim() && content.body.trim());
-  const attachmentsTotal = useMemo(() => (content.attachments ?? []).reduce((n, a) => n + a.size, 0), [content.attachments]);
+  const ready = Boolean(
+    content.subject.trim() && content.headline.trim() && content.body.trim(),
+  );
+  const attachmentsTotal = useMemo(
+    () => (content.attachments ?? []).reduce((n, a) => n + a.size, 0),
+    [content.attachments],
+  );
 
   const count = recipients?.length ?? 0;
 
@@ -281,7 +413,9 @@ export function DashboardComposePanel() {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">Send an email</h2>
-          <p className="dash-panel-sub">Write it, pick who gets it, then send. Everyone gets their own copy.</p>
+          <p className="dash-panel-sub">
+            Write it, pick who gets it, then send. Everyone gets their own copy.
+          </p>
         </div>
       </header>
 
@@ -289,9 +423,13 @@ export function DashboardComposePanel() {
         {sender && !sender.canSend && (
           <div className="dash-notice">
             <span>
-              You can write and preview an email, but it can&rsquo;t be sent until you sign in with <strong>{sender.email}</strong>.
+              You can write and preview an email, but it can&rsquo;t be sent
+              until you sign in with <strong>{sender.email}</strong>.
             </span>
-            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
+            <a
+              className="dash-primary-btn focus-ring-light"
+              href="/api/google/connect?account=support%40asosc.ca"
+            >
               Sign in with {sender.email}
             </a>
           </div>
@@ -302,7 +440,9 @@ export function DashboardComposePanel() {
           <div className="dash-compose-form">
             {templates.length > 0 && (
               <section className="dash-emails-section">
-                <h3 className="dash-emails-section-title">Start from a saved email</h3>
+                <h3 className="dash-emails-section-title">
+                  Start from a saved email
+                </h3>
                 <div className="dash-saved">
                   <button
                     type="button"
@@ -322,7 +462,9 @@ export function DashboardComposePanel() {
                       onClick={() => pickTemplate(t.id)}
                     >
                       <span className="dash-saved-name">{t.name}</span>
-                      <span className="dash-saved-meta">Saved {t.updated.split(" ")[0]}</span>
+                      <span className="dash-saved-meta">
+                        Saved {t.updated.split(" ")[0]}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -330,25 +472,62 @@ export function DashboardComposePanel() {
             )}
 
             <section className="dash-emails-section">
-              <StepTitle n={1} done={steps[0]}>Write your email</StepTitle>
-              <EmailField id="compose-subject" label="Subject line" value={content.subject} onChange={set("subject")} />
-              <EmailField id="compose-headline" label="Big heading" value={content.headline} onChange={set("headline")} />
-              <EmailField id="compose-subhead" label="Line under the heading" value={content.subhead} onChange={set("subhead")} />
-              <EventImageField id="compose-hero" value={content.heroUrl} onChange={set("heroUrl")} emptyLabel="No photo" />
-              <EmailField id="compose-body" label="Message" value={content.body} onChange={set("body")} multiline rows={8} inserts={["first_name"]} />
+              <StepTitle n={1} done={steps[0]}>
+                Write your email
+              </StepTitle>
+              <EmailField
+                id="compose-subject"
+                label="Subject line"
+                value={content.subject}
+                onChange={set("subject")}
+              />
+              <EmailField
+                id="compose-headline"
+                label="Big heading"
+                value={content.headline}
+                onChange={set("headline")}
+              />
+              <EmailField
+                id="compose-subhead"
+                label="Line under the heading"
+                value={content.subhead}
+                onChange={set("subhead")}
+              />
+              <EventImageField
+                id="compose-hero"
+                value={content.heroUrl}
+                onChange={set("heroUrl")}
+                emptyLabel="No photo"
+              />
+              <EmailField
+                id="compose-body"
+                label="Message"
+                value={content.body}
+                onChange={set("body")}
+                multiline
+                rows={8}
+                inserts={["first_name"]}
+              />
               <div className="dash-email-row">
                 <EmailField
                   id="compose-button-label"
                   label="Button words"
                   value={content.button?.label ?? ""}
-                  onChange={(v) => set("button")({ label: v, url: content.button?.url ?? "" })}
+                  onChange={(v) =>
+                    set("button")({ label: v, url: content.button?.url ?? "" })
+                  }
                   hint="Leave empty if you don't want a button."
                 />
                 <EmailField
                   id="compose-button-url"
                   label="Where the button goes"
                   value={content.button?.url ?? ""}
-                  onChange={(v) => set("button")({ label: content.button?.label ?? "", url: v })}
+                  onChange={(v) =>
+                    set("button")({
+                      label: content.button?.label ?? "",
+                      url: v,
+                    })
+                  }
                   placeholder="https://asosc.ca/events"
                 />
               </div>
@@ -363,12 +542,20 @@ export function DashboardComposePanel() {
                         <a href={a.url} target="_blank" rel="noreferrer">
                           {a.name}
                         </a>
-                        <span className="dash-muted">{formatBytes(a.size)}</span>
+                        <span className="dash-muted">
+                          {formatBytes(a.size)}
+                        </span>
                         <button
                           type="button"
                           className="dash-icon-btn dash-icon-btn--ink focus-ring-light"
                           aria-label={`Remove ${a.name}`}
-                          onClick={() => set("attachments")((content.attachments ?? []).filter((x) => x.url !== a.url))}
+                          onClick={() =>
+                            set("attachments")(
+                              (content.attachments ?? []).filter(
+                                (x) => x.url !== a.url,
+                              ),
+                            )
+                          }
                         >
                           <X size={14} />
                         </button>
@@ -377,13 +564,18 @@ export function DashboardComposePanel() {
                   </ul>
                 )}
                 <div className="dash-inline">
-                  <label className="dash-action-btn focus-ring-light" htmlFor="compose-attach">
+                  <label
+                    className="dash-action-btn focus-ring-light"
+                    htmlFor="compose-attach"
+                  >
                     <Busy busy={uploading}>
                       <Paperclip size={15} aria-hidden />
                       Choose a file
                     </Busy>
                   </label>
-                  <span className="dash-field-hint">PDFs, pictures or documents, up to 4 MB each.</span>
+                  <span className="dash-field-hint">
+                    PDFs, pictures or documents, up to 4 MB each.
+                  </span>
                 </div>
                 <input
                   ref={attachInput}
@@ -391,104 +583,260 @@ export function DashboardComposePanel() {
                   type="file"
                   className="sr-only"
                   disabled={uploading}
-                  onChange={(e) => e.target.files?.[0] && uploadAttachment(e.target.files[0])}
+                  onChange={(e) =>
+                    e.target.files?.[0] && uploadAttachment(e.target.files[0])
+                  }
                 />
-                {attachmentsTotal > 0 && <span className="dash-field-hint">{formatBytes(attachmentsTotal)} of 15 MB used.</span>}
+                {attachmentsTotal > 0 && (
+                  <span className="dash-field-hint">
+                    {formatBytes(attachmentsTotal)} of 15 MB used.
+                  </span>
+                )}
               </div>
 
               <details className="dash-more">
                 <summary>More options</summary>
-                <EmailField id="compose-preheader" label="Preview text in the inbox" value={content.preheader} onChange={set("preheader")} />
-                <EmailField id="compose-banner" label="Small text along the top" value={content.banner} onChange={set("banner")} />
+                <EmailField
+                  id="compose-preheader"
+                  label="Preview text in the inbox"
+                  value={content.preheader}
+                  onChange={set("preheader")}
+                />
+                <EmailField
+                  id="compose-banner"
+                  label="Small text along the top"
+                  value={content.banner}
+                  onChange={set("banner")}
+                />
               </details>
             </section>
 
             <section className="dash-emails-section">
-              <StepTitle n={2} done={steps[1]}>Choose who gets it</StepTitle>
-              <div className="dash-chip-checks">
-                {LISTS.map((l) => (
-                  <label key={l.id} className="dash-chip-check" htmlFor={`compose-list-${l.id}`}>
-                    <input id={`compose-list-${l.id}`} type="checkbox" className="sr-only" checked={lists.includes(l.id)} onChange={() => toggleList(l.id)} />
-                    <Check size={14} aria-hidden className="dash-chip-check-icon" />
-                    {l.label}
-                  </label>
-                ))}
-              </div>
-              {lists.includes("members") && (
-                <div className="dash-field">
-                  <span className="dash-field-label">Which members?</span>
-                  <Segmented
-                    label="Which members"
-                    value={memberFilter}
-                    onChange={(v) => {
-                      staleRecipients();
-                      setMemberFilter(v);
-                    }}
-                    options={[
-                      { value: "all", label: "All of them" },
-                      { value: "paid", label: "Paid" },
-                      { value: "unpaid", label: "Not paid yet" },
-                    ]}
-                  />
-                </div>
-              )}
-              {lists.includes("volunteers") && (
-                <FromPicker
-                  id="volunteers"
-                  label="Volunteers from"
-                  options={fromOptions?.volunteerFrom}
-                  value={volunteerFrom}
-                  onChange={(v) => {
-                    staleRecipients();
-                    setVolunteerFrom(v);
-                  }}
-                />
-              )}
-              {lists.includes("events") && (
-                <FromPicker
-                  id="events"
-                  label="Registered for"
-                  options={fromOptions?.events}
-                  value={events}
-                  onChange={(v) => {
-                    staleRecipients();
-                    setEvents(v);
-                  }}
-                />
-              )}
-              <EmailField
-                id="compose-extra"
-                label="Anyone else? (optional)"
-                value={extra}
+              <StepTitle n={2} done={steps[1]}>
+                Who gets it
+              </StepTitle>
+              <Segmented
+                label="Who gets it"
+                value={audience}
                 onChange={(v) => {
                   staleRecipients();
-                  setExtra(v);
+                  setAudience(v);
                 }}
-                placeholder="Type email addresses, separated by commas"
+                options={[
+                  { value: "lists", label: "People on our lists" },
+                  { value: "people", label: "Specific people" },
+                ]}
               />
+              {audience === "lists" ? (
+                <>
+                  <div className="dash-chip-checks">
+                    {LISTS.map((l) => (
+                      <label
+                        key={l.id}
+                        className="dash-chip-check"
+                        htmlFor={`compose-list-${l.id}`}
+                      >
+                        <input
+                          id={`compose-list-${l.id}`}
+                          type="checkbox"
+                          className="sr-only"
+                          checked={lists.includes(l.id)}
+                          onChange={() => toggleList(l.id)}
+                        />
+                        <Check
+                          size={14}
+                          aria-hidden
+                          className="dash-chip-check-icon"
+                        />
+                        {l.label}
+                      </label>
+                    ))}
+                  </div>
+                  {lists.includes("members") && (
+                    <div className="dash-field">
+                      <span className="dash-field-label">Which members?</span>
+                      <Segmented
+                        label="Which members"
+                        value={memberFilter}
+                        onChange={(v) => {
+                          staleRecipients();
+                          setMemberFilter(v);
+                        }}
+                        options={[
+                          { value: "all", label: "All of them" },
+                          { value: "paid", label: "Paid" },
+                          { value: "unpaid", label: "Not paid yet" },
+                        ]}
+                      />
+                    </div>
+                  )}
+                  {lists.includes("volunteers") && (
+                    <FromPicker
+                      id="volunteers"
+                      label="Volunteers from"
+                      options={fromOptions?.volunteerFrom}
+                      value={volunteerFrom}
+                      onChange={(v) => {
+                        staleRecipients();
+                        setVolunteerFrom(v);
+                      }}
+                    />
+                  )}
+                  {lists.includes("events") && (
+                    <FromPicker
+                      id="events"
+                      label="Registered for"
+                      options={fromOptions?.events}
+                      value={events}
+                      onChange={(v) => {
+                        staleRecipients();
+                        setEvents(v);
+                      }}
+                    />
+                  )}
+                  <EmailField
+                    id="compose-extra"
+                    label="Also send to (optional)"
+                    value={extra}
+                    onChange={(v) => {
+                      staleRecipients();
+                      setExtra(v);
+                    }}
+                    placeholder="Email addresses, separated by commas"
+                  />
+                </>
+              ) : (
+                <EmailField
+                  id="compose-people"
+                  label="Email addresses"
+                  value={extra}
+                  onChange={(v) => {
+                    staleRecipients();
+                    setExtra(v);
+                  }}
+                  multiline
+                  rows={3}
+                  placeholder="ada@example.com, kemi@example.com"
+                  hint="They get the real email, the same as a list would. They don't need to be on any list."
+                />
+              )}
               <p className="dash-count" role="status">
-                {loadingRecipients
-                  ? "Counting…"
-                  : count > 0
-                    ? (
-                      <>
-                        This will go to <strong>{count} {count === 1 ? "person" : "people"}</strong>.
-                        {recipientInfo.includes("unsubscribed") ? " People who unsubscribed are left out." : ""}
-                      </>
-                    )
-                    : recipientInfo && lists.length + extra.trim().length > 0
-                      ? "Nobody found in those lists."
-                      : "Pick at least one group above."}
+                {loadingRecipients ? (
+                  "Counting…"
+                ) : count > 0 ? (
+                  <>
+                    This will go to{" "}
+                    <strong>
+                      {count} {count === 1 ? "person" : "people"}
+                    </strong>
+                    .
+                    {recipientInfo.includes("unsubscribed")
+                      ? " People who unsubscribed are left out."
+                      : ""}
+                    {recipientInfo.includes("ignored")
+                      ? ` ${recipientInfo.slice(recipientInfo.indexOf("ignored"))}.`
+                      : ""}
+                  </>
+                ) : audience === "people" ? (
+                  extra.trim() && recipientInfo ? (
+                    "None of those are valid email addresses."
+                  ) : (
+                    "Type at least one email address."
+                  )
+                ) : recipientInfo && lists.length > 0 ? (
+                  "Nobody found in those lists."
+                ) : (
+                  "Pick at least one list above."
+                )}
               </p>
             </section>
 
             <section className="dash-emails-section">
-              <StepTitle n={3} done={false}>Send it</StepTitle>
-              <div className="dash-field">
-                <label htmlFor="compose-test">Send yourself a test first</label>
+              <StepTitle n={3} done={false}>
+                Send it
+              </StepTitle>
+              {!confirming ? (
+                <div className="dash-savebar dash-savebar--inline">
+                  <button
+                    type="button"
+                    className="dash-primary-btn dash-inline-btn focus-ring-light"
+                    disabled={
+                      !ready ||
+                      sending ||
+                      count === 0 ||
+                      sender?.canSend === false
+                    }
+                    onClick={() => setConfirming(true)}
+                  >
+                    <Send size={16} aria-hidden />
+                    {count
+                      ? `Send to ${count} ${count === 1 ? "person" : "people"}`
+                      : "Send"}
+                  </button>
+                  <button
+                    type="button"
+                    className="dash-text-btn focus-ring-light"
+                    onClick={saveTemplate}
+                  >
+                    {templateId ? "Save changes for later" : "Save for later"}
+                  </button>
+                  {templateId && (
+                    <button
+                      type="button"
+                      className="dash-text-btn dash-text-btn--danger focus-ring-light"
+                      onClick={deleteTemplate}
+                    >
+                      Delete saved email
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="dash-confirm">
+                  <p>
+                    Send the real email &ldquo;{content.subject}&rdquo; to{" "}
+                    <strong>
+                      {count} {count === 1 ? "person" : "people"}
+                    </strong>{" "}
+                    now? This isn&rsquo;t a test, and you can&rsquo;t unsend it.
+                  </p>
+                  <div className="dash-savebar dash-savebar--inline">
+                    <button
+                      type="button"
+                      className="dash-primary-btn focus-ring-light"
+                      onClick={() =>
+                        recipients && sendBatches(recipients, false)
+                      }
+                    >
+                      Yes, send it
+                    </button>
+                    <button
+                      type="button"
+                      className="dash-text-btn focus-ring-light"
+                      onClick={() => setConfirming(false)}
+                    >
+                      Not yet
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!ready && (
+                <p className="dash-field-hint">
+                  Add a subject line, a big heading and a message before
+                  sending.
+                </p>
+              )}
+
+              <div className="dash-test-box">
+                <p className="dash-test-box-title">Want to check it first?</p>
+                <p className="dash-field-hint">
+                  Send a test to yourself. Only the address below gets it, and
+                  the subject starts with [TEST]. Nobody on your lists sees it.
+                </p>
                 <div className="dash-inline">
                   <input
                     id="compose-test"
+                    aria-label="Your email address for the test"
                     className="dash-input focus-ring-light"
                     type="email"
                     placeholder="Your email address"
@@ -498,61 +846,48 @@ export function DashboardComposePanel() {
                   <button
                     type="button"
                     className="dash-action-btn focus-ring-light"
-                    disabled={!ready || sending || !testTo.trim() || sender?.canSend === false}
-                    onClick={() => sendBatches([{ email: testTo.trim(), name: "" }], true)}
+                    disabled={
+                      !ready ||
+                      sending ||
+                      !testTo.trim() ||
+                      sender?.canSend === false
+                    }
+                    onClick={() =>
+                      sendBatches([{ email: testTo.trim(), name: "" }], true)
+                    }
                   >
                     Send test
                   </button>
                 </div>
               </div>
 
-              {!confirming ? (
-                <div className="dash-savebar dash-savebar--inline">
-                  <button
-                    type="button"
-                    className="dash-primary-btn dash-inline-btn focus-ring-light"
-                    disabled={!ready || sending || count === 0 || sender?.canSend === false}
-                    onClick={() => setConfirming(true)}
-                  >
-                    <Send size={16} aria-hidden />
-                    {count ? `Send to ${count} ${count === 1 ? "person" : "people"}` : "Send"}
-                  </button>
-                  <button type="button" className="dash-text-btn focus-ring-light" onClick={saveTemplate}>
-                    {templateId ? "Save changes for later" : "Save for later"}
-                  </button>
-                  {templateId && (
-                    <button type="button" className="dash-text-btn dash-text-btn--danger focus-ring-light" onClick={deleteTemplate}>
-                      Delete saved email
-                    </button>
+              {sendNotice && (
+                <p
+                  className={`dash-notice ${sendNotice.test ? "dash-notice--plain" : "dash-notice--done"}`}
+                  role="status"
+                >
+                  {sendNotice.test ? "Test: " : ""}
+                  {sendNotice.text.replace(/^Test (sent|failed)/, (m) =>
+                    m === "Test sent" ? "sent" : "failed",
                   )}
-                </div>
-              ) : (
-                <div className="dash-confirm">
-                  <p>
-                    Send &ldquo;{content.subject}&rdquo; to <strong>{count} {count === 1 ? "person" : "people"}</strong> now? You can&rsquo;t unsend it.
-                  </p>
-                  <div className="dash-savebar dash-savebar--inline">
-                    <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => recipients && sendBatches(recipients, false)}>
-                      Yes, send it
-                    </button>
-                    <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setConfirming(false)}>
-                      Not yet
-                    </button>
-                  </div>
-                </div>
+                </p>
               )}
-
-              {!ready && <p className="dash-field-hint">Add a subject line, a big heading and a message before sending.</p>}
 
               {progress && progress.total > 1 && (
                 <div className="dash-progress" role="status">
                   <div className="dash-progress-bar">
-                    <span style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                    <span
+                      style={{
+                        width: `${(progress.done / progress.total) * 100}%`,
+                      }}
+                    />
                   </div>
                   <span className="dash-field-hint">
                     {sending ? "Sending… " : "Done. "}
                     {progress.done} of {progress.total}
-                    {progress.failed.length ? `, ${progress.failed.length} couldn't be sent` : ""}
+                    {progress.failed.length
+                      ? `, ${progress.failed.length} couldn't be sent`
+                      : ""}
                   </span>
                   {!sending && progress.failed.length > 0 && (
                     <ul className="dash-field-hint">
@@ -570,12 +905,12 @@ export function DashboardComposePanel() {
 
           <aside className="dash-compose-preview">
             <div className="dash-preview-sticky">
-            <p className="dash-preview-label">What they&rsquo;ll see</p>
-            {preview.html ? (
-              <EmailPreviewFrame html={preview.html} title="Email preview" />
-            ) : (
-              <p className="dash-field-hint">Loading preview…</p>
-            )}
+              <p className="dash-preview-label">What they&rsquo;ll see</p>
+              {preview.html ? (
+                <EmailPreviewFrame html={preview.html} title="Email preview" />
+              ) : (
+                <p className="dash-field-hint">Loading preview…</p>
+              )}
             </div>
           </aside>
         </div>
@@ -584,7 +919,15 @@ export function DashboardComposePanel() {
   );
 }
 
-function StepTitle({ n, done, children }: { n: number; done: boolean; children: React.ReactNode }) {
+function StepTitle({
+  n,
+  done,
+  children,
+}: {
+  n: number;
+  done: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <h3 className="dash-step-title">
       <span className="dash-step-num" data-done={done || undefined} aria-hidden>

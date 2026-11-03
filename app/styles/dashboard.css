@@ -2271,3 +2271,17 @@ body:has(.dash-page) { height: 100%; overflow: hidden; overscroll-behavior: none
   .dash-addform-people span { display: none; }
   .dash-addform-foot .dash-primary-btn { flex: 1; justify-content: center; }
 }
+
+/* Send email: the test is its own, clearly separate box */
+.dash-test-box {
+  display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; padding: 0.875rem 1rem;
+  border: 1px dashed rgba(var(--ink-rgb), 0.22); border-radius: 0.75rem; background: rgba(var(--ink-rgb), 0.02);
+}
+.dash-test-box-title { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+.dash-test-box .dash-field-hint { margin: 0; }
+.dash-notice--done { background: #e9f5ec; border-color: transparent; color: #1d5b2c; padding: 0.75rem 1rem; }
+
+/* List pages: "which event / which form" filter */
+.dash-from-select { max-width: 16rem; min-height: 2.5rem; text-overflow: ellipsis; }
+.dash-from-select--on { border-color: var(--orange); background: #fff7ef; font-weight: 500; }
+@media (max-width: 640px) { .dash-from-select { max-width: none; flex: 1; } }
