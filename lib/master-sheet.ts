@@ -109,6 +109,8 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
     // Invoices written by hand on the Invoices page are unpaid until the money arrives.
     "Due Date",
     "Paid On",
+    // Copy of the PDF kept on Cloudinary (the invoice library links to it).
+    "PDF URL",
   ],
   /** Outgoing money found in the inboxes (Interac debits, invoices, receipts) — see lib/expense-capture.ts. */
   expenses: [

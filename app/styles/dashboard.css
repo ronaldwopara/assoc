@@ -2219,3 +2219,11 @@ body:has(.dash-page) { height: 100%; overflow: hidden; overscroll-behavior: none
 .dash-money-input span { color: rgba(var(--ink-rgb), 0.55); }
 .dash-money-input input { flex: 1; min-width: 0; padding: 0.625rem 0; border: 0; outline: none; font: inherit; background: none; }
 .dash-pdf-frame { width: 100%; aspect-ratio: 612 / 792; border: 0; border-radius: 0.5rem; background: #fff; box-shadow: 0 8px 24px rgba(var(--ink-rgb), 0.08); }
+/* Letter-size box that holds the PDF preview at full height in every browser
+   (Safari ignores aspect-ratio on iframes and falls back to ~150px). */
+.dash-pdf-box {
+  position: relative; width: 100%; padding-top: calc(100% * 792 / 612);
+  border-radius: 0.5rem; overflow: hidden; background: #fff;
+  box-shadow: 0 8px 24px rgba(var(--ink-rgb), 0.08);
+}
+.dash-pdf-box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }

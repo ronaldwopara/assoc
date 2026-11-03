@@ -254,3 +254,16 @@ export async function downloadDocumentFromCloudinary(publicId: string): Promise<
     res.headers.get("content-type") || "application/octet-stream";
   return { buffer, contentType };
 }
+
+export const INVOICES_FOLDER = "asosc/invoices";
+
+/** Keep a copy of an invoice PDF on Cloudinary (overwritten when the invoice changes, e.g. once paid). */
+export async function uploadInvoicePdf(number: string, pdf: Buffer): Promise<string> {
+  const uploaded = await uploadRaw({
+    folder: INVOICES_FOLDER,
+    publicId: `${number}.pdf`,
+    filename: `ASOSC-${number}.pdf`,
+    file: new Blob([new Uint8Array(pdf)], { type: "application/pdf" }),
+  });
+  return uploaded.url;
+}

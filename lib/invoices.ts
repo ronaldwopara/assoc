@@ -14,6 +14,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetCell, updateSheetRow } from "@/lib/google-sheets";
 import { EMAIL_LOGO_URL, invoiceDueEmail, invoiceEmail } from "@/lib/emails";
 import { E_TRANSFER_EMAIL } from "@/lib/payment-links";
+import { uploadInvoicePdf } from "@/lib/documents-cms/cloudinary";
 import { getCopyOverrides } from "@/lib/email-store";
 import { sendEmail } from "@/lib/mailer";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
@@ -37,6 +38,8 @@ export type Invoice = {
   reference?: string;
   /** Paid when it came from an e-Transfer, or has a Paid On date. */
   paid: boolean;
+  /** Saved copy on Cloudinary. */
+  pdfUrl?: string;
 };
 
 const ORG = {
@@ -81,7 +84,29 @@ function toInvoice(t: Tab, row: string[]): Invoice {
     dueDate: cell(t, row, "Due Date"),
     paidOn: cell(t, row, "Paid On") || undefined,
     paid: Boolean(cell(t, row, "Gmail Message ID") || cell(t, row, "Paid On")),
+    pdfUrl: cell(t, row, "PDF URL") || undefined,
   };
+}
+
+/**
+ * Save the invoice's current PDF to Cloudinary and note the link on its row.
+ * Best effort: a failed upload never stops an invoice being made or sent.
+ */
+async function archivePdf(number: string, pdf?: Buffer): Promise<void> {
+  try {
+    const invoice = pdf ? null : await getInvoice(number);
+    const bytes = pdf ?? (invoice ? await renderInvoicePdf(invoice) : null);
+    if (!bytes) return;
+    const url = await uploadInvoicePdf(number, bytes);
+    const invoices = await loadTab(MASTER_TABS.invoices);
+    const index = invoices.rows.findIndex((r) => cell(invoices, r, "Invoice Number") === number);
+    const col = colIndex(invoices.headers, "PDF URL");
+    if (index < 0 || col < 0) return;
+    const { accessToken } = await getAccessTokenForAccount();
+    await updateSheetCell(accessToken, masterSheetId(), MASTER_TABS.invoices, index + 2, col + 1, url);
+  } catch (error) {
+    console.error(`[invoice] couldn't save ${number} to Cloudinary:`, error);
+  }
 }
 
 /** INV-<year>-<4 digits>, counting up within the year. */
@@ -161,6 +186,7 @@ export async function createInvoiceForPayment(messageId: string): Promise<Invoic
   );
   const col = colIndex(p.payments.headers, "Invoice Number");
   if (col >= 0) await updateSheetCell(accessToken, spreadsheetId, MASTER_TABS.payments, p.rowNumber, col + 1, number);
+  await archivePdf(number);
   return { ...invoice, paidOn: p.received, reference: p.reference };
 }
 
@@ -208,6 +234,7 @@ export async function sendInvoice(number: string): Promise<{ to: string }> {
     attachments: [{ filename: invoiceFilename(invoice), contentType: "application/pdf", content: pdf }],
   });
   await setStatus(number, "Sent");
+  await archivePdf(number, pdf);
   return { to: invoice.payerEmail };
 }
 
@@ -253,6 +280,7 @@ export async function createManualInvoice(input: NewInvoice): Promise<Invoice> {
       "Due Date": dueDate,
     }),
   );
+  await archivePdf(invoice.number);
   return invoice;
 }
 
@@ -286,6 +314,8 @@ export async function setInvoicePaid(number: string, paid: boolean, payment?: { 
     const c = colIndex(invoices.headers, col);
     if (c >= 0) await updateSheetCell(accessToken, spreadsheetId, MASTER_TABS.invoices, index + 2, c + 1, value);
   }
+  // The saved PDF now needs to say PAID (or not).
+  await archivePdf(number);
 }
 
 const INVOICE_RE = /\bINV\s*-?\s*(\d{4})\s*-?\s*(\d{4,})\b/i;

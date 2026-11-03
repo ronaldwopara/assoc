@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, Plus } from "lucide-react";
-import { Busy } from "@/components/dashboard/ui";
+import { ChevronLeft, Plus, Search } from "lucide-react";
+import { Busy, Segmented } from "@/components/dashboard/ui";
 import { EmailField } from "@/components/dashboard/email-editor";
 import { parseSheetDate } from "@/lib/sheet-dates";
 
@@ -19,7 +19,14 @@ type Invoice = {
   dueDate?: string;
   paidOn?: string;
   paid: boolean;
+  pdfUrl?: string;
 };
+
+type Filter = "all" | "waiting" | "paid" | "draft";
+
+function statusOf(inv: Invoice): Exclude<Filter, "all"> {
+  return inv.paid ? "paid" : inv.status === "Sent" ? "waiting" : "draft";
+}
 
 type ListResponse = { invoices?: Invoice[]; canSend?: boolean; sender?: string; error?: string };
 
@@ -41,6 +48,8 @@ export function DashboardInvoicesPanel() {
   const [writing, setWriting] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
   const fetchList = useCallback(
     () =>
@@ -98,7 +107,14 @@ export function DashboardInvoicesPanel() {
   };
 
   const canSend = data?.canSend !== false;
-  const invoices = data?.invoices ?? [];
+  const all = data?.invoices ?? [];
+  const q = query.trim().toLowerCase();
+  const invoices = all.filter(
+    (inv) =>
+      (filter === "all" || statusOf(inv) === filter) &&
+      (!q || `${inv.number} ${inv.payerName} ${inv.payerEmail} ${inv.description} ${inv.amount}`.toLowerCase().includes(q)),
+  );
+  const count = (f: Exclude<Filter, "all">) => all.filter((inv) => statusOf(inv) === f).length;
 
   if (writing) {
     return (
@@ -120,9 +136,37 @@ export function DashboardInvoicesPanel() {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">Invoices</h2>
-          <p className="dash-panel-sub">Write an invoice and email it with the PDF attached. It tells them how to pay by e-Transfer.</p>
+          <p className="dash-panel-sub">Every invoice ASOSC has made, with its PDF. Write a new one to email it.</p>
+          {all.length > 0 && (
+            <div className="dash-panel-tabs">
+              <Segmented
+                label="Show"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: "all", label: `All ${all.length}` },
+                  { value: "waiting", label: `Waiting for payment ${count("waiting")}` },
+                  { value: "paid", label: `Paid ${count("paid")}` },
+                  { value: "draft", label: `Not sent ${count("draft")}` },
+                ]}
+              />
+            </div>
+          )}
         </div>
         <div className="dash-panel-actions">
+          {all.length > 0 && (
+            <div className="dash-search-wrap">
+              <Search size={15} aria-hidden />
+              <input
+                type="search"
+                className="dash-search-input"
+                placeholder="Search name, email or INV number…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search invoices"
+              />
+            </div>
+          )}
           <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => setWriting(true)}>
             <Plus size={16} aria-hidden />
             New invoice
@@ -157,11 +201,17 @@ export function DashboardInvoicesPanel() {
             </button>
           </div>
         )}
-        {data && !data.error && invoices.length === 0 && (
+        {all.length > 0 && invoices.length === 0 && (
+          <div className="dash-empty">
+            <p className="dash-empty-title">No invoices match</p>
+            <p className="dash-empty-text">Try a different name, email or invoice number.</p>
+          </div>
+        )}
+        {data && !data.error && all.length === 0 && (
           <div className="dash-empty">
             <p className="dash-empty-title">No invoices yet</p>
             <p className="dash-empty-text">
-              Invoices you write here, and invoices for service payments, will show up in this list.
+              Invoices you write here, and invoices for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
             </p>
             <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => setWriting(true)}>
               Write an invoice
@@ -213,7 +263,7 @@ export function DashboardInvoicesPanel() {
                       <span className="dash-row-buttons">
                         <a
                           className="dash-action-btn dash-action-btn--small focus-ring-light"
-                          href={`/api/dashboard/invoices/pdf?number=${encodeURIComponent(inv.number)}`}
+                          href={inv.pdfUrl || `/api/dashboard/invoices/pdf?number=${encodeURIComponent(inv.number)}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -408,7 +458,9 @@ function NewInvoice({
             <div className="dash-preview-sticky">
               <p className="dash-preview-label">The invoice they&rsquo;ll get</p>
               {pdfUrl ? (
-                <iframe className="dash-pdf-frame" title="Invoice preview" src={`${pdfUrl}#toolbar=0&navpanes=0&view=FitH`} />
+                <div className="dash-pdf-box">
+                  <iframe title="Invoice preview" src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} />
+                </div>
               ) : (
                 <p className="dash-field-hint">Loading preview…</p>
               )}
