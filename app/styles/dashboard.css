@@ -2199,3 +2199,10 @@ button.dash-email-item:hover .dash-email-item-action svg { transform: translateX
 html:has(.dash-page),
 body:has(.dash-page) { height: 100%; overflow: hidden; overscroll-behavior: none; }
 .dash-table-wrap, .dash-emails-body { overscroll-behavior: contain; }
+.dash-modal--narrow { width: min(36rem, 100%); }
+.dash-modal-list { padding: 0 1.25rem; overflow-y: auto; min-height: 0; }
+.dash-modal-head .dash-section-lead { max-width: 28rem; }
+.dash-status-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.dash-status-cell--row { flex-direction: row; align-items: center; gap: 0.5rem; }
+.dash-cell-note { font-size: 0.75rem; line-height: 1.35; color: rgba(var(--ink-rgb), 0.6); white-space: normal; max-width: 12rem; }
+.dash-action-btn--small { min-height: 2rem; padding: 0.3rem 0.65rem; font-size: 0.8125rem; }

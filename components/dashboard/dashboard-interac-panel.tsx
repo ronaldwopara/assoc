@@ -28,6 +28,9 @@ const LOG_COLUMNS: Array<{ header: string; label: string }> = [
 type ExpenseView = "debit" | "invoice" | "receipt";
 type PaymentsView = "transfers" | ExpenseView;
 
+type LinkKind = "Membership" | "Donation" | "Vendor";
+const isLinkKind = (t: string): t is LinkKind => t === "Membership" || t === "Donation" || t === "Vendor";
+
 /** Bank notices write names in capitals ("OLUBUSAYO DISU"); show them as "Olubusayo Disu". */
 function tidyName(value: string): string {
   if (!value || value !== value.toUpperCase() || !/[A-Z]/.test(value)) return value;
@@ -104,6 +107,8 @@ function downloadCsv(filename: string, rows: string[][]) {
 
 export function DashboardInteracPanel() {
   const [log, setLog] = useState<{ headers: string[]; rows: string[][]; spreadsheetId: string } | null>(null);
+  /** The payment staff are choosing a person for. */
+  const [linking, setLinking] = useState<{ messageId: string; type: LinkKind; payer: string; amount: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -237,6 +242,15 @@ export function DashboardInteracPanel() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok || data.error) throw new Error(data.error || "Couldn't save");
+      const row = previous.rows.find((r) => String(r[idCol] ?? "") === messageId);
+      if (row && isLinkKind(type) && !cellFor(previous.headers, row, "Matched To").trim()) {
+        setLinking({
+          messageId,
+          type,
+          payer: tidyName(cellFor(previous.headers, row, "Payer Name")),
+          amount: cellFor(previous.headers, row, "Amount"),
+        });
+      }
     } catch (error) {
       setLog(previous);
       setCheckMessage(error instanceof Error ? error.message : "Couldn't save");
@@ -608,6 +622,22 @@ export function DashboardInteracPanel() {
                         </select>
                       </label>
                       <div className="dash-invoice-actions">
+                      {isLinkKind(type) && !cellFor(log.headers, row, "Matched To").trim() && (
+                        <button
+                          type="button"
+                          className="dash-text-btn focus-ring-light"
+                          onClick={() =>
+                            setLinking({
+                              messageId,
+                              type,
+                              payer: tidyName(cellFor(log.headers, row, "Payer Name")),
+                              amount: cellFor(log.headers, row, "Amount"),
+                            })
+                          }
+                        >
+                          Who is this for?
+                        </button>
+                      )}
                       {(() => {
                         const number = cellFor(log.headers, row, "Invoice Number");
                         if (number) {
@@ -663,6 +693,134 @@ export function DashboardInteracPanel() {
           </table>
         </div>
       )}
+      {linking && (
+        <LinkPicker
+          {...linking}
+          onClose={() => setLinking(null)}
+          onLinked={(name) => {
+            setLinking(null);
+            setCheckMessage(`Marked ${name} as paid.`);
+            refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type UnpaidSignup = { tab: string; rowNumber: number; name: string; email: string; code: string; signedUp: string };
+
+const KIND_WORD: Record<LinkKind, string> = { Membership: "membership", Donation: "donation", Vendor: "vendor fee" };
+
+/** "Who is this payment for?": pick the unpaid sign-up an e-Transfer belongs to. */
+function LinkPicker({
+  messageId,
+  type,
+  payer,
+  amount,
+  onClose,
+  onLinked,
+}: {
+  messageId: string;
+  type: LinkKind;
+  payer: string;
+  amount: string;
+  onClose: () => void;
+  onLinked: (name: string) => void;
+}) {
+  const [people, setPeople] = useState<UnpaidSignup[] | null>(null);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [saving, setSaving] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/dashboard/signups?type=${type}`, { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ signups?: UnpaidSignup[]; error?: string }>)
+      .then((d) => (d.signups ? setPeople(d.signups) : setError(d.error || "Couldn't load sign-ups")))
+      .catch(() => setError("Couldn't load sign-ups"));
+  }, [type]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const pick = async (p: UnpaidSignup) => {
+    setSaving(`${p.tab}:${p.rowNumber}`);
+    setError("");
+    try {
+      const res = await fetch("/api/dashboard/signups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "link", messageId, tab: p.tab, rowNumber: p.rowNumber }),
+      });
+      const d = (await res.json()) as { name?: string; error?: string };
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't save");
+      onLinked(d.name || p.name);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save");
+      setSaving("");
+    }
+  };
+
+  const q = query.trim().toLowerCase();
+  const shown = (people ?? []).filter((p) => !q || `${p.name} ${p.email} ${p.code}`.toLowerCase().includes(q));
+
+  return (
+    <div className="dash-modal-backdrop" onClick={onClose}>
+      <div className="dash-modal dash-modal--narrow" role="dialog" aria-modal="true" aria-label="Who is this payment for?" onClick={(e) => e.stopPropagation()}>
+        <div className="dash-modal-head">
+          <div>
+            <h3 className="dash-emails-section-title">Who is this payment for?</h3>
+            <p className="dash-section-lead">
+              {payer || "Someone"} sent ${amount}. Pick the person whose {KIND_WORD[type]} it pays for. They&rsquo;ll be marked as paid and their
+              reminders will stop.
+            </p>
+          </div>
+          <button type="button" className="dash-text-btn focus-ring-light" onClick={onClose}>
+            Not now
+          </button>
+        </div>
+        <div style={{ padding: "0 1.25rem" }}>
+          <input
+            className="dash-input focus-ring-light"
+            style={{ width: "100%" }}
+            type="search"
+            placeholder="Search by name, email or payment code"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+        </div>
+        {error && <p className="dash-field-hint" style={{ padding: "0 1.25rem" }}>{error}</p>}
+        <div className="dash-modal-list">
+          {!people && !error && <p className="dash-field-hint">Loading…</p>}
+          {people && shown.length === 0 && (
+            <p className="dash-field-hint">
+              {people.length === 0 ? `Nobody is waiting to pay a ${KIND_WORD[type]}.` : "Nobody matches that search."}
+            </p>
+          )}
+          {shown.length > 0 && (
+            <ul className="dash-email-list">
+              {shown.map((p) => {
+                const key = `${p.tab}:${p.rowNumber}`;
+                return (
+                  <li key={key} className="dash-email-item dash-email-item--static">
+                    <span className="dash-email-item-text">
+                      <span className="dash-email-item-name">{p.name || p.email}</span>
+                      <span className="dash-email-item-meta">{[p.email, p.code].filter(Boolean).join(", ")}</span>
+                    </span>
+                    <button type="button" className="dash-action-btn focus-ring-light" onClick={() => pick(p)} disabled={Boolean(saving)}>
+                      <Busy busy={saving === key}>This person</Busy>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

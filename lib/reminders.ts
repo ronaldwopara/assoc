@@ -2,8 +2,8 @@
  * Payment reminders and vendor approvals, run daily by cron (and on demand
  * from the dashboard).
  *
- *  - Vendors whose Status is "Approved" and haven't had the approval email get
- *    a V-#### payment code and the "You're approved" email.
+ *  - Vendors whose Status is "Approved", with a Fee entered, who haven't had the
+ *    approval email get a V-#### payment code and the "You're approved" email.
  *  - Unpaid memberships (Master List, Source = Membership), donations, and
  *    approved vendors with a fee get reminders on the dashboard-set schedule:
  *    `perRound` reminders `daysBetween` days apart, then a `pauseDays` pause,
@@ -96,9 +96,11 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
     const row = vendors.rows[i];
     if (!/^approved$/i.test(get(vendors, row, "Status")) || get(vendors, row, "Approval Sent")) continue;
     if (!get(vendors, row, "Email")) continue;
+    // The approval email states the fee and payment code, so wait until a fee is entered.
+    if (!get(vendors, row, "Fee")) continue;
     try {
       let code = get(vendors, row, "Payment Code");
-      if (!code && get(vendors, row, "Fee")) {
+      if (!code) {
         code = await newPaymentCode(accessToken, spreadsheetId, "V");
         await setCells(vendors, i, { "Payment Code": code });
       }

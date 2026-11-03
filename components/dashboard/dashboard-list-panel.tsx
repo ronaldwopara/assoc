@@ -48,7 +48,13 @@ const PERSON_COLUMNS: Array<{ label: string; match: RegExp }> = [
 /** The few columns each list shows. Bookkeeping columns (Confirmation Sent,
  *  reminders, codes…) stay in the sheet but out of the dashboard. */
 const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match: RegExp }>>> = {
-  "master-list": [...PERSON_COLUMNS, { label: "Signed up for", match: /^source$/i }],
+  "master-list": [...PERSON_COLUMNS, { label: "Signed up for", match: /^source$/i }, { label: "Paid", match: /^paid$/i }],
+  "payment-review-donations": [
+    { label: "Full Name", match: NAME_HEADER },
+    { label: "Email", match: /email/i },
+    { label: "Amount", match: /^amount$/i },
+    { label: "Paid", match: /^paid$/i },
+  ],
   "master-volunteer": PERSON_COLUMNS,
   "master-vendor": [
     ...PERSON_COLUMNS,
@@ -115,6 +121,14 @@ function EmptyCell() {
       –
     </span>
   );
+}
+
+/** Lists where a row can be marked paid (stops payment reminders). */
+const PAYABLE_LISTS: DashboardListId[] = ["master-list", "payment-review-donations", "master-vendor"];
+
+function cellByHeader(headers: string[], row: string[], name: string): string {
+  const i = headers.findIndex((h) => h.trim().toLowerCase() === name.toLowerCase());
+  return i < 0 ? "" : String(row[i] ?? "").trim();
 }
 
 function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: string): string {
@@ -263,6 +277,49 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const [editValues, setEditValues] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  /** Rows marked paid this visit, so the button can offer Undo. */
+  const [justPaid, setJustPaid] = useState<Set<number>>(new Set());
+  const [payingRow, setPayingRow] = useState<number | null>(null);
+
+  const setPaid = async (rowNumber: number, paid: boolean) => {
+    if (!rows || !activeTab) return;
+    const paidCol = rows.headers.findIndex((h) => /^paid$/i.test(h.trim()));
+    if (paidCol < 0) return;
+    setPayingRow(rowNumber);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/dashboard/signups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "paid", tab: activeTab, rowNumber, paid }),
+      });
+      const d = (await res.json()) as { error?: string };
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't save");
+      setRows((prev) =>
+        prev
+          ? {
+              ...prev,
+              rows: prev.rows.map((r, i) => {
+                if (i + 2 !== rowNumber) return r;
+                const next = [...r];
+                next[paidCol] = paid ? "Paid" : "";
+                return next;
+              }),
+            }
+          : prev,
+      );
+      setJustPaid((prev) => {
+        const next = new Set(prev);
+        if (paid) next.add(rowNumber);
+        else next.delete(rowNumber);
+        return next;
+      });
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Couldn't save");
+    } finally {
+      setPayingRow(null);
+    }
+  };
 
   const [addingNewRow, setAddingNewRow] = useState(false);
   const [newRowValues, setNewRowValues] = useState<string[]>([]);
@@ -692,9 +749,47 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                         <td key={col.index} className={emailColumns[col.index] ? "dash-cell-email" : undefined}>
                           {listId === "master-vendor" && /^status$/i.test((rows.headers[col.index] ?? "").trim()) ? (
                             row[col.index] && !/^pending$/i.test(row[col.index].trim()) ? (
-                              <span className={`dash-status-chip dash-status-chip--${row[col.index].trim().toLowerCase()}`}>
-                                {row[col.index]}
+                              <span className="dash-status-cell">
+                                <span className={`dash-status-chip dash-status-chip--${row[col.index].trim().toLowerCase()}`}>
+                                  {row[col.index]}
+                                </span>
+                                {/^approved$/i.test(row[col.index].trim()) && (
+                                  <span className="dash-cell-note">
+                                    {cellByHeader(rows.headers, row, "Approval Sent")
+                                      ? "Approval email sent"
+                                      : cellByHeader(rows.headers, row, "Fee")
+                                        ? "Approval email goes out on the next run"
+                                        : "Add a fee to send the approval email"}
+                                  </span>
+                                )}
                               </span>
+                            ) : (
+                              <EmptyCell />
+                            )
+                          ) : PAYABLE_LISTS.includes(listId) && /^paid$/i.test((rows.headers[col.index] ?? "").trim()) ? (
+                            /^paid$/i.test((row[col.index] ?? "").trim()) ? (
+                              <span className="dash-status-cell dash-status-cell--row">
+                                <span className="dash-status-chip dash-status-chip--approved">Paid</span>
+                                {justPaid.has(rowNumber) && (
+                                  <button
+                                    type="button"
+                                    className="dash-text-btn focus-ring-light"
+                                    onClick={() => setPaid(rowNumber, false)}
+                                    disabled={payingRow === rowNumber}
+                                  >
+                                    Undo
+                                  </button>
+                                )}
+                              </span>
+                            ) : listId !== "master-list" || /^membership$/i.test(cellByHeader(rows.headers, row, "Source")) ? (
+                              <button
+                                type="button"
+                                className="dash-action-btn dash-action-btn--small focus-ring-light"
+                                onClick={() => setPaid(rowNumber, true)}
+                                disabled={payingRow !== null}
+                              >
+                                <Busy busy={payingRow === rowNumber}>Mark paid</Busy>
+                              </button>
                             ) : (
                               <EmptyCell />
                             )

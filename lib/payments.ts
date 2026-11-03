@@ -411,3 +411,99 @@ export async function recordCardPayment(p: CardPayment): Promise<{ logged: boole
   );
   return { logged: true, type, matchedTo };
 }
+
+// ---------------------------------------------------------------- manual matching (dashboard)
+
+type SignupKind = "Membership" | "Donation" | "Vendor";
+const SIGNUP_TABS: Record<SignupKind, string> = {
+  Membership: MASTER_TABS.masterList,
+  Donation: MASTER_TABS.donations,
+  Vendor: MASTER_TABS.vendors,
+};
+
+function kindForTab(tabName: string): SignupKind | null {
+  const hit = (Object.entries(SIGNUP_TABS) as Array<[SignupKind, string]>).find(([, name]) => name === tabName);
+  return hit ? hit[0] : null;
+}
+
+export type UnpaidSignup = { tab: string; rowNumber: number; name: string; email: string; code: string; signedUp: string };
+
+/** Everyone of this kind who signed up and hasn't paid yet, newest first. */
+export async function listUnpaidSignups(kind: SignupKind): Promise<UnpaidSignup[]> {
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const tab = await loadTab(accessToken, spreadsheetId, SIGNUP_TABS[kind]);
+  const out: UnpaidSignup[] = [];
+  tab.rows.forEach((row, i) => {
+    if (kind === "Membership" && !isMembershipRow(tab, row)) return;
+    if (isPaid(cell(tab, row, "Paid"))) return;
+    if (!cell(tab, row, "Full Name") && !cell(tab, row, "Email")) return;
+    out.push({
+      tab: tab.name,
+      rowNumber: i + 2,
+      name: cell(tab, row, "Full Name"),
+      email: cell(tab, row, "Email"),
+      code: cell(tab, row, "Payment Code"),
+      signedUp: cell(tab, row, "Timestamp"),
+    });
+  });
+  const time = (s: UnpaidSignup) => parseSheetDate(s.signedUp)?.getTime() ?? 0;
+  return out.sort((a, b) => time(b) - time(a));
+}
+
+/** Mark one sign-up row Paid (with today's date) or back to unpaid. Stops/restarts its reminders. */
+export async function setSignupPaid(tabName: string, rowNumber: number, paid: boolean): Promise<void> {
+  if (!kindForTab(tabName)) throw new Error("That list doesn't take payments");
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const tab = await loadTab(accessToken, spreadsheetId, tabName);
+  const rowIndex = rowNumber - 2;
+  if (rowIndex < 0 || rowIndex >= tab.rows.length) throw new Error("Row not found");
+  if (paid) {
+    await markPaid(accessToken, spreadsheetId, { tab, rowIndex, type: kindForTab(tabName)! }, new Date());
+    return;
+  }
+  for (const col of ["Paid", "Paid Date"]) {
+    const c = colIndex(tab.headers, col);
+    if (c >= 0) await updateSheetCell(accessToken, spreadsheetId, tab.name, rowNumber, c + 1, "");
+  }
+}
+
+/**
+ * Staff say who an e-Transfer was for: the payment gets that person's name and
+ * type, their sign-up is marked Paid (stopping reminders), and they get the
+ * usual receipt if automatic emails are on.
+ */
+export async function linkPaymentToSignup(messageId: string, tabName: string, rowNumber: number): Promise<{ name: string; type: SignupKind }> {
+  const kind = kindForTab(tabName);
+  if (!kind) throw new Error("That list doesn't take payments");
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const [payments, tab] = await Promise.all([
+    loadTab(accessToken, spreadsheetId, MASTER_TABS.payments),
+    loadTab(accessToken, spreadsheetId, tabName),
+  ]);
+  const payIndex = payments.rows.findIndex((r) => cell(payments, r, "Gmail Message ID") === messageId);
+  if (payIndex < 0) throw new Error("Payment not found");
+  const rowIndex = rowNumber - 2;
+  if (rowIndex < 0 || rowIndex >= tab.rows.length) throw new Error("Person not found");
+
+  const signup: Signup = { tab, rowIndex, type: kind };
+  const name = describe(signup);
+  const payRow = payments.rows[payIndex];
+  const received = parseSheetDate(cell(payments, payRow, "Received")) ?? new Date();
+
+  for (const [col, value] of [["Type", kind], ["Matched To", name]] as const) {
+    const c = colIndex(payments.headers, col);
+    if (c >= 0) await updateSheetCell(accessToken, spreadsheetId, payments.name, payIndex + 2, c + 1, value);
+  }
+  const wasPaid = isPaid(cell(tab, tab.rows[rowIndex], "Paid"));
+  await markPaid(accessToken, spreadsheetId, signup, received);
+  if (!wasPaid) {
+    await autoPaymentReceived(kind, toFields(tab.headers, tab.rows[rowIndex]), {
+      amount: cell(payments, payRow, "Amount"),
+      date: received.toLocaleDateString("en-CA", { timeZone: "America/Edmonton", dateStyle: "long" }),
+    });
+  }
+  return { name, type: kind };
+}
