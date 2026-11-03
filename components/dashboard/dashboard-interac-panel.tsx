@@ -145,7 +145,7 @@ export function DashboardInteracPanel() {
         body: JSON.stringify({ messageId }),
       });
       const d = (await res.json()) as { invoice?: { number: string; status: string }; error?: string };
-      if (!res.ok || !d.invoice) throw new Error(d.error || "Couldn't create the invoice");
+      if (!res.ok || !d.invoice) throw new Error(d.error || "Couldn't create the receipt");
       const inv = d.invoice;
       const idCol = log.headers.findIndex((h) => h.trim().toLowerCase() === "gmail message id");
       const invCol = log.headers.findIndex((h) => h.trim().toLowerCase() === "invoice number");
@@ -159,9 +159,9 @@ export function DashboardInteracPanel() {
         }),
       });
       setInvoiceStatus((m) => ({ ...m, [inv.number]: inv.status }));
-      setCheckMessage(`Created invoice ${inv.number}.`);
+      setCheckMessage(`Created receipt ${inv.number}.`);
     } catch (e) {
-      setCheckMessage(e instanceof Error ? e.message : "Couldn't create the invoice");
+      setCheckMessage(e instanceof Error ? e.message : "Couldn't create the receipt");
     } finally {
       setInvoiceBusy("");
     }
@@ -177,11 +177,11 @@ export function DashboardInteracPanel() {
         body: JSON.stringify({ number }),
       });
       const d = (await res.json()) as { to?: string; error?: string };
-      if (!res.ok || d.error) throw new Error(d.error || "Couldn't send the invoice");
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't send the receipt");
       setInvoiceStatus((m) => ({ ...m, [number]: "Sent" }));
-      setCheckMessage(`Emailed invoice ${number} to ${d.to}.`);
+      setCheckMessage(`Emailed receipt ${number} to ${d.to}.`);
     } catch (e) {
-      setCheckMessage(e instanceof Error ? e.message : "Couldn't send the invoice");
+      setCheckMessage(e instanceof Error ? e.message : "Couldn't send the receipt");
     } finally {
       setInvoiceBusy("");
     }
@@ -671,7 +671,7 @@ export function DashboardInteracPanel() {
                               >
                                 <Busy busy={invoiceBusy === number}>
                                   <Send size={15} aria-hidden />
-                                  {sent ? "Resend" : "Email invoice"}
+                                  {sent ? "Email again" : "Email receipt"}
                                 </Busy>
                               </button>
                             </>
@@ -679,7 +679,7 @@ export function DashboardInteracPanel() {
                         }
                         if (type !== "Service") return null;
                         if (!cellFor(log.headers, row, "Payer Email").trim()) {
-                          return <span className="dash-cell-note">No email on this payment, so it can&rsquo;t be invoiced.</span>;
+                          return <span className="dash-cell-note">No email on this payment, so a receipt can&rsquo;t be sent.</span>;
                         }
                         return (
                           <button
@@ -690,7 +690,7 @@ export function DashboardInteracPanel() {
                           >
                             <Busy busy={invoiceBusy === messageId}>
                               <FileText size={15} aria-hidden />
-                              Create invoice
+                              Create receipt
                             </Busy>
                           </button>
                         );

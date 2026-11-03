@@ -219,7 +219,7 @@ async function setStatus(number: string, status: string) {
 }
 
 export function invoiceFilename(inv: Invoice) {
-  return `ASOSC-${inv.number}.pdf`;
+  return inv.paid ? `ASOSC-receipt-${inv.number}.pdf` : `ASOSC-invoice-${inv.number}.pdf`;
 }
 
 /** Emails the invoice with its PDF attached and marks it Sent. */
@@ -387,7 +387,9 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
 
 export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   const doc = await PDFDocument.create();
-  doc.setTitle(`ASOSC invoice ${inv.number}`);
+  // Paid ones are receipts; ones still to pay are invoices.
+  const kind = inv.paid ? "receipt" : "invoice";
+  doc.setTitle(`ASOSC ${kind} ${inv.number}`);
   doc.setAuthor(ORG.name);
   const page: PDFPage = doc.addPage([612, 792]);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
@@ -409,18 +411,18 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   }
   text(ORG.name, M + 92, 792 - 54, 15, bold, WHITE);
   text(`${ORG.place}  ·  ${ORG.email}  ·  ${ORG.site}`, M + 92, 792 - 74, 9.5, regular, CREAM);
-  right("INVOICE", W - M, 792 - 54, 22, bold, ORANGE);
+  right(kind.toUpperCase(), W - M, 792 - 54, 22, bold, ORANGE);
 
   // Invoice meta + PAID stamp
   let y = 792 - 168;
   const meta: Array<[string, string]> = [
-    ["Invoice number", inv.number],
+    [inv.paid ? "Receipt number" : "Invoice number", inv.number],
     ["Date issued", longDate(inv.date)],
     inv.paid
       ? ["Payment received", inv.paidOn ? longDate(inv.paidOn) : "-"]
       : ["Due date", inv.dueDate ? longDate(`${inv.dueDate}T12:00:00`) : "On receipt"],
   ];
-  text("BILL TO", M, y, 9, bold, INK_SOFT);
+  text(inv.paid ? "RECEIVED FROM" : "BILL TO", M, y, 9, bold, INK_SOFT);
   meta.forEach(([k, v], i) => {
     right(k.toUpperCase(), W - M - 150, y - i * 20, 9, bold, INK_SOFT);
     right(v, W - M, y - i * 20, 11, i === 0 ? bold : regular);
@@ -482,7 +484,7 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   // Footer
   page.drawLine({ start: { x: M, y: 92 }, end: { x: W - M, y: 92 }, thickness: 1, color: LINE });
   text("Thank you for supporting the African community in Strathcona County.", M, 70, 11, bold);
-  text(`Questions about this invoice? Email ${ORG.email}.`, M, 52, 10, regular, INK_SOFT);
+  text(`Questions about this ${kind}? Email ${ORG.email}.`, M, 52, 10, regular, INK_SOFT);
 
   return Buffer.from(await doc.save());
 }

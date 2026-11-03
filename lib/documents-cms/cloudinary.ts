@@ -262,7 +262,7 @@ export async function uploadInvoicePdf(number: string, pdf: Buffer): Promise<str
   const uploaded = await uploadRaw({
     folder: INVOICES_FOLDER,
     publicId: `${number}.pdf`,
-    filename: `ASOSC-${number}.pdf`,
+    filename: `ASOSC-${number}.pdf`, // kept stable; the PDF itself says Receipt or Invoice
     file: new Blob([new Uint8Array(pdf)], { type: "application/pdf" }),
   });
   return uploaded.url;

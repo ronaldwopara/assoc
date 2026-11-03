@@ -882,7 +882,7 @@ export function GuidedForm({
     setStepIndex(nextIndex);
   };
 
-  const submitValues = async (nextValues: FormValues) => {
+  const submitValues = async (nextValues: FormValues): Promise<boolean> => {
     setStatus("submitting");
     setSubmitError(null);
     try {
@@ -893,6 +893,7 @@ export function GuidedForm({
       await onSubmit(nextValues);
       onSuccessChangeRef.current?.(true, nextValues);
       setStatus("success");
+      return true;
     } catch (error) {
       setStatus("error");
       setSubmitError(
@@ -901,6 +902,7 @@ export function GuidedForm({
       setCaptchaToken(null);
       setCaptchaResetSignal((n) => n + 1);
       onSuccessChangeRef.current?.(false);
+      return false;
     }
   };
 
@@ -949,18 +951,25 @@ export function GuidedForm({
   const paymentKind =
     paymentField && paymentField.type === "payment" ? paymentField.kind : "donate";
   const paymentMethod = asString(values.paymentMethod);
-  const showEtransferPanel = paymentMethod === "etransfer";
-  const showCardConfirm = paymentMethod === "card";
   const payVerb = paymentKind === "membership" ? "Subscribe" : "Donate";
 
+  // Choosing how to pay submits the form right away, so the sign-up is saved and
+  // the confirmation email (with their payment code) goes out even if they never
+  // come back to this screen.
   const handlePayCard = () => {
     if (!captchaToken) {
       setSubmitError("Please complete the reCAPTCHA.");
       return;
     }
     const url = getStripeCheckoutUrl(paymentKind, values);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    // Open the tab now, while this still counts as a click (browsers block it later).
+    const stripeTab = url ? window.open("about:blank", "_blank") : null;
     setValue("paymentMethod", "card");
+    void submitValues({ ...valuesRef.current, paymentMethod: "card" }).then((ok) => {
+      if (!stripeTab) return;
+      if (ok && url) stripeTab.location.href = url;
+      else stripeTab.close();
+    });
   };
 
   const handlePayEtransfer = () => {
@@ -968,25 +977,11 @@ export function GuidedForm({
       setSubmitError("Please complete the reCAPTCHA.");
       return;
     }
-    if (showEtransferPanel) {
-      void submitValues({ ...valuesRef.current, paymentMethod: "etransfer" });
-      return;
-    }
     setValue("paymentMethod", "etransfer");
+    void submitValues({ ...valuesRef.current, paymentMethod: "etransfer" });
   };
 
-  const handleConfirmPayment = () => {
-    if (!captchaToken) {
-      setSubmitError("Please complete the reCAPTCHA.");
-      return;
-    }
-    const method = asString(values.paymentMethod);
-    void submitValues({ ...valuesRef.current, paymentMethod: method });
-  };
 
-  const handleResetPaymentMethod = () => {
-    setValue("paymentMethod", "");
-  };
 
   const motionProps = reduceMotion
     ? {
@@ -1101,50 +1096,26 @@ export function GuidedForm({
       <div className="relative flex shrink-0 items-center gap-2 pt-3">
         {isPaymentStep ? (
           <div className="flex w-full flex-col gap-2">
-            {!showCardConfirm && !showEtransferPanel && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePayCard}
-                  disabled={!captchaToken || status === "submitting"}
-                  className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
-                >
-                  {payVerb} – Card
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePayEtransfer}
-                  disabled={!captchaToken || status === "submitting"}
-                  className={`focus-ring-light inline-flex min-h-8 w-full items-center justify-center rounded-xl border border-(--orange)/30 bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-(--orange)/5 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:text-sm ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
-                >
-                  {payVerb} – e-Transfer
-                </button>
-              </>
-            )}
-            {showCardConfirm && (
-              <button
-                type="button"
-                onClick={handleConfirmPayment}
-                disabled={!captchaToken || status === "submitting"}
-                className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
-              >
-                {status === "submitting" ? "Sending..." : "I've completed the payment"}
-              </button>
-            )}
-            {showEtransferPanel && (
-              <button
-                type="button"
-                onClick={handleConfirmPayment}
-                disabled={!captchaToken || status === "submitting"}
-                className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
-              >
-                {status === "submitting" ? "Sending..." : "I've sent it"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handlePayCard}
+              disabled={!captchaToken || status === "submitting"}
+              className={`${primaryButtonClassName} w-full ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
+            >
+              {status === "submitting" && paymentMethod === "card" ? "Saving..." : `${payVerb} – Card`}
+            </button>
+            <button
+              type="button"
+              onClick={handlePayEtransfer}
+              disabled={!captchaToken || status === "submitting"}
+              className={`focus-ring-light inline-flex min-h-8 w-full items-center justify-center rounded-xl border border-(--orange)/30 bg-white px-3 text-xs font-semibold text-black transition-colors hover:bg-(--orange)/5 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-9 sm:text-sm ${captchaToken && status !== "submitting" ? "cursor-pointer" : ""}`}
+            >
+              {status === "submitting" && paymentMethod === "etransfer" ? "Saving..." : `${payVerb} – e-Transfer`}
+            </button>
             {!isFirst && (
               <button
                 type="button"
-                onClick={showCardConfirm || showEtransferPanel ? handleResetPaymentMethod : handleBack}
+                onClick={handleBack}
                 className="focus-ring-light mx-auto mt-1 inline-flex cursor-pointer items-center justify-center text-xs font-medium text-black/60 underline decoration-black/20 underline-offset-2 transition-colors hover:text-black/80 hover:decoration-black/40"
               >
                 Back

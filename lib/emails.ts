@@ -326,7 +326,7 @@ export const AUTO_EMAILS: Array<{
   { id: "paid-membership", label: "Membership paid", when: "When an e-Transfer is matched to their membership.", placeholders: ["first_name", "category", "amount"], defaultHero: HERO.people },
   { id: "paid-donation", label: "Donation paid", when: "When an e-Transfer is matched to their donation.", placeholders: ["first_name", "amount"], defaultHero: HERO.wraps },
   { id: "paid-vendor", label: "Vendor fee paid", when: "When an e-Transfer is matched to their vendor application.", placeholders: ["first_name", "amount"], defaultHero: HERO.market },
-  { id: "invoice", label: "Invoice", when: "When a payment for a service comes in (the PDF invoice is attached).", placeholders: ["first_name", "invoice_number", "amount"], defaultHero: HERO.people },
+  { id: "invoice", label: "Receipt", when: "When you create a receipt for a payment marked \"Something else\" (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount"], defaultHero: HERO.people },
   { id: "invoice-due", label: "Invoice to pay", when: "When you send someone an invoice from the Invoices page (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount", "due_date"], defaultHero: HERO.people },
   { id: "vendor-approved", label: "Vendor approved", when: "When staff set a vendor's Status to Approved (includes their fee and payment code).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
   { id: "reminder-membership", label: "Membership reminder", when: "Weekly while a membership is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
@@ -428,13 +428,13 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     outro: "Keep this email for your records. We will be in touch with booth details closer to the event.",
   },
   invoice: {
-    subject: "Your ASOSC invoice {invoice_number}",
-    preheader: "Thanks for your payment. Your invoice is attached.",
-    banner: "Invoice",
+    subject: "Your ASOSC receipt {invoice_number}",
+    preheader: "Thanks for your payment. Your receipt is attached.",
+    banner: "Receipt",
     headline: "Thank you",
-    subhead: "Your invoice is attached",
-    intro: "Hi {first_name},\n\nThanks for your payment. Your invoice is attached to this email for your records.",
-    outro: "If anything on the invoice needs changing, like a business name or address, just reply and we will send a new one.",
+    subhead: "Your receipt is attached",
+    intro: "Hi {first_name},\n\nThanks for your payment. Your receipt is attached to this email for your records.",
+    outro: "If anything on the receipt needs changing, like a business name or address, just reply and we will send a new one.",
   },
   "invoice-due": {
     subject: "Invoice {invoice_number} from ASOSC",
@@ -755,7 +755,7 @@ export type InvoiceSummary = {
   paidOn?: string;
 };
 
-/** The email that carries a PDF invoice (attached by the caller). */
+/** The email that carries a paid PDF receipt (attached by the caller). Auto email id stays "invoice". */
 export function invoiceEmail(inv: InvoiceSummary, overrides?: CopyOverrides): OutgoingEmail {
   const amount = money(inv.amount);
   const paid = inv.paidOn ? new Date(inv.paidOn) : null;
@@ -771,11 +771,11 @@ export function invoiceEmail(inv: InvoiceSummary, overrides?: CopyOverrides): Ou
     overrides,
     {
       box: {
-        title: `Invoice ${inv.number}`,
+        title: `Receipt ${inv.number}`,
         lines: [
           [inv.description || "Services", `${amount}${paidLabel ? ` · paid ${paidLabel}` : " · paid"}`].join("\n"),
         ],
-        note: "Balance due: $0.00. The PDF is attached to this email.",
+        note: "Paid in full. The PDF receipt is attached to this email.",
       },
     },
   );

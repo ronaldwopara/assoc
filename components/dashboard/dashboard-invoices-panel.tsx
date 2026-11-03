@@ -136,7 +136,7 @@ export function DashboardInvoicesPanel() {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">Invoices</h2>
-          <p className="dash-panel-sub">Every invoice ASOSC has made, with its PDF. Write a new one to email it.</p>
+          <p className="dash-panel-sub">Every invoice and receipt ASOSC has made, with its PDF. Write a new invoice to email it.</p>
           {all.length > 0 && (
             <div className="dash-panel-tabs">
               <Segmented
@@ -211,7 +211,7 @@ export function DashboardInvoicesPanel() {
           <div className="dash-empty">
             <p className="dash-empty-title">No invoices yet</p>
             <p className="dash-empty-text">
-              Invoices you write here, and invoices for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
+              Invoices you write here, and receipts for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
             </p>
             <button type="button" className="dash-primary-btn focus-ring-light" onClick={() => setWriting(true)}>
               Write an invoice
@@ -224,7 +224,7 @@ export function DashboardInvoicesPanel() {
             <table className="dash-table">
               <thead>
                 <tr>
-                  <th>Invoice</th>
+                  <th>Who</th>
                   <th>For</th>
                   <th>Amount</th>
                   <th>Status</th>
@@ -238,7 +238,7 @@ export function DashboardInvoicesPanel() {
                       <span className="dash-invoice-who">
                         <strong>{inv.payerName || inv.payerEmail}</strong>
                         <span className="dash-cell-note">
-                          {inv.number}, {day(inv.date)}
+                          {inv.messageId ? "Receipt" : "Invoice"} {inv.number}, {day(inv.date)}
                         </span>
                       </span>
                     </td>
