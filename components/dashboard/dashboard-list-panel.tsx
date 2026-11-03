@@ -1,6 +1,7 @@
 "use client";
 
 import { Busy } from "@/components/dashboard/ui";
+import { PushToggle } from "@/components/dashboard/push-toggle";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
@@ -68,6 +69,14 @@ const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match
     { label: "Full Name", match: NAME_HEADER },
     { label: "Email", match: /email/i },
     { label: "Strathcona Resident", match: /strathcona/i },
+  ],
+  "form-log": [
+    { label: "Date", match: /^timestamp$/i },
+    { label: "Form", match: /^form$/i },
+    { label: "Full Name", match: NAME_HEADER },
+    { label: "Email", match: /email/i },
+    { label: "Details", match: /^details$/i },
+    { label: "From", match: /^from$/i },
   ],
   "master-registrations": [
     { label: "Date", match: /^timestamp$/i },
@@ -605,6 +614,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
 
       </header>
 
+      {listId === "form-log" && <PushToggle />}
+
       {initialLoading && (
         <div className="dash-empty">
           <p className="dash-muted">Loading…</p>
@@ -642,9 +653,11 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
 
       {!initialLoading && !errorMessage && activeTab && rows && rows.rows.length === 0 && !addingNewRow && (
         <div className="dash-empty">
-          <p>No rows yet.</p>
+          <p className="dash-empty-title">{listId === "form-log" ? "No forms yet" : "Nobody here yet"}</p>
           <p className="dash-muted">
-            The &ldquo;{activeTab}&rdquo; tab has headers but no submissions.
+            {listId === "form-log"
+              ? "Every form that comes in from now on (website forms and event Google Forms) will show up here."
+              : "People will show up here as they sign up."}
           </p>
         </div>
       )}

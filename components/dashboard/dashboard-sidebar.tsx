@@ -11,6 +11,7 @@ import {
   Send,
   FileText,
   CalendarCheck,
+  Bell,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
@@ -21,6 +22,7 @@ import { DASHBOARD_LISTS } from "@/lib/dashboard-lists";
 
 const ICONS: Record<DashboardListId, typeof List> = {
   overview: LayoutDashboard,
+  "form-log": Bell,
   "master-list": List,
   "master-volunteer": Users,
   "master-vendor": Store,

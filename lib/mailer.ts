@@ -42,9 +42,12 @@ function buildMime(email: OutgoingEmail): string {
   const headers = [
     `From: ${encodeHeader(SENDER_NAME)} <${SENDER_EMAIL}>`,
     `To: ${email.to}`,
-    `Reply-To: ${SENDER_EMAIL}`,
+    // A Reply-To passed in (e.g. the person who filled in a form) replaces the default.
+    `Reply-To: ${(email.headers?.["Reply-To"] ?? SENDER_EMAIL).replace(/[\r\n]/g, "")}`,
     `Subject: ${encodeHeader(email.subject)}`,
-    ...Object.entries(email.headers ?? {}).map(([k, v]) => `${k.replace(/[^A-Za-z-]/g, "")}: ${v.replace(/[\r\n]/g, "")}`),
+    ...Object.entries(email.headers ?? {})
+      .filter(([k]) => k.toLowerCase() !== "reply-to")
+      .map(([k, v]) => `${k.replace(/[^A-Za-z-]/g, "")}: ${v.replace(/[\r\n]/g, "")}`),
     "MIME-Version: 1.0",
     `Content-Type: ${hasAttachments ? `multipart/mixed; boundary="${mixed}"` : `multipart/alternative; boundary="${alt}"`}`,
   ];

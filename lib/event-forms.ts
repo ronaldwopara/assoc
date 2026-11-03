@@ -162,7 +162,7 @@ export async function syncEventForms(): Promise<EventFormRunResult> {
             ...(form.kind === "volunteer"
               ? { volunteerInterests: form.name, comments: r.details }
               : { event: form.name, details: r.details }),
-          }, { timestamp: String(rows[i][0] ?? "") });
+          }, { timestamp: String(rows[i][0] ?? ""), source: `Google Form: ${form.name}` });
           summary.copied += 1;
           result.copied += 1;
         }

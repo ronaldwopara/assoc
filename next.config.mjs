@@ -1,4 +1,17 @@
 const nextConfig = {
+  // The dashboard's push-notification service worker must never be cached stale.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // WordPress → Vercel migration. The old vendor sign-up page has no direct

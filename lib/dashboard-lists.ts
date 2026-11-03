@@ -4,6 +4,7 @@ import { MASTER_TABS, type MasterTabName } from "@/lib/master-sheet";
 
 export type DashboardListId =
   | "overview"
+  | "form-log"
   | "master-list"
   | "master-volunteer"
   | "master-vendor"
@@ -23,6 +24,8 @@ export const DASHBOARD_LISTS: Array<{
   sheetTab: MasterTabName | "";
 }> = [
   { id: "overview", title: "Overview", sheetTab: "" },
+  // Every form that comes in, newest first, with push notifications.
+  { id: "form-log", title: "Form log", sheetTab: MASTER_TABS.formLog },
   { id: "master-list", title: "Master List", sheetTab: MASTER_TABS.masterList },
   { id: "master-volunteer", title: "Volunteers", sheetTab: MASTER_TABS.volunteers },
   { id: "master-vendor", title: "Vendors", sheetTab: MASTER_TABS.vendors },

@@ -14,6 +14,8 @@ import { membershipCategoryOptions } from "@/lib/join-community-forms";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
 import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { autoConfirm } from "@/lib/email-dispatch";
+import { notify } from "@/lib/push";
+import { SENDER_EMAIL, sendEmail } from "@/lib/mailer";
 
 export const FORM_KINDS = ["membership", "donate", "volunteer", "vendor", "contact", "newsletter"] as const;
 /** Website form kinds, plus "event" (registrations copied in from event Google Forms; not a public form). */
@@ -151,7 +153,48 @@ export type SubmissionOptions = {
   timestamp?: string;
   /** Copying history in: no confirmation email, stamped "Imported", and a newer date already on a row is kept. */
   quiet?: boolean;
+  /** Where it came from, for the Form Log ("Website", "Google Form: African Festival"…). */
+  source?: string;
 };
+
+/** What each form is called in the Form Log and notifications. */
+const FORM_LABEL: Record<FormKind, string> = {
+  membership: "Membership",
+  donate: "Donation",
+  volunteer: "Volunteer",
+  vendor: "Vendor application",
+  contact: "Contact message",
+  newsletter: "Newsletter",
+  event: "Event registration",
+};
+
+const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+/** Short heads-up to support@asosc.ca for every form that comes in (staff email, sent even while public emails are paused). */
+async function emailStaff(f: { form: string; returning: boolean; name: string; email: string; phone: string; detail: string; from: string; at: string }) {
+  const rows: Array<[string, string]> = [
+    ["Form", f.form + (f.returning ? " (they've signed up before)" : "")],
+    ["Name", f.name],
+    ["Email", f.email],
+    ["Phone", f.phone],
+    ["Details", f.detail],
+    ["From", f.from],
+    ["When", f.at],
+  ].filter(([, v]) => v) as Array<[string, string]>;
+  const dashboard = "https://asosc.ca/upgrade?tool=dashboard";
+  await sendEmail({
+    to: SENDER_EMAIL,
+    subject: `New ${f.form.toLowerCase()}: ${f.name || f.email}`,
+    text: `${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\nSee all forms: ${dashboard}`,
+    html: `<div style="font-family:Avenir Next,Segoe UI,Arial,sans-serif;color:#2f2b28;font-size:15px;line-height:1.5">
+<p style="margin:0 0 12px;font-weight:600">New ${esc(f.form.toLowerCase())}${f.returning ? " (returning)" : ""}</p>
+<table cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows
+      .map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#6f6760;vertical-align:top">${esc(k)}</td><td style="padding:4px 0">${esc(v)}</td></tr>`)
+      .join("")}</table>
+<p style="margin:16px 0 0"><a href="${dashboard}" style="color:#c66518">Open the Form log</a></p></div>`,
+    headers: { "X-ASOSC-Notice": "form-log", ...(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email) ? { "Reply-To": f.email } : {}) },
+  });
+}
 
 export async function recordSubmission(kind: FormKind, values: Values, options: SubmissionOptions = {}): Promise<SubmissionResult> {
   const name = fullName(values);
@@ -190,6 +233,8 @@ export async function recordSubmission(kind: FormKind, values: Values, options: 
 
   const masterFields: Record<string, string> = { ...person, Source: SOURCE_LABEL[kind] };
   const rowNumbers: Partial<Record<keyof typeof MASTER_TABS, number>> = {};
+  /** Tabs where an existing row was refreshed instead of a new one added. */
+  const refreshed = new Set<keyof typeof MASTER_TABS>();
 
   /**
    * Saves the submission to a tab. With `update`, a row for the same person
@@ -234,6 +279,7 @@ export async function recordSubmission(kind: FormKind, values: Values, options: 
         }
         await updateSheetRow(accessToken, spreadsheetId, name, i + 2, merged);
         rowNumbers[tab] = i + 2;
+        refreshed.add(tab);
         return;
       }
     }
@@ -338,6 +384,50 @@ export async function recordSubmission(kind: FormKind, values: Values, options: 
   const confirmTab = CONFIRM_TAB[kind];
   const confirmRow = rowNumbers[confirmTab];
   if (confirmRow && !quiet) await autoConfirm(MASTER_TABS[confirmTab], confirmRow);
+
+  if (!quiet) {
+    // Form Log row + a push notification to staff devices. Best effort: never fails the submission.
+    const detail =
+      kind === "membership" ? membershipCategoryLabel(str(values, "membershipCategory"))
+      : kind === "donate" ? `$${donationAmount(values)}`
+      : kind === "volunteer" ? str(values, "volunteerInterests")
+      : kind === "vendor" ? str(values, "businessName")
+      : kind === "event" ? str(values, "event")
+      : kind === "contact" ? str(values, "message").slice(0, 140)
+      : "";
+    const returning = refreshed.has(confirmTab);
+    const from = options.source || "Website";
+    try {
+      await save("formLog", {
+        Timestamp: person.Timestamp,
+        Form: FORM_LABEL[kind],
+        "Full Name": name,
+        Email: email,
+        "Phone Number": person["Phone Number"],
+        From: from,
+        Details: detail,
+        "New or returning": returning ? "Returning" : "New",
+      });
+    } catch (error) {
+      console.error("[form log] couldn't write:", error);
+    }
+    await emailStaff({
+      form: FORM_LABEL[kind],
+      returning,
+      name,
+      email,
+      phone: person["Phone Number"],
+      detail,
+      from,
+      at: person.Timestamp,
+    }).catch((error) => console.error("[form log] staff email failed:", error));
+    await notify({
+      title: `New ${FORM_LABEL[kind].toLowerCase()}${returning ? " (again)" : ""}`,
+      body: [name || email, detail, from === "Website" ? "" : from].filter(Boolean).join(" · "),
+      url: "/upgrade?tool=dashboard",
+      tag: `form-${kind}`,
+    }).catch(() => undefined);
+  }
 
   return { paymentCode };
 }
