@@ -111,7 +111,7 @@ export function AddFormFields({ kind: fixedKind, onDone, onCancel }: { kind?: Ki
         value={link}
         onChange={setLink}
         placeholder="https://docs.google.com/spreadsheets/d/…"
-        hint="In the Google Form, open Responses, then Link to Sheets. Share that sheet with africanssocietyofsc@gmail.com (Viewer is enough)."
+        hint="In the Google Form, open Responses, then Link to Sheets. Share that sheet with support@asosc.ca or africanssocietyofsc@gmail.com (Viewer is enough)."
       />
       <div className="dash-field">
         <span className="dash-field-label">People who already filled it in</span>

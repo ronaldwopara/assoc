@@ -13,6 +13,7 @@
 
 import { randomBytes } from "node:crypto";
 import { getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
+import { listGoogleAccounts } from "@/lib/google-oauth";
 import { recordSubmission } from "@/lib/form-submissions";
 import { getSetting, setSetting } from "@/lib/settings";
 
@@ -31,6 +32,8 @@ export type EventForm = {
   tab: string;
   /** Response rows already copied (null = not started; the first run starts from the current count). */
   copied: number | null;
+  /** The connected Google account the response sheet is shared with (any of them works). */
+  account?: string;
   /** Rows before this were already there when the form was added: copied in without emailing anyone. */
   quietUntil?: number;
   lastRun?: string;
@@ -64,6 +67,33 @@ async function saveForms(forms: EventForm[]) {
   await setSetting(KEY, JSON.stringify(forms));
 }
 
+/** The connected accounts, as a readable list ("support@asosc.ca or africanssocietyofsc@gmail.com"). */
+async function connectedAccountsText(): Promise<string> {
+  const emails = (await listGoogleAccounts()).map((a) => a.email);
+  return emails.length > 1 ? `${emails.slice(0, -1).join(", ")} or ${emails.at(-1)}` : emails[0] ?? "an ASOSC Google account";
+}
+
+/** Finds a connected account that can open the sheet (the one it worked with last time first). */
+async function openSheet(sheetId: string, preferred?: string): Promise<{ accessToken: string; email: string; tabs: string[] }> {
+  const emails = (await listGoogleAccounts()).map((a) => a.email);
+  const order = preferred ? [preferred, ...emails.filter((e) => e.toLowerCase() !== preferred.toLowerCase())] : emails;
+  for (const email of order) {
+    try {
+      const { accessToken } = await getAccessTokenForAccount(email);
+      const meta = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+      });
+      if (!meta.ok) continue;
+      const tabs = ((await meta.json()) as { sheets?: Array<{ properties: { title: string } }> }).sheets?.map((x) => x.properties.title) ?? [];
+      return { accessToken, email, tabs };
+    } catch {
+      // That account isn't usable right now; try the next one.
+    }
+  }
+  throw new Error(`The website can't open that spreadsheet. Share it with ${await connectedAccountsText()} (Viewer is enough) and try again.`);
+}
+
 /** Pulls the spreadsheet id out of a pasted link (or accepts a bare id). */
 export function sheetIdFromLink(link: string): string | null {
   const m = link.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/) ?? link.trim().match(/^([A-Za-z0-9_-]{20,})$/);
@@ -80,20 +110,12 @@ export async function addEventForm(input: { name: string; kind: EventFormKind; l
   if (!sheetId) throw new Error("Paste the link to the form's response spreadsheet (it starts with docs.google.com/spreadsheets).");
   const name = input.name.trim().slice(0, 120);
   if (!name) throw new Error("Give the form a name, like the event it's for.");
-  const { accessToken } = await getAccessTokenForAccount();
-  const meta = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
-    { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" },
-  );
-  if (!meta.ok) {
-    throw new Error("The website can't open that spreadsheet. Share it with africanssocietyofsc@gmail.com (Viewer is enough) and try again.");
-  }
-  const tabs = ((await meta.json()) as { sheets?: Array<{ properties: { title: string } }> }).sheets?.map((s) => s.properties.title) ?? [];
+  const { accessToken, email, tabs } = await openSheet(sheetId);
   const tab = input.tab?.trim() || tabs.find((t) => /form responses/i.test(t)) || tabs[0];
   if (!tab || !tabs.includes(tab)) throw new Error(`That spreadsheet has no tab called "${input.tab}".`);
   const existing = await listEventForms();
   if (existing.some((f) => f.sheetId === sheetId && f.tab === tab)) throw new Error("That form is already being copied in.");
-  const form: EventForm = { id: randomBytes(4).toString("hex"), name, kind: input.kind === "event" ? "event" : "volunteer", sheetId, tab, copied: null };
+  const form: EventForm = { id: randomBytes(4).toString("hex"), name, kind: input.kind === "event" ? "event" : "volunteer", sheetId, tab, copied: null, account: email };
   if (input.importExisting) {
     const [, ...rows] = await getSheetValues(accessToken, sheetId, tab);
     form.copied = 0;
@@ -121,6 +143,22 @@ async function copyResponse(form: EventForm, headers: string[], row: string[], q
     { timestamp: String(row[0] ?? ""), source: `Google Form: ${form.name}`, quiet },
   );
   return true;
+}
+
+/** A form's responses, read through whichever connected account it's shared with (remembered on the form). */
+async function readFormSheet(form: EventForm): Promise<string[][]> {
+  if (form.account) {
+    try {
+      const { accessToken } = await getAccessTokenForAccount(form.account);
+      return await getSheetValues(accessToken, form.sheetId, form.tab);
+    } catch (error) {
+      if (isRateLimit(error)) throw error;
+      // Unshared from that account, or it was disconnected: look for another below.
+    }
+  }
+  const { accessToken, email } = await openSheet(form.sheetId, form.account);
+  form.account = email;
+  return getSheetValues(accessToken, form.sheetId, form.tab);
 }
 
 export type ImportProgress = { copied: number; skipped: number; remaining: number; total: number; waitSeconds?: number };
@@ -167,8 +205,7 @@ async function importBatch(id: string, budgetMs: number): Promise<ImportProgress
   const progress: ImportProgress = { copied: 0, skipped: 0, remaining: Math.max(0, total - (form.copied ?? 0)), total };
   if (!progress.remaining) return progress;
 
-  const { accessToken } = await getAccessTokenForAccount();
-  const [headers = [], ...rows] = await getSheetValues(accessToken, form.sheetId, form.tab);
+  const [headers = [], ...rows] = await readFormSheet(form);
   const end = Math.min(total, rows.length);
   try {
     for (let i = form.copied ?? 0; i < end; i++) {
@@ -228,13 +265,12 @@ export type EventFormRunResult = { copied: number; skipped: number; errors: stri
 
 export async function syncEventForms(): Promise<EventFormRunResult> {
   const forms = await listEventForms();
-  const { accessToken } = await getAccessTokenForAccount();
   const result: EventFormRunResult = { copied: 0, skipped: 0, errors: [], forms: [] };
 
   for (const form of forms) {
     const summary = { name: form.name, copied: 0, waiting: 0 } as EventFormRunResult["forms"][number];
     try {
-      const [headers = [], ...rows] = await getSheetValues(accessToken, form.sheetId, form.tab);
+      const [headers = [], ...rows] = await readFormSheet(form);
       // First run: start from now, so people who signed up months ago aren't emailed.
       if (form.copied === null) form.copied = rows.length;
       // Rows deleted from the response sheet: don't go backwards.
