@@ -68,8 +68,8 @@ function classifyVendorMail(fromHeader: string, subject: string): "invoice" | "r
   if (NOT_A_RECEIPT.test(subject)) return null;
   for (const rule of SENDER_RULES) {
     if (!rule.test.test(fromHeader)) continue;
-    // Meta sends lots of account notices; only its receipts count.
-    if (rule.label === "Meta for Business" && !/receipt|payment|charged|invoice/i.test(subject)) return null;
+    // These senders also send marketing and account notices; only their bills and receipts count.
+    if (!/receipt|invoice|payment (received|confirmation)|you (paid|were charged)|charged|billing statement/i.test(subject)) return null;
     return rule.kind;
   }
   if (/^\s*(your\s+)?invoice\b/i.test(subject)) return "invoice";
