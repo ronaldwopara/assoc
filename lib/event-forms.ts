@@ -19,7 +19,6 @@ import { getSetting, setSetting } from "@/lib/settings";
 const KEY = "eventForms";
 /** Per form per run, so a run fits in the 60s function limit. The rest follow next run. */
 const MAX_PER_RUN = 15;
-const OLD_MASTER = "1_WR_D3yvytd9qi59EPVZ49i7Bo2NK6MI7mYwt587dGM";
 
 export type EventFormKind = "volunteer" | "event";
 
@@ -43,7 +42,9 @@ const STARTING_FORMS: EventForm[] = [
   { id: "youth-volunteer", name: "African Youth Program", kind: "volunteer", sheetId: "1Un7UZRxanr3IvDLL6HTQrBQ9KHUYZgvtL8776Ve2uyg", tab: "Form Responses 1", copied: null },
   { id: "family-wellness", name: "Family Wellness Program", kind: "event", sheetId: "171qGf12ylriSVUGkrn3QD0vNrCbxxBS2jXMKc4ax0GY", tab: "Form Responses 1", copied: null },
   { id: "autism-support", name: "Autism & Special Needs Support", kind: "event", sheetId: "1s8lK8TJ3_9RiHJc4JN2JWR2CkH9h4LXgZCHLorQwpmY", tab: "Form Responses 1", copied: null },
-  { id: "bhm-guests", name: "Black History Month", kind: "event", sheetId: OLD_MASTER, tab: "Guests ASOSC Black History Month 2026", copied: null },
+  { id: "bhm-guests", name: "Black History Month", kind: "event", sheetId: "1W9d3aANZI43Xr0QfrFCza-Sej-p6m_sXUTij-Cw0OqE", tab: "Form Responses 1", copied: null },
+  { id: "youth-council", name: "Youth Council (Voices of Heritage)", kind: "event", sheetId: "1Yc_lMmCjguZ0QiVn3aHwR0JHIA2ZnZGD5MIbISpd0pU", tab: "Form Responses 1", copied: null },
+  { id: "womens-health", name: "Women's Health Webinar", kind: "event", sheetId: "1lonzesxwFA45CCdJ6xvuMrdN3mU2FFyNycUSSuwAJ64", tab: "ASOSC Women’s Health Webinar (Responses)", copied: null },
 ];
 
 export async function listEventForms(): Promise<EventForm[]> {
