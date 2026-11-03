@@ -122,9 +122,10 @@ async function ensureHeaders(accessToken: string, spreadsheetId: string, tab: Ta
 
 type Signup = { tab: Tab; rowIndex: number; type: PaymentType };
 
+/** The signed-up person's name, as shown in the dashboard's "Signed up as" column. */
 function describe(s: Signup): string {
   const row = s.tab.rows[s.rowIndex];
-  return `${s.tab.name} row ${s.rowIndex + 2} (${cell(s.tab, row, "Full Name") || cell(s.tab, row, "Email")})`;
+  return cell(s.tab, row, "Full Name") || cell(s.tab, row, "Email");
 }
 
 // ---------------------------------------------------------------- classification
@@ -304,7 +305,7 @@ export async function runPayments({ dryRun = false } = {}): Promise<PaymentRunRe
         Amount: t.amount,
         Memo: t.memo,
         Type: c.type,
-        "Matched To": c.signup ? `${describe(c.signup)} via ${c.how}` : `— (${c.how})`,
+        "Matched To": c.signup ? describe(c.signup) : "",
         Reference: t.reference,
       });
       if (dryRun) {
@@ -390,7 +391,7 @@ export async function recordCardPayment(p: CardPayment): Promise<{ logged: boole
     });
   }
   const type = signup ? signup.type : "";
-  const matchedTo = signup ? `${describe(signup)} via card payer email` : "— (no unpaid signup for this email)";
+  const matchedTo = signup ? describe(signup) : "";
   await appendSheetRow(
     accessToken,
     spreadsheetId,

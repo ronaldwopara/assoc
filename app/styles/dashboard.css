@@ -2015,7 +2015,7 @@ button.dash-email-item:hover .dash-email-item-chevron { transform: translateX(2p
 .dash-table--transfers td:nth-child(3) { overflow-wrap: anywhere; min-width: 9rem; }
 .dash-table--transfers td:nth-child(5) { min-width: 10rem; }
 @media (max-width: 640px) { .dash-table--transfers { min-width: 52rem; } }
-.dash-table--transfers .dash-select { min-width: 0; width: 7.75rem; }
+.dash-table--transfers .dash-select { min-width: 0; width: 9.25rem; }
 .dash-table--transfers td:nth-child(2) { min-width: 7rem; }
 
 /* Hidden inputs (checkbox chips, file pickers) must not make the page jump when focused. */
@@ -2192,3 +2192,10 @@ button.dash-email-item:hover .dash-email-item-action svg { transform: translateX
 .dash-empty-cell { color: rgba(var(--ink-rgb), 0.45); font-weight: 500; }
 .dash-notice--on { background: #eef6ef; }
 .dash-notice .dash-primary-btn, .dash-notice .dash-action-btn { flex-shrink: 0; }
+
+/* The dashboard fills the screen and scrolls inside its panels. Lock the page
+   behind it so scrolling past the end of a table can't drag the page up and
+   expose empty space underneath. */
+html:has(.dash-page),
+body:has(.dash-page) { height: 100%; overflow: hidden; overscroll-behavior: none; }
+.dash-table-wrap, .dash-emails-body { overscroll-behavior: contain; }

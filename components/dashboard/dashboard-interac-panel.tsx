@@ -22,11 +22,38 @@ const LOG_COLUMNS: Array<{ header: string; label: string }> = [
   { header: "Payer Email", label: "From" },
   { header: "Amount", label: "Amount" },
   { header: "Memo", label: "Memo" },
-  { header: "Matched To", label: "Matched to" },
+  { header: "Matched To", label: "Signed up as" },
 ];
 
 type ExpenseView = "debit" | "invoice" | "receipt";
 type PaymentsView = "transfers" | ExpenseView;
+
+/** Bank notices write names in capitals ("OLUBUSAYO DISU"); show them as "Olubusayo Disu". */
+function tidyName(value: string): string {
+  if (!value || value !== value.toUpperCase() || !/[A-Z]/.test(value)) return value;
+  const small = new Set(["of", "and", "the", "for", "de"]);
+  return value
+    .split(/(\s+)/)
+    .map((word, i) => {
+      if (/^\([A-Z0-9&]+\)$/.test(word)) return word; // acronyms like (CDAE)
+      const lower = word.toLowerCase();
+      if (i > 0 && small.has(lower)) return lower;
+      return lower.replace(/(^|['-])([a-z])/g, (_, p: string, c: string) => p + c.toUpperCase());
+    })
+    .join("");
+}
+
+/** "Signed up as": just the person's name. Older rows carry notes like
+ *  "Master List row 12 (Name) via payment code", "(added) (manual)" or "vendor: Name". */
+function signedUpAs(value: string): string {
+  let v = value.trim();
+  if (!v || v.startsWith("—")) return "";
+  v = v.replace(/\s+via\s+.*$/i, "");
+  const inRow = v.match(/row\s+\d+\s+\((.*)\)$/i);
+  if (inRow) v = inRow[1];
+  v = v.replace(/\((added|manual)\)/gi, "").replace(/^(vendor|membership|donation|member)\s*:\s*/i, "").trim();
+  return tidyName(v);
+}
 
 const VIEW_LABEL: Record<PaymentsView, string> = {
   transfers: "e-Transfers in",
@@ -547,11 +574,19 @@ export function DashboardInteracPanel() {
                           key={col.header}
                           className={col.header === "Memo" || col.header === "Matched To" ? "dash-td-memo" : undefined}
                         >
-                          {col.header === "Received"
-                            ? formatLogTime(value)
-                            : col.header === "Amount" && value
-                              ? `$${value}`
-                              : value || <span className="dash-empty-cell" aria-label="Empty">–</span>}
+                          {(() => {
+                            const shown =
+                              col.header === "Received"
+                                ? formatLogTime(value)
+                                : col.header === "Amount" && value
+                                  ? `$${value}`
+                                  : col.header === "Matched To"
+                                    ? signedUpAs(value)
+                                    : col.header === "Payer Name"
+                                      ? tidyName(value)
+                                      : value;
+                            return shown || <span className="dash-empty-cell" aria-label="Empty">–</span>;
+                          })()}
                         </td>
                       );
                     })}
