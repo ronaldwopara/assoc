@@ -36,10 +36,13 @@ export type EventForm = {
   lastError?: string;
 };
 
-/** The forms we found saving into the old master sheet. */
+/** The event forms' response sheets (found via the "Spreadsheet shared with you" emails to support@asosc.ca). */
 const STARTING_FORMS: EventForm[] = [
-  { id: "af-volunteer", name: "African Festival", kind: "volunteer", sheetId: OLD_MASTER, tab: "Volunteer- African Festival", copied: null },
-  { id: "bhm-volunteer", name: "Black History Month", kind: "volunteer", sheetId: OLD_MASTER, tab: "Volunteer -Black History Month", copied: null },
+  { id: "af-volunteer", name: "African Festival", kind: "volunteer", sheetId: "1JiRx_K1OCJTRjukfzvy4pjj9sxILAcZlGBg16x-ideA", tab: "Form Responses 1", copied: null },
+  { id: "bhm-volunteer", name: "Black History Month", kind: "volunteer", sheetId: "1J2QZM6zRZZsMSALX2Mpxp36xM7kdJWLpm4_pkK_wibA", tab: "Form Responses 1", copied: null },
+  { id: "youth-volunteer", name: "African Youth Program", kind: "volunteer", sheetId: "1Un7UZRxanr3IvDLL6HTQrBQ9KHUYZgvtL8776Ve2uyg", tab: "Form Responses 1", copied: null },
+  { id: "family-wellness", name: "Family Wellness Program", kind: "event", sheetId: "171qGf12ylriSVUGkrn3QD0vNrCbxxBS2jXMKc4ax0GY", tab: "Form Responses 1", copied: null },
+  { id: "autism-support", name: "Autism & Special Needs Support", kind: "event", sheetId: "1s8lK8TJ3_9RiHJc4JN2JWR2CkH9h4LXgZCHLorQwpmY", tab: "Form Responses 1", copied: null },
   { id: "bhm-guests", name: "Black History Month", kind: "event", sheetId: OLD_MASTER, tab: "Guests ASOSC Black History Month 2026", copied: null },
 ];
 
@@ -159,7 +162,7 @@ export async function syncEventForms(): Promise<EventFormRunResult> {
             ...(form.kind === "volunteer"
               ? { volunteerInterests: form.name, comments: r.details }
               : { event: form.name, details: r.details }),
-          });
+          }, { timestamp: String(rows[i][0] ?? "") });
           summary.copied += 1;
           result.copied += 1;
         }

@@ -12,7 +12,7 @@ import { randomInt } from "node:crypto";
 import { appendSheetRow, ensureSheetTab, getAccessTokenForAccount, getSheetValues, updateSheetRow } from "@/lib/google-sheets";
 import { membershipCategoryOptions } from "@/lib/join-community-forms";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
-import { formatTimestamp } from "@/lib/sheet-dates";
+import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { autoConfirm } from "@/lib/email-dispatch";
 
 export const FORM_KINDS = ["membership", "donate", "volunteer", "vendor", "contact", "newsletter"] as const;
@@ -146,7 +146,14 @@ export function mergeRow(headers: string[], row: string[], fields: Record<string
   return merged;
 }
 
-export async function recordSubmission(kind: FormKind, values: Values): Promise<SubmissionResult> {
+export type SubmissionOptions = {
+  /** When it was originally submitted (copying old responses in); defaults to now. */
+  timestamp?: string;
+  /** Copying history in: no confirmation email, stamped "Imported", and a newer date already on a row is kept. */
+  quiet?: boolean;
+};
+
+export async function recordSubmission(kind: FormKind, values: Values, options: SubmissionOptions = {}): Promise<SubmissionResult> {
   const name = fullName(values);
   const email = str(values, "email").toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("A valid email is required.");
@@ -154,8 +161,9 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
 
   const spreadsheetId = masterSheetId();
   const { accessToken } = await getAccessTokenForAccount();
+  const quiet = Boolean(options.quiet);
   const person = {
-    Timestamp: formatTimestamp(new Date()),
+    Timestamp: options.timestamp?.trim() || formatTimestamp(new Date()),
     "Full Name": name,
     Email: email,
     "Phone Number": str(values, "phone"),
@@ -214,13 +222,27 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
       const match = opts.match ?? sameEmail;
       for (let i = rows.length - 1; i >= 0; i--) {
         if (!match(headers, rows[i])) continue;
-        const merged = mergeRow(headers, rows[i], fields, ["Confirmation Sent", ...(opts.clear ?? [])]);
+        const merged = mergeRow(headers, rows[i], fields, quiet ? [] : ["Confirmation Sent", ...(opts.clear ?? [])]);
+        if (quiet) {
+          // Copying an older response in: keep a newer date and an existing confirmation stamp.
+          const t = colIndex(headers, "Timestamp");
+          const was = parseSheetDate(String(rows[i][t] ?? ""))?.getTime() ?? 0;
+          const now = parseSheetDate(fields.Timestamp ?? "")?.getTime() ?? 0;
+          if (t >= 0 && was > now) merged[t] = String(rows[i][t] ?? "");
+          const c = colIndex(headers, "Confirmation Sent");
+          if (c >= 0 && !merged[c]) merged[c] = "Imported";
+        }
         await updateSheetRow(accessToken, spreadsheetId, name, i + 2, merged);
         rowNumbers[tab] = i + 2;
         return;
       }
     }
-    rowNumbers[tab] = await appendSheetRow(accessToken, spreadsheetId, name, rowFromFields(headers, fields));
+    rowNumbers[tab] = await appendSheetRow(
+      accessToken,
+      spreadsheetId,
+      name,
+      rowFromFields(headers, quiet ? { ...fields, "Confirmation Sent": "Imported" } : fields),
+    );
   };
   const append = (tab: keyof typeof MASTER_TABS, fields: Record<string, string>) => save(tab, fields);
 
@@ -315,7 +337,7 @@ export async function recordSubmission(kind: FormKind, values: Values): Promise<
 
   const confirmTab = CONFIRM_TAB[kind];
   const confirmRow = rowNumbers[confirmTab];
-  if (confirmRow) await autoConfirm(MASTER_TABS[confirmTab], confirmRow);
+  if (confirmRow && !quiet) await autoConfirm(MASTER_TABS[confirmTab], confirmRow);
 
   return { paymentCode };
 }
