@@ -210,6 +210,38 @@ export async function removeExpenses(messageIds: string[]): Promise<number> {
   return rowNumbers.length;
 }
 
+export type SuspectExpense = { id: string; loggedAt: string; payee: string; description: string; reason: string };
+
+/** Bills/receipts rows that look like marketing, account notices, payouts or duplicates, for staff to review and remove. */
+export async function suspectExpenses(): Promise<SuspectExpense[]> {
+  const { accessToken } = await getAccessTokenForAccount();
+  const values = await getSheetValues(accessToken, masterSheetId(), EXPENSE_TAB);
+  const h = values[0] ?? [];
+  const col = (n: string) => headerIndex(h, n);
+  const g = (r: string[], n: string) => String(r[col(n)] ?? "").trim();
+  const keys = new Map<string, string>();
+  const out: SuspectExpense[] = [];
+  for (const r of values.slice(1)) {
+    if (/^debit$/i.test(g(r, "type"))) continue;
+    const description = g(r, "description");
+    const inbox = g(r, "inbox");
+    const key = `${description.toLowerCase()}|${g(r, "logged at").slice(0, -3)}`;
+    const dup = keys.has(key) && keys.get(key) !== inbox;
+    if (!keys.has(key)) keys.set(key, inbox);
+    const reason = dup
+      ? "Same email, logged again from another inbox"
+      : NOT_A_RECEIPT.test(description) || /password|login|passkey|reviewing/i.test(description)
+        ? "Account notice"
+        : /has sent you \$/i.test(description)
+          ? "Payout to ASOSC, not a bill"
+          : !/receipt|invoice|payment (received|confirmation)|you (paid|were charged)|charged|billing statement|order/i.test(description)
+            ? "Marketing or update email"
+            : "";
+    if (reason) out.push({ id: g(r, "gmail message id"), loggedAt: g(r, "logged at"), payee: g(r, "payee"), description, reason });
+  }
+  return out;
+}
+
 /** subject|minute → inbox, for spotting the same email logged from another inbox. */
 async function loadSeenExpenseKeys(accessToken: string, spreadsheetId: string, headers: string[]): Promise<Map<string, string>> {
   const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);

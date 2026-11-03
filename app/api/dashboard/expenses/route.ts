@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { getExpenseLog, removeExpenses, runExpenseCapture, type ExpenseKind } from "@/lib/expense-capture";
+import { getExpenseLog, removeExpenses, runExpenseCapture, suspectExpenses, type ExpenseKind } from "@/lib/expense-capture";
 
 export const maxDuration = 60;
 
@@ -12,6 +12,9 @@ export async function GET(request: Request) {
   try {
     if (!(await isUpgradeAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (new URL(request.url).searchParams.get("suspects")) {
+      return NextResponse.json({ suspects: await suspectExpenses() });
     }
     const kindParam = new URL(request.url).searchParams.get("type");
     const kind = isExpenseKind(kindParam) ? kindParam : undefined;

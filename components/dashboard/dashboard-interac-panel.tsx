@@ -516,6 +516,8 @@ export function DashboardInteracPanel() {
           </div>
         )}
 
+      {isExpenseView && view !== "debit" && <ExpenseCleanup onRemoved={() => loadExpenses(view as ExpenseView)} />}
+
       {isExpenseView && !expenseLoading && !expenseError && expenseLog && visibleExpenseRows.length > 0 && (
         <div className="dash-table-wrap">
           <table className="dash-table dash-table--expenses">
@@ -890,5 +892,114 @@ function LinkPicker({
         </div>
       </div>
     </div>
+  );
+}
+
+type Suspect = { id: string; loggedAt: string; payee: string; description: string; reason: string };
+
+/** "These don't look like bills or receipts": review the list, untick any to keep, remove the rest in one go. */
+function ExpenseCleanup({ onRemoved }: { onRemoved: () => void }) {
+  const [suspects, setSuspects] = useState<Suspect[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const [keep, setKeep] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/dashboard/expenses?suspects=1", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ suspects?: Suspect[] }>)
+      .then((d) => setSuspects(d.suspects ?? []))
+      .catch(() => setSuspects([]));
+  }, []);
+
+  if (!suspects?.length && !message) return null;
+  const chosen = (suspects ?? []).filter((x) => !keep.has(x.id));
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/dashboard/expenses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: chosen.map((x) => x.id) }),
+      });
+      const d = (await res.json()) as { removed?: number; error?: string };
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't remove");
+      setMessage(`Removed ${d.removed ?? chosen.length}. They won't be added back.`);
+      setSuspects((prev) => (prev ?? []).filter((x) => keep.has(x.id)));
+      setOpen(false);
+      onRemoved();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Couldn't remove");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="dash-notice">
+        <span>
+          {message ||
+            `${suspects!.length} rows don't look like bills or receipts (marketing, account notices, payouts or duplicates).`}
+        </span>
+        {suspects && suspects.length > 0 && (
+          <button type="button" className="dash-action-btn focus-ring-light" onClick={() => setOpen(true)}>
+            Review and remove
+          </button>
+        )}
+      </div>
+      {open && suspects && (
+        <div className="dash-modal-backdrop" onClick={() => setOpen(false)}>
+          <div className="dash-modal" role="dialog" aria-modal="true" aria-label="Rows that aren't bills or receipts" onClick={(e) => e.stopPropagation()}>
+            <div className="dash-modal-head">
+              <div>
+                <h3 className="dash-emails-section-title">Not bills or receipts</h3>
+                <p className="dash-section-lead">Untick anything you want to keep. The rest are removed and won&rsquo;t be added back.</p>
+              </div>
+              <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setOpen(false)}>
+                Close
+              </button>
+            </div>
+            <div className="dash-modal-list">
+              <ul className="dash-email-list">
+                {suspects.map((x) => (
+                  <li key={x.id} className="dash-email-item dash-email-item--static">
+                    <label className="dash-suspect">
+                      <input
+                        type="checkbox"
+                        checked={!keep.has(x.id)}
+                        onChange={() =>
+                          setKeep((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(x.id)) next.delete(x.id);
+                            else next.add(x.id);
+                            return next;
+                          })
+                        }
+                      />
+                      <span className="dash-email-item-text">
+                        <span className="dash-email-item-name">{x.description}</span>
+                        <span className="dash-email-item-meta">
+                          {x.payee}, {formatLogTime(x.loggedAt)} · {x.reason}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="dash-savebar">
+              <button type="button" className="dash-primary-btn focus-ring-light" onClick={remove} disabled={busy || chosen.length === 0}>
+                <Busy busy={busy}>{`Remove ${chosen.length}`}</Busy>
+              </button>
+              <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
