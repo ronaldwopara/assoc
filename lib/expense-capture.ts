@@ -31,6 +31,7 @@ import {
   header,
   headerIndex,
   listAllGmailMessageIds,
+  walkByMime,
   walkPlainText,
   type GmailMessage,
   type GmailPart,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/gmail";
 import { formatTimestamp } from "@/lib/sheet-dates";
 import { renderEmailAsPdf } from "@/lib/pdf-receipt";
+import { findAmount, pdfText } from "@/lib/expense-amount";
 
 export type ExpenseKind = "debit" | "invoice" | "receipt";
 
@@ -59,9 +61,16 @@ const SENDER_RULES: SenderRule[] = [
   { kind: "invoice", label: "Google Workspace", test: /payments-noreply@google\.com/i },
 ];
 
+/** Account notices from the same senders that aren't bills or receipts. */
+const NOT_A_RECEIPT = /\b(ad was (approved|rejected)|ad (is|has been) (approved|rejected)|added to a business portfolio|test deposit|verify|verification|security|password|sign-?in|policy|update your|welcome)\b/i;
+
 function classifyVendorMail(fromHeader: string, subject: string): "invoice" | "receipt" | null {
+  if (NOT_A_RECEIPT.test(subject)) return null;
   for (const rule of SENDER_RULES) {
-    if (rule.test.test(fromHeader)) return rule.kind;
+    if (!rule.test.test(fromHeader)) continue;
+    // Meta sends lots of account notices; only its receipts count.
+    if (rule.label === "Meta for Business" && !/receipt|payment|charged|invoice/i.test(subject)) return null;
+    return rule.kind;
   }
   if (/^\s*(your\s+)?invoice\b/i.test(subject)) return "invoice";
   if (/^\s*(your\s+)?receipt\b/i.test(subject)) return "receipt";
@@ -93,7 +102,7 @@ async function fileEmail(opts: {
   msg: GmailMessage;
   folder: "invoice" | "receipt";
   fallbackTitle: string;
-}): Promise<string> {
+}): Promise<{ link: string; pdf?: Uint8Array }> {
   const folderName = opts.folder === "invoice" ? INVOICE_FOLDER : RECEIPT_FOLDER;
   const folderId = await findOrCreateFolder(opts.accessToken, folderName);
 
@@ -113,7 +122,8 @@ async function fileEmail(opts: {
         attachmentPart.mimeType || "application/octet-stream",
         bytes,
       );
-      return uploaded.webViewLink;
+      const isPdf = /pdf/i.test(attachmentPart.mimeType ?? "") || /\.pdf$/i.test(filename);
+      return { link: uploaded.webViewLink, pdf: isPdf ? new Uint8Array(bytes) : undefined };
     }
   }
 
@@ -132,7 +142,7 @@ async function fileEmail(opts: {
     "application/pdf",
     bytes,
   );
-  return uploaded.webViewLink;
+  return { link: uploaded.webViewLink };
 }
 
 async function ensureExpenseHeaders(accessToken: string, spreadsheetId: string): Promise<string[]> {
@@ -144,6 +154,21 @@ async function ensureExpenseHeaders(accessToken: string, spreadsheetId: string):
     return [...EXPENSE_HEADERS];
   }
   return headers;
+}
+
+/** subject|minute → inbox, for spotting the same email logged from another inbox. */
+async function loadSeenExpenseKeys(accessToken: string, spreadsheetId: string, headers: string[]): Promise<Map<string, string>> {
+  const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);
+  const d = headerIndex(headers, "description");
+  const t = headerIndex(headers, "logged at");
+  const i = headerIndex(headers, "inbox");
+  const keys = new Map<string, string>();
+  for (const row of values.slice(1)) {
+    const subject = String(row[d] ?? "").trim().toLowerCase();
+    const at = String(row[t] ?? "").trim();
+    if (subject && at) keys.set(`${subject}|${at.slice(0, -3)}`, String(row[i] ?? "").trim());
+  }
+  return keys;
 }
 
 async function loadSeenExpenseIds(
@@ -246,7 +271,7 @@ async function captureDebits(
       const reference = (body.match(/Reference Number:\s*(\S+)/) ?? [])[1] ?? "";
       const message = (body.match(/Message:\s*\n([\s\S]+?)(?:\n\s*\n|\nFAQ:)/) ?? [])[1]?.trim() ?? "";
 
-      const attachmentLink = await fileEmail({
+      const { link: attachmentLink } = await fileEmail({
         accessToken: inbox.accessToken,
         messageId: id,
         msg,
@@ -280,6 +305,7 @@ async function captureVendorMail(
   inbox: GmailSession,
   seen: Set<string>,
   result: ExpenseRunResult,
+  seenKeys: Map<string, string>,
 ) {
   const senderQuery = SENDER_RULES.map((r) => `from:${r.test.source.replace(/\\\./g, ".")}`).join(" OR ");
   const query = `(${senderQuery} OR subject:invoice OR subject:receipt) -from:${DEBIT_FROM}`;
@@ -297,18 +323,29 @@ async function captureVendorMail(
         continue;
       }
 
-      const body = walkPlainText(msg.payload as GmailPart | undefined);
-      const amount = (body.match(/\$[\d,]+\.\d{2}/) ?? subject.match(/\$[\d,]+\.\d{2}/) ?? [])[0] ?? "";
+      // The same email reaching two of our inboxes is logged once.
+      const dupKey = `${subject.trim().toLowerCase()}|${formatTimestamp(receivedAtOf(msg)).slice(0, -3)}`;
+      if (seenKeys.has(dupKey) && seenKeys.get(dupKey) !== inbox.email) {
+        result.skipped += 1;
+        continue;
+      }
+
+      const plain = walkPlainText(msg.payload as GmailPart | undefined);
+      const html = walkByMime(msg.payload as GmailPart | undefined, "text/html").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ");
+      let amount = findAmount(`${subject}\n${plain}\n${html}`);
       const payeeMatch = fromHeader.match(/^"?([^"<]+?)"?\s*</);
       const payee = (payeeMatch ? payeeMatch[1] : fromHeader).trim();
 
-      const attachmentLink = await fileEmail({
+      const filed = await fileEmail({
         accessToken: inbox.accessToken,
         messageId: id,
         msg,
         folder: kind,
         fallbackTitle: subject || (kind === "invoice" ? "Invoice" : "Receipt"),
       });
+      // Not in the email? Read it off the attached PDF.
+      if (!amount && filed.pdf) amount = findAmount(await pdfText(filed.pdf));
+      const attachmentLink = filed.link;
 
       await logExpenseRow(accessToken, spreadsheetId, headers, {
         loggedAt: formatTimestamp(receivedAtOf(msg)),
@@ -316,12 +353,13 @@ async function captureVendorMail(
         messageId: id,
         type: kind,
         payee,
-        amount: amount.replace(/[$,]/g, ""),
+        amount,
         description: subject,
         reference: "",
         attachmentLink,
       });
       seen.add(id);
+      seenKeys.set(dupKey, inbox.email);
       result.added += 1;
     } catch (error) {
       result.errors.push(`${inbox.email} ${id}: ${error instanceof Error ? error.message : String(error)}`);
@@ -334,13 +372,14 @@ export async function runExpenseCapture(): Promise<ExpenseRunResult> {
   const spreadsheetId = masterSheetId();
   const headers = await ensureExpenseHeaders(accessToken, spreadsheetId);
   const seen = await loadSeenExpenseIds(accessToken, spreadsheetId, headers);
+  const seenKeys = await loadSeenExpenseKeys(accessToken, spreadsheetId, headers);
 
   const inboxes = await gmailInboxes();
   const result: ExpenseRunResult = { scanned: 0, added: 0, skipped: 0, errors: [] };
 
   for (const inbox of inboxes) {
     await captureDebits(accessToken, spreadsheetId, headers, inbox, seen, result);
-    await captureVendorMail(accessToken, spreadsheetId, headers, inbox, seen, result);
+    await captureVendorMail(accessToken, spreadsheetId, headers, inbox, seen, result, seenKeys);
   }
   return result;
 }

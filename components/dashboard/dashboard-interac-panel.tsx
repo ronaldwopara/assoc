@@ -503,7 +503,10 @@ export function DashboardInteracPanel() {
             <tbody>
               {visibleExpenseRows.map((row, i) => {
                 const id = cellFor(expenseLog.headers, row, "Gmail Message ID") || String(i);
-                const link = cellFor(expenseLog.headers, row, "Attachment Link");
+                // Opened through the dashboard so nobody has to request Drive access.
+                const link = cellFor(expenseLog.headers, row, "Attachment Link")
+                  ? `/api/dashboard/expenses/file?id=${encodeURIComponent(id)}`
+                  : "";
                 return (
                   <tr key={id}>
                     {EXPENSE_COLUMNS.map((col) => {
