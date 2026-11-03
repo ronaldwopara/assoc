@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     const jar = await cookies();
     const expectedState = jar.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
     if (!expectedState || expectedState !== state) {
-      throw new Error("Invalid OAuth state. Try connecting again.");
+      throw new Error("This sign-in started in a different window or took longer than 10 minutes. Go back to the dashboard and press the sign-in button again, and finish in the same window.");
     }
 
     const tokens = await exchangeCodeForTokens(code);
