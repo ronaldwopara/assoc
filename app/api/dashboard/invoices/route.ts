@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
     if (body.action === "paid") {
       const number = String(body.number ?? "");
-      if (!/^INV-\d{4}-\d{4,}$/.test(number)) return fail(new Error("Invalid invoice number"), 400);
+      if (!/^(INV|RCT)-\d{4}-\d{4,}$/.test(number)) return fail(new Error("Invalid invoice number"), 400);
       await setInvoicePaid(number, body.paid !== false);
       return NextResponse.json({ ok: true });
     }

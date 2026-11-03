@@ -109,9 +109,9 @@ async function archivePdf(number: string, pdf?: Buffer): Promise<void> {
   }
 }
 
-/** INV-<year>-<4 digits>, counting up within the year. */
-function nextNumber(invoices: Tab, year: number): string {
-  const prefix = `INV-${year}-`;
+/** INV-<year>-<4 digits> for invoices, RCT-<year>-<4 digits> for receipts, counting up within the year. */
+function nextNumber(invoices: Tab, year: number, kind: "INV" | "RCT" = "INV"): string {
+  const prefix = `${kind}-${year}-`;
   let max = 0;
   for (const row of invoices.rows) {
     const n = cell(invoices, row, "Invoice Number");
@@ -156,7 +156,8 @@ export async function createInvoiceForPayment(messageId: string): Promise<Invoic
   const spreadsheetId = masterSheetId();
   const { accessToken } = await getAccessTokenForAccount();
   const invoices = await loadTab(MASTER_TABS.invoices);
-  const number = nextNumber(invoices, new Date().getFullYear());
+  // Made for a payment that has already arrived, so it's a receipt.
+  const number = nextNumber(invoices, new Date().getFullYear(), "RCT");
   const invoice: Invoice = {
     number,
     date: formatTimestamp(new Date()),

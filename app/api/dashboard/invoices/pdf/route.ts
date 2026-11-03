@@ -5,7 +5,7 @@ import { getInvoice, invoiceFilename, renderInvoicePdf } from "@/lib/invoices";
 export async function GET(request: Request) {
   if (!(await isUpgradeAuthenticated())) return new Response("Unauthorized", { status: 401 });
   const number = new URL(request.url).searchParams.get("number") ?? "";
-  if (!/^INV-\d{4}-\d{4,}$/.test(number)) return new Response("Invalid invoice number", { status: 400 });
+  if (!/^(INV|RCT)-\d{4}-\d{4,}$/.test(number)) return new Response("Invalid invoice number", { status: 400 });
   const invoice = await getInvoice(number);
   if (!invoice) return new Response("Invoice not found", { status: 404 });
   const pdf = await renderInvoicePdf(invoice);

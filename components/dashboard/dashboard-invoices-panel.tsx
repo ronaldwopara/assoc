@@ -160,7 +160,7 @@ export function DashboardInvoicesPanel() {
               <input
                 type="search"
                 className="dash-search-input"
-                placeholder="Search name, email or INV number…"
+                placeholder="Search name, email or number…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Search invoices"
@@ -238,7 +238,7 @@ export function DashboardInvoicesPanel() {
                       <span className="dash-invoice-who">
                         <strong>{inv.payerName || inv.payerEmail}</strong>
                         <span className="dash-cell-note">
-                          {inv.messageId ? "Receipt" : "Invoice"} {inv.number}, {day(inv.date)}
+                          {inv.number.startsWith("RCT") ? "Receipt" : inv.paid ? "Paid invoice" : "Invoice"} {inv.number}, {day(inv.date)}
                         </span>
                       </span>
                     </td>

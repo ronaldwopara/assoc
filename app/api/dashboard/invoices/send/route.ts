@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!(await isUpgradeAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const body = (await request.json()) as { number?: unknown };
-    if (typeof body.number !== "string" || !/^INV-\d{4}-\d{4,}$/.test(body.number)) {
+    if (typeof body.number !== "string" || !/^(INV|RCT)-\d{4}-\d{4,}$/.test(body.number)) {
       return NextResponse.json({ error: "Invalid invoice number" }, { status: 400 });
     }
     return NextResponse.json({ ok: true, ...(await sendInvoice(body.number)) });
