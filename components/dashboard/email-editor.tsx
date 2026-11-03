@@ -1,9 +1,20 @@
 "use client";
 
+import { Busy } from "@/components/dashboard/ui";
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, X } from "lucide-react";
 
-/** One labelled text input or textarea in the email editor. */
+/** Plain-language names for the {placeholders} an email can use. */
+export const PLACEHOLDER_LABELS: Record<string, string> = {
+  first_name: "First name",
+  category: "Membership type",
+  payment_code: "Payment code",
+  amount: "Amount",
+  business: "Business name",
+  invoice_number: "Invoice number",
+};
+
+/** One labelled text input or textarea in the email editor. `inserts` adds
+ *  buttons that drop a personal detail (e.g. their first name) in at the cursor. */
 export function EmailField({
   id,
   label,
@@ -13,6 +24,7 @@ export function EmailField({
   rows = 6,
   hint,
   placeholder,
+  inserts,
 }: {
   id: string;
   label: string;
@@ -22,12 +34,26 @@ export function EmailField({
   rows?: number;
   hint?: string;
   placeholder?: string;
+  inserts?: string[];
 }) {
+  const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
+  const insert = (key: string) => {
+    const el = ref.current;
+    const token = `{${key}}`;
+    const start = el?.selectionStart ?? value.length;
+    const end = el?.selectionEnd ?? value.length;
+    onChange(value.slice(0, start) + token + value.slice(end));
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + token.length, start + token.length);
+    });
+  };
   return (
-    <label className="dash-field" htmlFor={id}>
-      <span>{label}</span>
+    <div className="dash-field">
+      <label htmlFor={id}>{label}</label>
       {multiline ? (
         <textarea
+          ref={ref}
           id={id}
           className="dash-email-textarea"
           rows={rows}
@@ -36,27 +62,50 @@ export function EmailField({
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
-        <input id={id} type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        <input ref={ref} id={id} type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       )}
-      {hint && <span className="dash-muted dash-email-hint">{hint}</span>}
-    </label>
+      {inserts && inserts.length > 0 && (
+        <div className="dash-inserts">
+          <span>Add their:</span>
+          {inserts.map((k) => (
+            <button key={k} type="button" className="dash-insert focus-ring-light" onClick={() => insert(k)}>
+              {PLACEHOLDER_LABELS[k] ?? k}
+            </button>
+          ))}
+        </div>
+      )}
+      {hint && <span className="dash-field-hint">{hint}</span>}
+    </div>
   );
 }
 
-/** Upload an event photo for the email's header image. */
+type GalleryAlbum = { title: string; photos: string[] };
+
+/** Small, fast version of a Cloudinary photo for thumbnails. */
+function thumb(url: string, w = 320, h = 220): string {
+  return /res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url)
+    ? url.replace("/image/upload/", `/image/upload/c_fill,g_auto,w_${w},h_${h},f_auto,q_auto/`)
+    : url;
+}
+
+/** Pick the email's photo: from the website's gallery, or uploaded from the computer. */
 export function EventImageField({
   id,
   value,
   onChange,
   emptyLabel = "No photo",
+  fallbackUrl,
 }: {
   id: string;
   value: string;
   onChange: (url: string) => void;
   emptyLabel?: string;
+  /** Photo used when none is chosen (shown so nobody wonders what goes out). */
+  fallbackUrl?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   const upload = async (file: File) => {
@@ -78,20 +127,24 @@ export function EventImageField({
     }
   };
 
+  const shown = value || fallbackUrl;
+
   return (
     <div className="dash-field">
-      <span>Event photo</span>
+      <span className="dash-field-label">Photo</span>
       <div className="dash-image-field">
-        {value ? (
+        {shown ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary preview thumbnail
-          <img src={value} alt="" className="dash-image-thumb" />
+          <img src={thumb(shown)} alt="" className="dash-image-thumb" />
         ) : (
-          <span className="dash-image-empty dash-muted">{emptyLabel}</span>
+          <span className="dash-image-empty">{emptyLabel}</span>
         )}
         <div className="dash-image-actions">
+          <button type="button" className="dash-action-btn focus-ring-light" onClick={() => setGalleryOpen(true)}>
+            Choose from our gallery
+          </button>
           <label className="dash-action-btn focus-ring-light" htmlFor={id}>
-            <ImagePlus size={15} />
-            {uploading ? "Uploading…" : value ? "Replace" : "Upload photo"}
+            <Busy busy={uploading}>Upload from computer</Busy>
           </label>
           <input
             ref={input}
@@ -103,14 +156,101 @@ export function EventImageField({
             onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
           />
           {value && (
-            <button type="button" className="dash-action-btn focus-ring-light" onClick={() => onChange("")}>
-              <X size={15} />
-              Remove
+            <button type="button" className="dash-text-btn focus-ring-light" onClick={() => onChange("")}>
+              {fallbackUrl ? "Use the standard photo" : "Remove photo"}
             </button>
           )}
         </div>
       </div>
       {error && <p className="dash-error">{error}</p>}
+      {galleryOpen && (
+        <GalleryPicker
+          current={value}
+          onClose={() => setGalleryOpen(false)}
+          onPick={(url) => {
+            onChange(url);
+            setGalleryOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function GalleryPicker({ current, onPick, onClose }: { current: string; onPick: (url: string) => void; onClose: () => void }) {
+  const [albums, setAlbums] = useState<GalleryAlbum[] | null>(null);
+  const [error, setError] = useState("");
+  const [album, setAlbum] = useState(0);
+  const dialog = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/dashboard/gallery-photos", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ albums?: GalleryAlbum[]; error?: string }>)
+      .then((d) => (d.albums ? setAlbums(d.albums) : setError(d.error || "Couldn't load the gallery")))
+      .catch(() => setError("Couldn't load the gallery"));
+  }, []);
+
+  useEffect(() => {
+    dialog.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const photos = albums?.[album]?.photos ?? [];
+
+  return (
+    <div className="dash-modal-backdrop" onClick={onClose}>
+      <div
+        ref={dialog}
+        className="dash-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a photo from the gallery"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="dash-modal-head">
+          <h3 className="dash-emails-section-title">Choose a photo</h3>
+          <button type="button" className="dash-text-btn focus-ring-light" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        {error && <p className="dash-field-hint" style={{ padding: "0 1.25rem" }}>{error}</p>}
+        {!albums && !error && <p className="dash-field-hint" style={{ padding: "0 1.25rem" }}>Loading photos…</p>}
+        {albums && (
+          <>
+            <div className="dash-modal-albums" role="tablist" aria-label="Events">
+              {albums.map((a, i) => (
+                <button
+                  key={a.title}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === album}
+                  className="dash-album-tab focus-ring-light"
+                  onClick={() => setAlbum(i)}
+                >
+                  {a.title}
+                </button>
+              ))}
+            </div>
+            <div className="dash-photo-grid">
+              {photos.map((src) => (
+                <button
+                  key={src}
+                  type="button"
+                  className="dash-photo focus-ring-light"
+                  aria-pressed={src === current}
+                  onClick={() => onPick(src)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary thumbnail */}
+                  <img src={thumb(src, 400, 260)} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -139,19 +279,32 @@ export function useEmailPreview(body: unknown, deps: unknown[]) {
   return { html, subject };
 }
 
-/** Email preview frame that resizes to the email's height. */
+/** Narrowest width the email layout is designed for; smaller previews are scaled down instead. */
+const MIN_EMAIL_WIDTH = 360;
+
+/** Email preview frame that resizes to the email's height (and scales down on narrow screens). */
 export function EmailPreviewFrame({ html, title }: { html: string; title: string }) {
+  const box = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const fit = () => {
     const f = frame.current;
+    const b = box.current;
     const doc = f?.contentDocument;
-    if (!f || !doc) return;
+    if (!f || !b || !doc) return;
+    const available = b.clientWidth;
+    const scale = available > 0 && available < MIN_EMAIL_WIDTH ? available / MIN_EMAIL_WIDTH : 1;
+    f.style.width = scale < 1 ? `${MIN_EMAIL_WIDTH}px` : "100%";
+    f.style.transform = scale < 1 ? `scale(${scale})` : "";
+    f.style.minHeight = scale < 1 ? "0" : "";
     f.style.height = "0px";
     const article = doc.querySelector('[role="article"]') ?? doc.body;
-    f.style.height = `${Math.floor(article.getBoundingClientRect().bottom)}px`;
+    const height = Math.floor(article.getBoundingClientRect().bottom);
+    f.style.height = `${height}px`;
+    // A transform doesn't shrink the layout box, so pull the space it leaves back up.
+    f.style.marginBottom = scale < 1 ? `${-Math.ceil(height * (1 - scale))}px` : "";
   };
   return (
-    <div className="dash-email-preview">
+    <div className="dash-email-preview" ref={box}>
       <iframe
         ref={frame}
         title={title}

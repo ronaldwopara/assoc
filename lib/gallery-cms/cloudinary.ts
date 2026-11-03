@@ -136,6 +136,7 @@ async function uploadRawJson(options: {
   if (!res.ok || !data.secure_url) {
     throw new Error(data.error?.message ?? "Cloudinary CMS upload failed");
   }
+  rawUrlCache.set(options.publicId, { url: data.secure_url, at: Date.now() });
   return { version: data.version ?? timestamp, url: data.secure_url };
 }
 
@@ -147,26 +148,45 @@ export async function uploadCmsJson(json: string): Promise<{ version: number; ur
   });
 }
 
+/**
+ * Where a CMS JSON file currently lives (its versioned URL).
+ *
+ * Looking this up uses Cloudinary's Admin API, which allows only 500 calls an
+ * hour, and every dashboard request needs the Google token file. So the answer
+ * is remembered for a few minutes (and refreshed on every upload), and if the
+ * Admin API refuses (rate limit, outage) we fall back to the file's plain,
+ * unversioned delivery URL instead of reporting "no file".
+ */
+const RAW_URL_TTL_MS = 5 * 60 * 1000;
+const rawUrlCache = new Map<string, { url: string; at: number }>();
+
 async function fetchRawJsonUrl(publicId: string): Promise<string | null> {
+  const cached = rawUrlCache.get(publicId);
+  if (cached && Date.now() - cached.at < RAW_URL_TTL_MS) return cached.url;
+
   const { cloudName, apiKey, apiSecret } = requireCloudinary();
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/resources/raw/upload/${encodeURIComponent(`${CMS_FOLDER}/${publicId}`)}`,
-    {
-      headers: { Authorization: `Basic ${auth}` },
-      cache: "no-store",
-    },
-  );
-  if (res.status === 404) return null;
-  const data = (await res.json()) as {
-    secure_url?: string;
-    error?: { message?: string };
-  };
-  if (!res.ok || !data.secure_url) {
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/resources/raw/upload/${encodeURIComponent(`${CMS_FOLDER}/${publicId}`)}`,
+      {
+        headers: { Authorization: `Basic ${auth}` },
+        cache: "no-store",
+      },
+    );
     if (res.status === 404) return null;
-    throw new Error(data.error?.message ?? "Failed to locate CMS file");
+    const data = (await res.json()) as { secure_url?: string; error?: { message?: string } };
+    if (!res.ok || !data.secure_url) throw new Error(data.error?.message ?? "Failed to locate CMS file");
+    rawUrlCache.set(publicId, { url: data.secure_url, at: Date.now() });
+    return data.secure_url;
+  } catch (error) {
+    if (cached) return cached.url;
+    // Unversioned delivery URL: always resolves to the latest upload (cache-busted).
+    const direct = `https://res.cloudinary.com/${cloudName}/raw/upload/${CMS_FOLDER}/${publicId}?t=${Date.now()}`;
+    const probe = await fetch(direct, { method: "HEAD", cache: "no-store" }).catch(() => null);
+    if (probe?.ok) return direct;
+    throw error;
   }
-  return data.secure_url;
 }
 
 export async function fetchCmsJsonUrl(): Promise<string | null> {

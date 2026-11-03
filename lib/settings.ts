@@ -67,7 +67,9 @@ export type ReminderSchedule = {
   rounds: number;
 };
 
-export const DEFAULT_SCHEDULE: ReminderSchedule = { daysBetween: 7, perRound: 3, pauseDays: 30, rounds: 3 };
+/** Every 7 days, 3 reminders, then stop. (The round/pause fields stay for older saved settings;
+ *  the dashboard now saves a single round.) */
+export const DEFAULT_SCHEDULE: ReminderSchedule = { daysBetween: 7, perRound: 3, pauseDays: 7, rounds: 1 };
 
 const SCHEDULE_KEY = "Reminder schedule";
 const LIMITS: Record<keyof ReminderSchedule, [number, number]> = {

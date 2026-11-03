@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, FileText, Inbox, RefreshCw, Search, Send } from "lucide-react";
+import { Segmented, Busy } from "@/components/dashboard/ui";
 import { parseSheetDate } from "@/lib/sheet-dates";
 
 /** Mirrors PAYMENT_TYPES in lib/payments.ts (kept local so this client file doesn't import server code). */
@@ -52,7 +53,7 @@ type ExpenseLogResponse = {
 
 function formatLogTime(value: string): string {
   const parsed = parseSheetDate(value);
-  if (!parsed) return value || "—";
+  if (!parsed) return value || "";
   return parsed.toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" });
 }
 
@@ -311,22 +312,17 @@ export function DashboardInteracPanel() {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">Payments</h2>
+          <div className="dash-panel-tabs">
+            <Segmented
+              label="What to show"
+              value={view}
+              onChange={setView}
+              options={(["transfers", "debit", "invoice", "receipt"] as const).map((v) => ({ value: v, label: VIEW_LABEL[v] }))}
+            />
+          </div>
         </div>
         <div className="dash-panel-actions">
           <div className="dash-actions-row dash-actions-row--search">
-            <label className="dash-select-wrap">
-              <select
-                className="dash-select focus-ring-light"
-                value={view}
-                onChange={(e) => setView(e.target.value as PaymentsView)}
-              >
-                {(["transfers", "debit", "invoice", "receipt"] as const).map((v) => (
-                  <option key={v} value={v}>
-                    {VIEW_LABEL[v]}
-                  </option>
-                ))}
-              </select>
-            </label>
             <div className="dash-search-wrap">
               <Search size={15} aria-hidden />
               <input
@@ -348,20 +344,26 @@ export function DashboardInteracPanel() {
                 disabled={checking || loading}
                 title="Look for new Interac e-Transfers now"
               >
-                <Inbox size={16} className={checking ? "dash-spin" : undefined} />
-                {checking ? "Checking…" : "Check inbox"}
+                <Busy busy={checking}>
+                  <Inbox size={16} aria-hidden />
+                  Check inbox
+                </Busy>
               </button>
             )}
-            <button
-              type="button"
-              className="dash-action-btn focus-ring-light"
-              onClick={refresh}
-              disabled={activeLoading}
-              title={`Reload ${VIEW_LABEL[view]}`}
-            >
-              <RefreshCw size={16} className={activeLoading ? "dash-spin" : undefined} />
-              Refresh
-            </button>
+            {isExpenseView && (
+              <button
+                type="button"
+                className="dash-action-btn focus-ring-light"
+                onClick={refresh}
+                disabled={activeLoading}
+                title={`Reload ${VIEW_LABEL[view]}`}
+              >
+                <Busy busy={activeLoading}>
+                  <RefreshCw size={16} aria-hidden />
+                  Refresh
+                </Busy>
+              </button>
+            )}
             <button
               type="button"
               className="dash-action-btn focus-ring-light"
@@ -465,7 +467,7 @@ export function DashboardInteracPanel() {
                             ? formatLogTime(value)
                             : col.header === "Amount" && value
                               ? `$${value}`
-                              : value || "—"}
+                              : value || ""}
                         </td>
                       );
                     })}
@@ -474,9 +476,7 @@ export function DashboardInteracPanel() {
                         <a className="dash-action-btn focus-ring-light" href={link} target="_blank" rel="noreferrer">
                           View
                         </a>
-                      ) : (
-                        "—"
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -486,13 +486,13 @@ export function DashboardInteracPanel() {
         </div>
       )}
 
-      {!isExpenseView && loading && (
+      {!isExpenseView && loading && !log && (
         <div className="dash-empty">
           <p className="dash-muted">Loading…</p>
         </div>
       )}
 
-      {!isExpenseView && !loading && loadError && (
+      {!isExpenseView && !(loading && !log) && loadError && (
         <div className="dash-empty">
           <p>Couldn&rsquo;t load payments.</p>
           <p className="dash-muted">{loadError}</p>
@@ -509,21 +509,21 @@ export function DashboardInteracPanel() {
         </div>
       )}
 
-      {!isExpenseView && !loading && !loadError && log && log.rows.length === 0 && (
+      {!isExpenseView && !(loading && !log) && !loadError && log && log.rows.length === 0 && (
         <div className="dash-empty">
           <p>No payments logged yet.</p>
           <p className="dash-muted">New e-Transfers are picked up daily, or press Check inbox.</p>
         </div>
       )}
 
-      {!isExpenseView && !loading && !loadError && log && log.rows.length > 0 && visibleRows.length === 0 && (
+      {!isExpenseView && !(loading && !log) && !loadError && log && log.rows.length > 0 && visibleRows.length === 0 && (
         <div className="dash-empty">
           <p>No matches.</p>
           <p className="dash-muted">Nothing in Payments matches “{query.trim()}”.</p>
         </div>
       )}
 
-      {!isExpenseView && !loading && !loadError && log && visibleRows.length > 0 && (
+      {!isExpenseView && !(loading && !log) && !loadError && log && visibleRows.length > 0 && (
         <div className="dash-table-wrap">
           <table className="dash-table dash-table--transfers">
             <thead>
@@ -552,7 +552,7 @@ export function DashboardInteracPanel() {
                             ? formatLogTime(value)
                             : col.header === "Amount" && value
                               ? `$${value}`
-                              : value || "—"}
+                              : value || ""}
                         </td>
                       );
                     })}
@@ -597,13 +597,15 @@ export function DashboardInteracPanel() {
                                 onClick={() => emailInvoice(number)}
                                 disabled={invoiceBusy === number}
                               >
-                                <Send size={15} />
-                                {invoiceBusy === number ? "Sending…" : sent ? "Resend" : "Email invoice"}
+                                <Busy busy={invoiceBusy === number}>
+                                  <Send size={15} aria-hidden />
+                                  {sent ? "Resend" : "Email invoice"}
+                                </Busy>
                               </button>
                             </>
                           );
                         }
-                        if (type !== "Service") return <span className="dash-muted">—</span>;
+                        if (type !== "Service") return null;
                         return (
                           <button
                             type="button"
@@ -611,8 +613,10 @@ export function DashboardInteracPanel() {
                             onClick={() => createInvoice(messageId)}
                             disabled={!messageId || invoiceBusy === messageId}
                           >
-                            <FileText size={15} />
-                            {invoiceBusy === messageId ? "Creating…" : "Create invoice"}
+                            <Busy busy={invoiceBusy === messageId}>
+                              <FileText size={15} aria-hidden />
+                              Create invoice
+                            </Busy>
                           </button>
                         );
                       })()}

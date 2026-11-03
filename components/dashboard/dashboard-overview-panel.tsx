@@ -1,5 +1,6 @@
 "use client";
 
+import { Busy } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { ExpenseTypeSlice, MonthBucket, RosterStat } from "@/lib/dashboard-overview";
@@ -216,8 +217,10 @@ export function DashboardOverviewPanel() {
               onClick={() => load(months)}
               disabled={loading}
             >
-              <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
-              Refresh
+              <Busy busy={loading}>
+                <RefreshCw size={16} aria-hidden />
+                Refresh
+              </Busy>
             </button>
           </div>
         </div>
@@ -231,8 +234,22 @@ export function DashboardOverviewPanel() {
 
       {!loading && error && (
         <div className="dash-empty">
-          <p>Couldn&rsquo;t load the overview.</p>
-          <p className="dash-muted">{error}</p>
+          <p className="dash-empty-title">The overview couldn&rsquo;t load</p>
+          {/no google account/i.test(error) ? (
+            <>
+              <p className="dash-empty-text">The dashboard needs to be signed in to Google to read the spreadsheet.</p>
+              <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+                Sign in to Google
+              </a>
+            </>
+          ) : (
+            <>
+              <p className="dash-empty-text">{error}</p>
+              <button type="button" className="dash-action-btn focus-ring-light" onClick={() => load(months)}>
+                Try again
+              </button>
+            </>
+          )}
         </div>
       )}
 

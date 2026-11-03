@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { deleteTemplate, listTemplates, saveTemplate } from "@/lib/email-store";
 import type { ComposerContent } from "@/lib/emails";
+import { SENDER_EMAIL, senderCanSend } from "@/lib/mailer";
 
 async function guard() {
   return (await isUpgradeAuthenticated()) ? null : NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -11,7 +12,8 @@ export async function GET() {
   const denied = await guard();
   if (denied) return denied;
   try {
-    return NextResponse.json({ templates: await listTemplates() });
+    const [templates, canSend] = await Promise.all([listTemplates(), senderCanSend().catch(() => false)]);
+    return NextResponse.json({ templates, canSend, sender: SENDER_EMAIL });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Failed" }, { status: 500 });
   }

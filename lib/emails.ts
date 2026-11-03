@@ -338,7 +338,7 @@ export function isAutoEmailId(value: unknown): value is AutoEmailId {
 
 export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
   membership: {
-    subject: "Your ASOSC membership — one step left",
+    subject: "Your ASOSC membership: one step left",
     preheader: "Your payment code is {payment_code}.",
     banner: "ASOSC Membership",
     headline: "One step left",
@@ -399,7 +399,7 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
       "That is the only thing we will use your email address for, and we do not share it with anyone. If you change your mind, reply to this message and we will take you off the list.",
   },
   "paid-membership": {
-    subject: "Payment received — your ASOSC membership is active",
+    subject: "Payment received, your ASOSC membership is active",
     preheader: "We received your {amount} payment. Welcome to ASOSC.",
     banner: "ASOSC Membership",
     headline: "Welcome to ASOSC",
@@ -408,7 +408,7 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     outro: "Keep this email for your records.",
   },
   "paid-donation": {
-    subject: "We received your donation — thank you",
+    subject: "Thank you, we received your donation",
     preheader: "Your {amount} donation came through.",
     banner: "Donation",
     headline: "Gift received",

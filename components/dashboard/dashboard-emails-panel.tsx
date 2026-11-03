@@ -1,7 +1,8 @@
 "use client";
 
+import { Busy } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, RotateCcw, Save, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { parseSheetDate } from "@/lib/sheet-dates";
 import { EmailField, EmailPreviewFrame, EventImageField, useEmailPreview } from "@/components/dashboard/email-editor";
 
@@ -39,7 +40,7 @@ type EmailsResponse = {
 
 function formatTime(value: string): string {
   const parsed = parseSheetDate(value);
-  return parsed ? parsed.toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" }) : value || "—";
+  return parsed ? parsed.toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" }) : value || "";
 }
 
 /** Sending status, template previews, and signups still waiting for their confirmation email. */
@@ -47,7 +48,7 @@ export function DashboardEmailsPanel() {
   const [data, setData] = useState<EmailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [previewId, setPreviewId] = useState("membership");
+  const [openId, setOpenId] = useState<string | null>(null);
   const [sending, setSending] = useState("");
   const [notice, setNotice] = useState("");
   const [toggling, setToggling] = useState(false);
@@ -68,8 +69,8 @@ export function DashboardEmailsPanel() {
       setData((prev) => (prev ? { ...prev, autoSend: next } : prev));
       setNotice(
         next
-          ? "Automatic emails are on. New signups and matched payments will be emailed."
-          : "Automatic emails are off. Nothing goes out unless you press Send.",
+          ? "Emails are on."
+          : "Emails are paused.",
       );
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Couldn't change the setting");
@@ -115,156 +116,201 @@ export function DashboardEmailsPanel() {
     }
   };
 
-  const template = data?.templates?.find((t) => t.id === previewId) ?? data?.templates?.[0];
+  const open = data?.templates?.find((t) => t.id === openId) ?? null;
   const pending = data?.pending ?? [];
 
   return (
     <div className="dash-panel">
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
-          <h2 className="dash-panel-title">Emails</h2>
-          {data && (
-            <p className="dash-panel-sub">
-              Sent from {data.sender}. Automatic emails are <strong>{data.autoSend ? "on" : "off"}</strong>
-              {data.autoSend
-                ? ": new signups and matched payments are emailed straight away."
-                : ": nothing goes out unless you press Send."}
-            </p>
-          )}
-        </div>
-        <div className="dash-panel-actions">
-          {data && (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={Boolean(data.autoSend)}
-              className={data.autoSend ? "dash-action-btn focus-ring-light" : "dash-primary-btn focus-ring-light"}
-              onClick={toggleAutoSend}
-              disabled={toggling || (!data.autoSend && !data.canSend)}
-              title={!data.canSend ? `Connect ${data.sender} first` : undefined}
-            >
-              {toggling ? "Saving…" : data.autoSend ? "Turn automatic emails off" : "Turn automatic emails on"}
+          {open && (
+            <button type="button" className="dash-back focus-ring-light" onClick={() => setOpenId(null)}>
+              <ChevronLeft size={16} aria-hidden />
+              Back
             </button>
           )}
-          <button type="button" className="dash-action-btn focus-ring-light" onClick={load} disabled={loading}>
-            <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
-            Refresh
-          </button>
+          {open && <p className="dash-eyebrow">{personFor(open.id)}</p>}
+          <h2 className="dash-panel-title">{open ? EMAILS[open.id]?.name ?? open.label : "Automatic emails"}</h2>
+          <p className="dash-panel-sub">
+            {open
+              ? EMAILS[open.id]?.about ?? ""
+              : "What people get by email when they sign up, when they pay, and if they still need to pay."}
+          </p>
         </div>
       </header>
 
-      {error && (
-        <div className="dash-empty">
-          <p>Couldn&rsquo;t load emails.</p>
-          <p className="dash-muted">{error}</p>
-        </div>
-      )}
+      <div className="dash-emails-body">
+        {loading && !data && <p className="dash-emails-section dash-muted">Loading…</p>}
 
-      {data && !data.canSend && (
-        <div className="dash-empty">
-          <p>{data.sender} can&rsquo;t send email yet.</p>
-          <p className="dash-muted">
-            Connect it once, signed in as {data.sender}, and allow &ldquo;Send email on your behalf&rdquo;.
-          </p>
-          <p className="dash-muted">
-            <a className="dash-action-btn focus-ring-light inline-flex" href="/api/google/connect">
-              Connect {data.sender}
-            </a>
-          </p>
-        </div>
-      )}
+        {error && (
+          <div className="dash-notice">
+            <span>Something went wrong loading this page.</span>
+            <button type="button" className="dash-action-btn focus-ring-light" onClick={load}>
+              Try again
+            </button>
+          </div>
+        )}
 
-      {notice && <p className="dash-interac-summary dash-muted">{notice}</p>}
+        {notice && <p className="dash-notice dash-notice--plain">{notice}</p>}
 
-      {data && (
-        <>
-          <h3 className="dash-panel-sub" style={{ padding: "0.875rem 1.25rem 0", fontWeight: 600 }}>
-            Waiting for a confirmation ({pending.length})
-          </h3>
-          {pending.length === 0 ? (
-            <div className="dash-empty">
-              <p className="dash-muted">Everyone who signed up has been emailed.</p>
-            </div>
-          ) : (
-            <div className="dash-table-wrap">
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Signed up</th>
-                    <th>List</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
+        {data && open && (
+          <AutoEmailEditor
+            key={open.id}
+            template={open}
+            onSaved={(copy, edited) =>
+              setData((prev) =>
+                prev ? { ...prev, templates: prev.templates?.map((t) => (t.id === open.id ? { ...t, copy, edited } : t)) } : prev,
+              )
+            }
+          />
+        )}
+
+        {data && !open && (
+          <>
+            <section className="dash-emails-section">
+              <div className={`dash-status dash-status--${!data.canSend ? "setup" : data.autoSend ? "on" : "off"}`}>
+                <span className="dash-status-dot" aria-hidden />
+                <div className="dash-status-text">
+                  <p className="dash-status-title">
+                    {!data.canSend
+                      ? "Emails aren't going out yet"
+                      : data.autoSend
+                        ? "Emails are going out"
+                        : "Emails are paused"}
+                  </p>
+                  <p className="dash-status-sub">
+                    {!data.canSend
+                      ? `First, sign in with ${data.sender} so the website can send from it. You only do this once.`
+                      : data.autoSend
+                        ? "People get the emails below by themselves."
+                        : "Nobody gets the emails below until you turn them on."}
+                  </p>
+                </div>
+                {!data.canSend ? (
+                  <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+                    Sign in with {data.sender}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className={data.autoSend ? "dash-action-btn focus-ring-light" : "dash-primary-btn focus-ring-light"}
+                    onClick={toggleAutoSend}
+                    disabled={toggling}
+                  >
+                    <Busy busy={toggling}>{data.autoSend ? "Pause emails" : "Turn emails on"}</Busy>
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {pending.length > 0 && (
+              <section className="dash-emails-section">
+                <div>
+                  <h3 className="dash-emails-section-title">
+                    {pending.length === 1 ? "1 person is waiting for their email" : `${pending.length} people are waiting for their email`}
+                  </h3>
+                  <p className="dash-section-lead">They filled in a form while emails were paused.</p>
+                </div>
+                <ul className="dash-email-list">
                   {pending.map((p) => {
                     const key = `${p.tab}:${p.rowNumber}`;
                     return (
-                      <tr key={key}>
-                        <td>{formatTime(p.timestamp)}</td>
-                        <td>{p.tab === "Master List" ? "Membership" : p.tab}</td>
-                        <td>{p.name || "—"}</td>
-                        <td>{p.email}</td>
-                        <td className="dash-row-actions">
-                          <button
-                            type="button"
-                            className="dash-action-btn focus-ring-light"
-                            onClick={() => send(p)}
-                            disabled={!data.canSend || Boolean(sending)}
-                          >
-                            <Send size={15} />
-                            {sending === key ? "Sending…" : "Send"}
-                          </button>
-                        </td>
-                      </tr>
+                      <li key={key} className="dash-email-item dash-email-item--static">
+                        <span className="dash-email-item-text">
+                          <span className="dash-email-item-name">{p.name || p.email}</span>
+                          <span className="dash-email-item-meta">
+                            {p.tab === "Master List" ? "Membership" : p.tab}, {formatTime(p.timestamp)}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="dash-action-btn focus-ring-light"
+                          onClick={() => send(p)}
+                          disabled={!data.canSend || Boolean(sending)}
+                        >
+                          <Busy busy={sending === key}>
+                            <Send size={15} aria-hidden />
+                            Send it now
+                          </Busy>
+                        </button>
+                      </li>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </ul>
+              </section>
+            )}
 
-          <RemindersCard autoSend={Boolean(data.autoSend)} canSend={Boolean(data.canSend)} />
+            {PEOPLE.map((group) => {
+              const items = group.ids
+                .map((id) => (data.templates ?? []).find((t) => t.id === id))
+                .filter((t): t is Template => Boolean(t));
+              if (!items.length) return null;
+              return (
+                <section key={group.title} className="dash-emails-section">
+                  <h3 className="dash-emails-section-title">{group.title}</h3>
+                  <ul className="dash-email-list">
+                    {items.map((t) => (
+                      <li key={t.id}>
+                        <button type="button" className="dash-email-item focus-ring-light" onClick={() => setOpenId(t.id)}>
+                          <span className="dash-email-item-text">
+                            <span className="dash-email-item-name">
+                              {EMAILS[t.id]?.name ?? t.label}
+                              {t.edited && <span className="dash-tag">Edited</span>}
+                            </span>
+                            <span className="dash-email-item-meta">{EMAILS[t.id]?.about}</span>
+                          </span>
+                          <ChevronRight size={18} aria-hidden className="dash-email-item-chevron" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
 
-          <h3 className="dash-panel-sub" style={{ padding: "1.25rem 1.25rem 0", fontWeight: 600 }}>
-            Automatic emails
-          </h3>
-          <div className="dash-email-flow-tabs" role="tablist" aria-label="Automatic emails">
-            {(data.templates ?? []).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={template?.id === t.id}
-                className={`dash-email-flow-tab focus-ring-light${template?.id === t.id ? " dash-email-flow-tab--active" : ""}`}
-                onClick={() => setPreviewId(t.id)}
-              >
-                {t.label}
-                {t.edited ? " •" : ""}
-              </button>
-            ))}
-          </div>
-          {template && (
-            <AutoEmailEditor
-              key={template.id}
-              template={template}
-              onSaved={(copy, edited) =>
-                setData((prev) =>
-                  prev
-                    ? { ...prev, templates: prev.templates?.map((t) => (t.id === template.id ? { ...t, copy, edited } : t)) }
-                    : prev,
-                )
-              }
-            />
-          )}
-        </>
-      )}
+            <section className="dash-emails-section">
+              <h3 className="dash-emails-section-title">Reminders</h3>
+              <RemindersCard autoSend={Boolean(data.autoSend)} canSend={Boolean(data.canSend)} />
+            </section>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-/** Edit one automatic email's wording and photo, with a live preview. The payment/receipt boxes stay automatic. */
+/** Each email, named by the moment it goes out, with what it does. */
+const EMAILS: Record<string, { name: string; about: string }> = {
+  membership: { name: "When they sign up", about: "Thanks them and explains how to pay for their membership." },
+  "paid-membership": { name: "When they pay", about: "Confirms their membership is active and sends their receipt." },
+  "reminder-membership": { name: "If they haven't paid", about: "A friendly reminder to finish paying for their membership." },
+  donation: { name: "When they fill in the donation form", about: "Thanks them and explains how to send their donation." },
+  "paid-donation": { name: "When their donation arrives", about: "Thanks them and sends their receipt." },
+  "reminder-donation": { name: "If their donation hasn't arrived", about: "A gentle reminder about the donation they planned." },
+  vendor: { name: "When they apply", about: "Lets them know we got their application." },
+  "vendor-approved": { name: "When you approve them", about: "Sent when you set their status to Approved on the Vendors page. Tells them the fee and how to pay." },
+  "paid-vendor": { name: "When they pay", about: "Confirms their vendor fee and sends their receipt." },
+  "reminder-vendor": { name: "If they haven't paid", about: "A reminder to pay their vendor fee." },
+  volunteer: { name: "When they sign up", about: "Thanks them for offering to help." },
+  newsletter: { name: "When someone subscribes", about: "Welcomes them to the newsletter." },
+  contact: { name: "When someone sends us a message", about: "Lets them know we got it and will reply." },
+  invoice: { name: "When someone pays for something else", about: "Sends an invoice for payments that aren't a membership, donation or vendor fee." },
+};
+
+/** Grouped by the person getting the email, in the order they'd get them. */
+const PEOPLE: Array<{ title: string; ids: string[] }> = [
+  { title: "Members", ids: ["membership", "paid-membership", "reminder-membership"] },
+  { title: "Donors", ids: ["donation", "paid-donation", "reminder-donation"] },
+  { title: "Vendors", ids: ["vendor", "vendor-approved", "paid-vendor", "reminder-vendor"] },
+  { title: "Volunteers", ids: ["volunteer"] },
+  { title: "Newsletter and messages", ids: ["newsletter", "contact", "invoice"] },
+];
+
+function personFor(id: string): string {
+  return PEOPLE.find((g) => g.ids.includes(id))?.title ?? "";
+}
+
+/** Edit one automatic email's wording and photo, with a live preview. Payment details are filled in automatically. */
 function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (copy: Copy, edited: boolean) => void }) {
   const [copy, setCopy] = useState<Copy>(template.copy);
   const [saving, setSaving] = useState(false);
@@ -273,6 +319,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   const preview = useEmailPreview({ kind: "auto", id: template.id, copy }, [template.id, JSON.stringify(copy)]);
   const dirty = JSON.stringify(copy) !== JSON.stringify(template.copy);
   const f = (k: keyof Copy) => `email-${template.id}-${k}`;
+  const inserts = template.placeholders;
 
   const save = async () => {
     setSaving(true);
@@ -286,7 +333,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
       const d = (await res.json()) as { error?: string };
       if (!res.ok || d.error) throw new Error(d.error || "Couldn't save");
       onSaved(copy, true);
-      setStatus("Saved. New emails will use this wording.");
+      setStatus("Saved. The next email will use this.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Couldn't save");
     } finally {
@@ -304,7 +351,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
       const defaults = { ...template.defaults, heroUrl: "" };
       setCopy(defaults);
       onSaved(defaults, false);
-      setStatus("Back to the original wording.");
+      setStatus("Back to the original");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Couldn't reset");
     } finally {
@@ -313,56 +360,64 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   };
 
   return (
-    <div className="dash-email-editor" style={{ padding: "0.875rem 1.25rem 1.25rem" }}>
-      <div className="dash-email-col">
-        <p className="dash-muted dash-email-hint">
-          Sent {template.when.charAt(0).toLowerCase() + template.when.slice(1)} You can use{" "}
-          {template.placeholders.map((p, i) => (
-            <span key={p}>
-              <code className="dash-mono">{`{${p}}`}</code>
-              {i < template.placeholders.length - 1 ? ", " : ""}
-            </span>
-          ))}
-          . Leave a blank line between paragraphs.
-        </p>
-        <EmailField id={f("subject")} label="Subject" value={copy.subject} onChange={set("subject")} />
-        <EmailField id={f("preheader")} label="Inbox preview text" value={copy.preheader} onChange={set("preheader")} hint="Shown after the subject in most inboxes." />
-        <div className="dash-email-row">
-          <EmailField id={f("banner")} label="Top strip" value={copy.banner} onChange={set("banner")} />
-          <EmailField id={f("headline")} label="Headline" value={copy.headline} onChange={set("headline")} />
-        </div>
-        <EmailField id={f("subhead")} label="Subheading" value={copy.subhead} onChange={set("subhead")} />
-        <EventImageField id={f("heroUrl")} value={copy.heroUrl ?? ""} onChange={set("heroUrl")} emptyLabel="Using the default photo" />
-        <EmailField id={f("intro")} label="Message (above the box)" value={copy.intro} onChange={set("intro")} multiline rows={6} />
-        <EmailField id={f("outro")} label="Message (below the box)" value={copy.outro} onChange={set("outro")} multiline rows={5} />
-        <div className="dash-email-row" style={{ alignItems: "center", flexWrap: "wrap" }}>
+    <div className="dash-compose">
+      <div className="dash-compose-form">
+        <section className="dash-emails-section">
+          <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} />
+          <EmailField id={f("headline")} label="Big heading" value={copy.headline} onChange={set("headline")} />
+          <EmailField id={f("subhead")} label="Line under the heading" value={copy.subhead} onChange={set("subhead")} />
+          <EventImageField id={f("heroUrl")} value={copy.heroUrl ?? ""} onChange={set("heroUrl")} fallbackUrl={template.defaultHero} />
+          <EmailField id={f("intro")} label="Message" value={copy.intro} onChange={set("intro")} multiline rows={6} inserts={inserts} />
+          <EmailField
+            id={f("outro")}
+            label="Closing message"
+            value={copy.outro}
+            onChange={set("outro")}
+            multiline
+            rows={4}
+            inserts={inserts}
+            hint="Comes after the payment details, which are filled in for you."
+          />
+          <details className="dash-more">
+            <summary>More options</summary>
+            <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} />
+            <EmailField id={f("banner")} label="Small text along the top" value={copy.banner} onChange={set("banner")} />
+          </details>
+        </section>
+        <div className="dash-savebar">
           <button type="button" className="dash-primary-btn focus-ring-light" onClick={save} disabled={saving || !dirty}>
-            <Save size={15} />
-            {saving ? "Saving…" : "Save wording"}
+            <Busy busy={saving}>Save changes</Busy>
           </button>
-          <button type="button" className="dash-action-btn focus-ring-light" onClick={reset} disabled={saving || !template.edited}>
-            <RotateCcw size={15} />
-            Reset to original
-          </button>
-          {status && <span className="dash-muted">{status}</span>}
+          {template.edited && (
+            <button type="button" className="dash-text-btn focus-ring-light" onClick={reset} disabled={saving}>
+              Go back to the original wording
+            </button>
+          )}
+          {status && <span className="dash-savebar-status">{status}</span>}
         </div>
       </div>
-      <div className="dash-email-col dash-email-col--preview">
-        <p className="dash-muted" style={{ margin: 0 }}>
-          Subject: <strong>{preview.subject || template.subject}</strong>
-        </p>
+      <aside className="dash-compose-preview">
+            <div className="dash-preview-sticky">
+        <p className="dash-preview-label">What they&rsquo;ll see</p>
         <EmailPreviewFrame html={preview.html || template.html} title={`${template.label} preview`} />
-      </div>
+        </div>
+      </aside>
     </div>
   );
 }
 
 type Schedule = { daysBetween: number; perRound: number; pauseDays: number; rounds: number };
+/** What the dashboard shows: one plain rule. */
+type SimpleSchedule = { every: number; stopAfter: number };
 
-/** Reminder timing (stored in the master sheet's Settings tab) and a manual run. */
+function simplify(s: Schedule): SimpleSchedule {
+  return { every: s.daysBetween, stopAfter: Math.min(10, s.perRound * s.rounds) };
+}
+
+/** How often unpaid people are reminded (stored in the master sheet's Settings tab), plus a manual run. */
 function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: boolean }) {
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
-  const [saved, setSaved] = useState<Schedule | null>(null);
+  const [rule, setRule] = useState<SimpleSchedule | null>(null);
+  const [saved, setSaved] = useState<SimpleSchedule | null>(null);
   const [busy, setBusy] = useState("");
   const [status, setStatus] = useState("");
 
@@ -371,31 +426,31 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
       .then((r) => r.json() as Promise<{ schedule?: Schedule }>)
       .then((d) => {
         if (d.schedule) {
-          setSchedule(d.schedule);
-          setSaved(d.schedule);
+          setRule(simplify(d.schedule));
+          setSaved(simplify(d.schedule));
         }
       })
-      .catch(() => setStatus("Couldn't load the reminder schedule."));
+      .catch(() => setStatus("Couldn't load the reminder settings."));
   }, []);
 
-  const setNum = (k: keyof Schedule) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setSchedule((s) => (s ? { ...s, [k]: Number(e.target.value) } : s));
+  const setNum = (k: keyof SimpleSchedule) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setRule((r) => (r ? { ...r, [k]: Number(e.target.value) } : r));
 
   const save = async () => {
-    if (!schedule) return;
+    if (!rule) return;
     setBusy("save");
     setStatus("");
     try {
       const res = await fetch("/api/dashboard/reminders", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(schedule),
+        body: JSON.stringify({ daysBetween: rule.every, perRound: rule.stopAfter, pauseDays: rule.every, rounds: 1 }),
       });
       const d = (await res.json()) as { schedule?: Schedule; error?: string };
       if (!res.ok || !d.schedule) throw new Error(d.error || "Couldn't save");
-      setSchedule(d.schedule);
-      setSaved(d.schedule);
-      setStatus("Schedule saved.");
+      setRule(simplify(d.schedule));
+      setSaved(simplify(d.schedule));
+      setStatus("Saved");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Couldn't save");
     } finally {
@@ -408,82 +463,46 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
     setStatus("");
     try {
       const res = await fetch("/api/dashboard/reminders", { method: "POST" });
-      const d = (await res.json()) as {
-        approvals?: number;
-        reminders?: Record<string, number>;
-        errors?: string[];
-        error?: string;
-      };
-      if (!res.ok || d.error) throw new Error(d.error || "Run failed");
+      const d = (await res.json()) as { approvals?: number; reminders?: Record<string, number>; errors?: string[]; error?: string };
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't send");
       const r = d.reminders ?? {};
-      const total = (r.membership ?? 0) + (r.donation ?? 0) + (r.vendor ?? 0);
+      const total = (r.membership ?? 0) + (r.donation ?? 0) + (r.vendor ?? 0) + (d.approvals ?? 0);
       setStatus(
-        `Sent ${d.approvals ?? 0} vendor approval${d.approvals === 1 ? "" : "s"} and ${total} reminder${total === 1 ? "" : "s"} ` +
-          `(${r.membership ?? 0} membership, ${r.donation ?? 0} donation, ${r.vendor ?? 0} vendor).` +
-          (d.errors?.length ? ` ${d.errors.length} failed: ${d.errors.slice(0, 3).join("; ")}` : ""),
+        total === 0
+          ? "Nobody is due a reminder today."
+          : `Sent ${total} email${total === 1 ? "" : "s"}.` + (d.errors?.length ? ` ${d.errors.length} couldn't be sent.` : ""),
       );
     } catch (e) {
-      setStatus(e instanceof Error ? e.message : "Run failed");
+      setStatus(e instanceof Error ? e.message : "Couldn't send");
     } finally {
       setBusy("");
     }
   };
 
-  const dirty = JSON.stringify(schedule) !== JSON.stringify(saved);
-  const total = schedule ? schedule.perRound * schedule.rounds : 0;
+  const dirty = JSON.stringify(rule) !== JSON.stringify(saved);
 
   return (
-    <section className="dash-reminders" aria-labelledby="reminders-title">
-      <h3 id="reminders-title" className="dash-panel-sub" style={{ fontWeight: 600, margin: 0 }}>
-        Payment reminders
-      </h3>
-      <p className="dash-muted dash-email-hint">
-        For unpaid memberships, donations, and approved vendors with a fee. Vendors are approved by setting their Status to
-        Approved in Vendors, which sends the approval email on the next run. Runs every morning while automatic emails are{" "}
-        {autoSend ? "on (they are)" : "on (they're off right now)"}.
-      </p>
-      {schedule && (
-        <div className="dash-reminder-grid">
-          <label className="dash-field" htmlFor="rem-days">
-            <span>Days between reminders</span>
-            <input id="rem-days" type="number" min={1} max={60} value={schedule.daysBetween} onChange={setNum("daysBetween")} />
-          </label>
-          <label className="dash-field" htmlFor="rem-per">
-            <span>Reminders per round</span>
-            <input id="rem-per" type="number" min={1} max={10} value={schedule.perRound} onChange={setNum("perRound")} />
-          </label>
-          <label className="dash-field" htmlFor="rem-pause">
-            <span>Pause between rounds (days)</span>
-            <input id="rem-pause" type="number" min={1} max={365} value={schedule.pauseDays} onChange={setNum("pauseDays")} />
-          </label>
-          <label className="dash-field" htmlFor="rem-rounds">
-            <span>Rounds</span>
-            <input id="rem-rounds" type="number" min={1} max={12} value={schedule.rounds} onChange={setNum("rounds")} />
-          </label>
-        </div>
-      )}
-      {schedule && (
-        <p className="dash-muted dash-email-hint">
-          Someone who never pays gets at most {total} reminder{total === 1 ? "" : "s"}: {schedule.perRound} every{" "}
-          {schedule.daysBetween} day{schedule.daysBetween === 1 ? "" : "s"}, then a {schedule.pauseDays}-day pause, up to{" "}
-          {schedule.rounds} round{schedule.rounds === 1 ? "" : "s"}. Ticking &ldquo;Stop Reminders&rdquo; on a row stops them for that person.
+    <div className="dash-subcard">
+      <p className="dash-subcard-title">How often to remind people who haven&rsquo;t paid</p>
+      {rule && (
+        <p className="dash-reminder-sentence">
+          Remind them every
+          <input aria-label="Days between reminders" type="number" min={1} max={60} value={rule.every} onChange={setNum("every")} />
+          days, and stop after
+          <input aria-label="Most reminders to send" type="number" min={1} max={10} value={rule.stopAfter} onChange={setNum("stopAfter")} />
+          reminders.
         </p>
       )}
-      <div className="dash-email-row" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      {!autoSend && <p className="dash-field-hint">Reminders only go out while emails are on.</p>}
+      <div className="dash-savebar dash-savebar--inline">
         <button type="button" className="dash-primary-btn focus-ring-light" onClick={save} disabled={!dirty || Boolean(busy)}>
-          {busy === "save" ? "Saving…" : "Save schedule"}
+          <Busy busy={busy === "save"}>Save</Busy>
         </button>
-        <button
-          type="button"
-          className="dash-action-btn focus-ring-light"
-          onClick={runNow}
-          disabled={Boolean(busy) || !canSend}
-          title={!canSend ? "Connect support@asosc.ca first" : "Send any reminders and vendor approvals that are due now"}
-        >
-          {busy === "run" ? "Running…" : "Run reminders now"}
+        <button type="button" className="dash-text-btn focus-ring-light" onClick={runNow} disabled={Boolean(busy) || !canSend}>
+          <Busy busy={busy === "run"}>Send today&rsquo;s reminders now</Busy>
         </button>
-        {status && <span className="dash-muted">{status}</span>}
+        {status && <span className="dash-savebar-status">{status}</span>}
       </div>
-    </section>
+    </div>
   );
 }

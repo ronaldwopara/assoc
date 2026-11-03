@@ -30,9 +30,9 @@ export const DASHBOARD_LISTS: Array<{
   { id: "payment-review-membership", title: "Payments", sheetTab: MASTER_TABS.payments },
   { id: "payment-review-donations", title: "Donations", sheetTab: MASTER_TABS.donations },
   // Own panel: sending status, template previews, pending confirmations.
-  { id: "emails", title: "Emails", sheetTab: "" },
+  { id: "emails", title: "Automatic emails", sheetTab: "" },
   // Own panel: write and send an email to lists.
-  { id: "compose", title: "Send email", sheetTab: "" },
+  { id: "compose", title: "Send an email", sheetTab: "" },
 ];
 
 export function listMeta(id: DashboardListId) {

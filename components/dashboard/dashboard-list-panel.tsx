@@ -1,5 +1,6 @@
 "use client";
 
+import { Busy } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
@@ -15,7 +16,6 @@ import {
 } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import { listMeta } from "@/lib/dashboard-lists";
-import { MASTER_TABS } from "@/lib/master-sheet";
 import {
   cellMatchesDateQuery,
   defaultValueForDateHeader,
@@ -27,7 +27,7 @@ import {
 
 type SheetTab = { title: string; sheetId: number; rowCount: number; columnCount: number };
 type TabsResponse = { spreadsheetId: string; spreadsheetTitle: string; tabs: SheetTab[] };
-type RowsResponse = { headers: string[]; rows: string[][] };
+type RowsResponse = { headers: string[]; rows: string[][]; tab?: string };
 
 interface DashboardListPanelProps {
   listId: DashboardListId;
@@ -40,23 +40,38 @@ const SECONDARY_FIELD = /spouse|emergency|guardian|parent|child/i;
  *  The extra `(\s*\(.*\))?` keeps "Business or Organization Name" out. */
 const NAME_HEADER = /^(full\s*)?name(\s*\(.*\))?$/i;
 
-const VENDORS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
+const PERSON_COLUMNS: Array<{ label: string; match: RegExp }> = [
   { label: "Full Name", match: NAME_HEADER },
   { label: "Email", match: /email/i },
   { label: "Phone Number", match: /phone/i },
-  { label: "Paid", match: /^paid$/i },
-  // Approving a vendor (with a Fee) sends the approval email and starts fee reminders.
-  { label: "Status", match: /^status$/i },
-  { label: "Fee", match: /^fee$/i },
 ];
+
+/** The few columns each list shows. Bookkeeping columns (Confirmation Sent,
+ *  reminders, codes…) stay in the sheet but out of the dashboard. */
+const LIST_COLUMNS: Partial<Record<DashboardListId, Array<{ label: string; match: RegExp }>>> = {
+  "master-list": [...PERSON_COLUMNS, { label: "Signed up for", match: /^source$/i }],
+  "master-volunteer": PERSON_COLUMNS,
+  "master-vendor": [
+    ...PERSON_COLUMNS,
+    { label: "Paid", match: /^paid$/i },
+    // Approving a vendor (with a Fee) sends the approval email and starts fee reminders.
+    { label: "Status", match: /^status$/i },
+    { label: "Fee", match: /^fee$/i },
+  ],
+  "master-newsletter": [
+    { label: "Full Name", match: NAME_HEADER },
+    { label: "Email", match: /email/i },
+    { label: "Strathcona Resident", match: /strathcona/i },
+  ],
+  "master-contact": [
+    { label: "Date", match: /^timestamp$/i },
+    { label: "Full Name", match: NAME_HEADER },
+    { label: "Email", match: /email/i },
+    { label: "Message", match: /^message$/i },
+  ],
+};
 
 const VENDOR_STATUSES = ["Pending", "Approved", "Declined"];
-
-const VOLUNTEERS_CANONICAL_COLUMNS: Array<{ label: string; match: RegExp }> = [
-  { label: "Full Name", match: NAME_HEADER },
-  { label: "Email", match: /email/i },
-  { label: "Phone Number", match: /phone/i },
-];
 
 /** Narrows headers down to a curated set, in that set's order, skipping any
  * header excluded (e.g. "Spouse's Email" shouldn't win the "Email" slot). */
@@ -74,26 +89,25 @@ function canonicalColumns(
   });
 }
 
-/** Which sheet columns to show, and under what label — full set for every
- * list except Vendors and Volunteers, which are narrowed. */
+/** Which sheet columns to show, and under what label. */
 function getVisibleColumns(
   listId: DashboardListId,
   headers: string[],
 ): Array<{ index: number; label: string }> {
-  if (listId === "master-vendor") {
-    return canonicalColumns(headers, VENDORS_CANONICAL_COLUMNS, SECONDARY_FIELD);
-  }
-  if (listId === "master-volunteer") {
-    return canonicalColumns(headers, VOLUNTEERS_CANONICAL_COLUMNS, SECONDARY_FIELD);
-  }
-  return headers.map((label, index) => ({ index, label }));
+  const canonical = LIST_COLUMNS[listId];
+  if (canonical) return canonicalColumns(headers, canonical, SECONDARY_FIELD);
+  return headers
+    .map((label, index) => ({ index, label }))
+    .filter(({ label }) => !/^(confirmation sent|reminder count|last reminder|reminder round|stop reminders|approval sent)$/i.test(label.trim()));
 }
 
-function emailColumnIndex(headers: string[]): number {
-  return headers.findIndex((h) => {
-    const trimmed = h.trim();
-    return /email/i.test(trimmed) && !SECONDARY_FIELD.test(trimmed);
-  });
+/** "Imported" is bookkeeping from the old sheets, and status-like columns read
+ *  better empty than as a column of dashes. */
+function displayCell(header: string, value: string | undefined): string {
+  const v = (value ?? "").trim();
+  if (/^imported$/i.test(v)) return "";
+  if (!v) return "";
+  return v;
 }
 
 function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: string): string {
@@ -111,13 +125,6 @@ function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: strin
   if (range) return `Nothing in “${tab}” was registered ${range}.`;
   return `Nothing in “${tab}” matches.`;
 }
-
-/** Lists that cross-reference each other by email to show a "Sources" chip column. */
-const SOURCE_LISTS: Array<{ id: DashboardListId; label: string; tab: string }> = [
-  { id: "master-list", label: "Master List", tab: MASTER_TABS.masterList },
-  { id: "master-volunteer", label: "Volunteers", tab: MASTER_TABS.volunteers },
-  { id: "master-vendor", label: "Vendors", tab: MASTER_TABS.vendors },
-];
 
 export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const meta = listMeta(listId);
@@ -171,7 +178,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       .then((data) => {
         if (signal?.cancelled) return;
         if (data.error) setRowsError(data.error);
-        else setRows(data);
+        else setRows({ ...data, tab });
       })
       .catch(() => {
         if (!signal?.cancelled) setRowsError("Failed to load this tab's rows.");
@@ -231,61 +238,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [dateOpen]);
-
-  // Master List, Volunteers, and Vendors cross-reference each other by
-  // email to show a "Sources" chip column — which of the other lists this person is also in.
-  const showSources = SOURCE_LISTS.some((s) => s.id === listId);
-  const [sourceEmailSets, setSourceEmailSets] = useState<Partial<Record<DashboardListId, Set<string>>>>({});
-
-  useEffect(() => {
-    if (!showSources) {
-      setSourceEmailSets({});
-      return;
-    }
-    let cancelled = false;
-    Promise.all(
-      SOURCE_LISTS.filter((s) => s.id !== listId).map((s) =>
-        fetch(
-          `/api/dashboard/sheet-rows?tab=${encodeURIComponent(s.tab)}`,
-          { cache: "no-store" },
-        )
-          .then((res) => res.json())
-          .then((data): [DashboardListId, Set<string>] => {
-            const emails = new Set<string>();
-            const headers: string[] = data?.headers ?? [];
-            const emailIdx = emailColumnIndex(headers);
-            if (!data.error && emailIdx !== -1) {
-              for (const row of (data.rows ?? []) as string[][]) {
-                const email = (row[emailIdx] ?? "").trim().toLowerCase();
-                if (email) emails.add(email);
-              }
-            }
-            return [s.id, emails];
-          })
-          .catch((): [DashboardListId, Set<string>] => [s.id, new Set<string>()]),
-      ),
-    ).then((entries) => {
-      if (cancelled) return;
-      setSourceEmailSets(Object.fromEntries(entries));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [listId, showSources]);
-
-  const ownEmailColumnIndex = useMemo(() => emailColumnIndex(rows?.headers ?? []), [rows]);
-
-  const sourcesForRow = useCallback(
-    (row: string[]): string[] => {
-      if (!showSources || ownEmailColumnIndex === -1) return [];
-      const email = (row[ownEmailColumnIndex] ?? "").trim().toLowerCase();
-      if (!email) return [];
-      return SOURCE_LISTS.filter(
-        (s) => s.id !== listId && sourceEmailSets[s.id]?.has(email),
-      ).map((s) => s.label);
-    },
-    [showSources, ownEmailColumnIndex, listId, sourceEmailSets],
-  );
 
   // rowNumber is 1-indexed and includes the header row, matching the Sheets API range.
   const visibleRows = useMemo(() => {
@@ -408,12 +360,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     if (!rows) return;
     const escape = (cell: string) => `"${(cell ?? "").replace(/"/g, '""')}"`;
     const csv = [
-      visibleColumns.map((col) => col.label).concat(showSources ? ["Sources"] : []),
-      ...visibleRows.map((v) =>
-        visibleColumns
-          .map((col) => v.row[col.index])
-          .concat(showSources ? [sourcesForRow(v.row).join("; ")] : []),
-      ),
+      visibleColumns.map((col) => col.label),
+      ...visibleRows.map((v) => visibleColumns.map((col) => v.row[col.index])),
     ]
       .map((r) => r.map(escape).join(","))
       .join("\n");
@@ -437,6 +385,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   );
 
   const errorMessage = rowsError || tabsError;
+  // Only blank the list on the first load of a tab; a refresh keeps the rows on screen.
+  const initialLoading = loading && rows?.tab !== activeTab;
   const needsGoogleConnect = /no google account connected/i.test(errorMessage);
   const needsEnvConfig = /is not configured/i.test(errorMessage);
 
@@ -445,15 +395,11 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">{meta.title}</h2>
-          <p className="dash-panel-sub">
-            {activeTab ? (
-              <>
-                Sheet tab: <span className="dash-mono">{activeTab}</span>
-              </>
-            ) : (
-              "No sheet tab selected."
-            )}
-          </p>
+          {rows && rows.rows.length > 0 && (
+            <p className="dash-panel-sub">
+              {rows.rows.length} {rows.rows.length === 1 ? "person" : "people"}
+            </p>
+          )}
         </div>
         <div className="dash-panel-actions">
           {/* Grouped into rows (dash-actions-row is `display:contents` on
@@ -561,8 +507,10 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               disabled={!activeTab || loading}
               title="Refresh from Sheets"
             >
-              <RefreshCw size={16} className={loading ? "dash-spin" : undefined} />
-              Refresh
+              <Busy busy={loading}>
+                <RefreshCw size={16} aria-hidden />
+                Refresh
+              </Busy>
             </button>
             <button
               type="button"
@@ -625,8 +573,10 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               onClick={() => activeTab && loadRows(activeTab)}
               disabled={!activeTab || loading}
             >
-              <RefreshCw size={18} className={loading ? "dash-spin" : undefined} />
-              Refresh
+              <Busy busy={loading}>
+                <RefreshCw size={18} aria-hidden />
+                Refresh
+              </Busy>
             </button>
             <button
               type="button"
@@ -654,38 +604,42 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       </header>
 
-      {loading && (
+      {initialLoading && (
         <div className="dash-empty">
           <p className="dash-muted">Loading…</p>
         </div>
       )}
 
-      {!loading && errorMessage && (
+      {!initialLoading && errorMessage && (
         <div className="dash-empty">
-          <p>Couldn&rsquo;t load this list.</p>
-          <p className="dash-muted">{errorMessage}</p>
-          {needsEnvConfig && (
-            <p className="dash-muted">
-              Set the missing variable on Vercel (Production), redeploy, then refresh.
-            </p>
-          )}
-          {needsGoogleConnect && (
-            <p className="dash-muted">
-              <a className="dash-action-btn focus-ring-light inline-flex" href="/api/google/connect">
-                Connect Google
+          <p className="dash-empty-title">This list couldn&rsquo;t load</p>
+          {needsGoogleConnect ? (
+            <>
+              <p className="dash-empty-text">The dashboard needs to be signed in to Google to read the spreadsheet.</p>
+              <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+                Sign in to Google
               </a>
-            </p>
+            </>
+          ) : needsEnvConfig ? (
+            <p className="dash-empty-text">The spreadsheet isn&rsquo;t set up on the website yet. Ask whoever manages the website to finish the setup.</p>
+          ) : (
+            <>
+              <p className="dash-empty-text">{errorMessage}</p>
+              <button type="button" className="dash-action-btn focus-ring-light" onClick={() => activeTab && loadRows(activeTab)}>
+                Try again
+              </button>
+            </>
           )}
         </div>
       )}
 
-      {!loading && !errorMessage && !activeTab && (
+      {!initialLoading && !errorMessage && !activeTab && (
         <div className="dash-empty">
           <p>No sheet tab available yet.</p>
         </div>
       )}
 
-      {!loading && !errorMessage && activeTab && rows && rows.rows.length === 0 && !addingNewRow && (
+      {!initialLoading && !errorMessage && activeTab && rows && rows.rows.length === 0 && !addingNewRow && (
         <div className="dash-empty">
           <p>No rows yet.</p>
           <p className="dash-muted">
@@ -694,14 +648,14 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       )}
 
-      {!loading && !errorMessage && rows && rows.rows.length > 0 && visibleRows.length === 0 && !addingNewRow && (
+      {!initialLoading && !errorMessage && rows && rows.rows.length > 0 && visibleRows.length === 0 && !addingNewRow && (
         <div className="dash-empty">
           <p>No matches.</p>
           <p className="dash-muted">{noMatchHint(activeTab || meta.title, query, dateFrom, dateTo)}</p>
         </div>
       )}
 
-      {!loading && !errorMessage && rows && (visibleRows.length > 0 || addingNewRow) && (
+      {!initialLoading && !errorMessage && rows && (visibleRows.length > 0 || addingNewRow) && (
         <div className="dash-table-wrap" ref={tableWrapRef}>
           {saveError && <p className="dash-error dash-save-error">{saveError}</p>}
           <table className="dash-table">
@@ -710,7 +664,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 {visibleColumns.map((col) => (
                   <th key={col.index}>{col.label || `Column ${col.index + 1}`}</th>
                 ))}
-                {showSources && <th>Sources</th>}
                 <th className="dash-th-actions" aria-label="Actions" />
               </tr>
             </thead>
@@ -722,7 +675,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                     return (
                       <td key={col.index}>
                         {isTimestamp ? (
-                          newRowValues[col.index] || "—"
+                          newRowValues[col.index] || ""
                         ) : (
                           <input
                             className="dash-cell-input focus-ring-light"
@@ -740,7 +693,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                       </td>
                     );
                   })}
-                  {showSources && <td>—</td>}
                   <td className="dash-row-actions">
                     <button
                       type="button"
@@ -772,7 +724,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                       return isEditing ? (
                         <td key={col.index}>
                           {isTimestamp ? (
-                            row[col.index] || "—"
+                            row[col.index] || ""
                           ) : listId === "master-vendor" && /^status$/i.test((rows.headers[col.index] ?? "").trim()) ? (
                             <select
                               className="dash-select focus-ring-light"
@@ -809,28 +761,19 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                       ) : (
                         <td key={col.index} className={emailColumns[col.index] ? "dash-cell-email" : undefined}>
                           {listId === "master-vendor" && /^status$/i.test((rows.headers[col.index] ?? "").trim()) ? (
-                            <span className={`dash-status-chip dash-status-chip--${(row[col.index] || "pending").toLowerCase()}`}>
-                              {row[col.index] || "Pending"}
-                            </span>
+                            row[col.index] && !/^pending$/i.test(row[col.index].trim()) ? (
+                              <span className={`dash-status-chip dash-status-chip--${row[col.index].trim().toLowerCase()}`}>
+                                {row[col.index]}
+                              </span>
+                            ) : (
+                              ""
+                            )
                           ) : (
-                            row[col.index] || "—"
+                            displayCell(rows.headers[col.index] ?? "", row[col.index])
                           )}
                         </td>
                       );
                     })}
-                    {showSources && (
-                      <td>
-                        <div className="dash-sources-inner">
-                          {sourcesForRow(row).length === 0
-                            ? "—"
-                            : sourcesForRow(row).map((label) => (
-                                <span key={label} className="dash-source-chip">
-                                  {label}
-                                </span>
-                              ))}
-                        </div>
-                      </td>
-                    )}
                     <td className="dash-row-actions">
                       {isEditing ? (
                         <>
@@ -872,7 +815,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       )}
 
-      {!loading && !errorMessage && rows && visibleRows.length > 0 && (
+      {!initialLoading && !errorMessage && rows && visibleRows.length > 0 && (
         <p className="dash-row-count">
           {visibleRows.length}
           {visibleRows.length !== rows.rows.length ? ` of ${rows.rows.length}` : ""} row
