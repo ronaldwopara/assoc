@@ -83,7 +83,7 @@ function cachedRead<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
 }
 
 /** Drop cached reads for a spreadsheet (or one tab) after a write so callers see fresh data. */
-function invalidateReadCache(spreadsheetId: string, tabTitle?: string) {
+export function invalidateReadCache(spreadsheetId: string, tabTitle?: string) {
   const prefix = tabTitle ? `${spreadsheetId}::values::${tabTitle}` : `${spreadsheetId}::`;
   for (const key of readCache.keys()) {
     if (key.startsWith(prefix)) readCache.delete(key);

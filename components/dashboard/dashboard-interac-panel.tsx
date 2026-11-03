@@ -278,6 +278,33 @@ export function DashboardInteracPanel() {
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [expenseError, setExpenseError] = useState("");
 
+  /** Two-step remove: first click asks, second removes. */
+  const [confirmRemove, setConfirmRemove] = useState("");
+  const [removing, setRemoving] = useState("");
+  const removeExpense = async (id: string) => {
+    setRemoving(id);
+    try {
+      const res = await fetch("/api/dashboard/expenses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      const d = (await res.json()) as { error?: string };
+      if (!res.ok || d.error) throw new Error(d.error || "Couldn't remove");
+      setExpenseLog((prev) => {
+        if (!prev) return prev;
+        const idCol = prev.headers.findIndex((h) => h.trim().toLowerCase() === "gmail message id");
+        return { ...prev, rows: prev.rows.filter((r) => String(r[idCol] ?? "").trim() !== id) };
+      });
+      setCheckMessage("Removed. It won't be added back.");
+    } catch (e) {
+      setCheckMessage(e instanceof Error ? e.message : "Couldn't remove");
+    } finally {
+      setRemoving("");
+      setConfirmRemove("");
+    }
+  };
+
   const loadExpenses = useCallback((kind: ExpenseView) => {
     setExpenseLoading(true);
     setExpenseError("");
@@ -525,11 +552,37 @@ export function DashboardInteracPanel() {
                       );
                     })}
                     <td>
-                      {link ? (
-                        <a className="dash-action-btn focus-ring-light" href={link} target="_blank" rel="noreferrer">
-                          View
-                        </a>
-                      ) : null}
+                      <span className="dash-row-buttons">
+                        {link ? (
+                          <a className="dash-action-btn dash-action-btn--small focus-ring-light" href={link} target="_blank" rel="noreferrer">
+                            View
+                          </a>
+                        ) : null}
+                        {confirmRemove === id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="dash-action-btn dash-action-btn--small focus-ring-light"
+                              onClick={() => removeExpense(id)}
+                              disabled={removing === id}
+                            >
+                              <Busy busy={removing === id}>Yes, remove</Busy>
+                            </button>
+                            <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setConfirmRemove("")}>
+                              Keep
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="dash-text-btn focus-ring-light"
+                            onClick={() => setConfirmRemove(id)}
+                            title="Not a real bill or receipt? Remove it."
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 );

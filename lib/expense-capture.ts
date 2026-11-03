@@ -24,6 +24,7 @@ import {
   ensureSheetTab,
   getAccessTokenForAccount,
   getSheetValues,
+  invalidateReadCache,
 } from "@/lib/google-sheets";
 import {
   gmailFetch,
@@ -39,6 +40,7 @@ import {
 } from "@/lib/gmail";
 import { formatTimestamp } from "@/lib/sheet-dates";
 import { renderEmailAsPdf } from "@/lib/pdf-receipt";
+import { getSetting, setSetting } from "@/lib/settings";
 import { findAmount, pdfText } from "@/lib/expense-amount";
 
 export type ExpenseKind = "debit" | "invoice" | "receipt";
@@ -156,6 +158,58 @@ async function ensureExpenseHeaders(accessToken: string, spreadsheetId: string):
   return headers;
 }
 
+const IGNORED_KEY = "ignoredExpenseIds";
+
+async function ignoredExpenseIds(): Promise<string[]> {
+  try {
+    const parsed = JSON.parse((await getSetting(IGNORED_KEY)) || "[]");
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Removes bills/receipts rows (by Gmail message id) and remembers them so the
+ * daily capture doesn't add them back. Returns how many rows were removed.
+ */
+export async function removeExpenses(messageIds: string[]): Promise<number> {
+  const ids = new Set(messageIds.filter((id) => /^[A-Za-z0-9_-]{6,64}$/.test(id)));
+  if (!ids.size) return 0;
+  const { accessToken } = await getAccessTokenForAccount();
+  const spreadsheetId = masterSheetId();
+  const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);
+  const idCol = headerIndex(values[0] ?? [], "gmail message id");
+  if (idCol < 0) return 0;
+  const rowNumbers = values
+    .map((row, i) => ({ id: String(row[idCol] ?? "").trim(), n: i + 1 }))
+    .filter((r) => r.n > 1 && ids.has(r.id))
+    .map((r) => r.n)
+    .sort((a, b) => b - a); // bottom first so earlier row numbers don't shift
+
+  await setSetting(IGNORED_KEY, JSON.stringify([...new Set([...(await ignoredExpenseIds()), ...ids])]));
+  if (!rowNumbers.length) return 0;
+
+  const meta = (await (
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    })
+  ).json()) as { sheets?: Array<{ properties: { sheetId: number; title: string } }> };
+  const sheetId = meta.sheets?.find((s) => s.properties.title === EXPENSE_TAB)?.properties.sheetId;
+  if (sheetId === undefined) throw new Error("Expenses tab not found");
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requests: rowNumbers.map((n) => ({ deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } } })),
+    }),
+  });
+  if (!res.ok) throw new Error(`Couldn't remove the rows (${res.status})`);
+  invalidateReadCache(spreadsheetId, EXPENSE_TAB);
+  return rowNumbers.length;
+}
+
 /** subject|minute → inbox, for spotting the same email logged from another inbox. */
 async function loadSeenExpenseKeys(accessToken: string, spreadsheetId: string, headers: string[]): Promise<Map<string, string>> {
   const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);
@@ -178,7 +232,8 @@ async function loadSeenExpenseIds(
 ): Promise<Set<string>> {
   const values = await getSheetValues(accessToken, spreadsheetId, EXPENSE_TAB);
   const idCol = headerIndex(headers, "gmail message id");
-  const seen = new Set<string>();
+  // Rows staff removed from the dashboard stay removed (not picked up again from the inbox).
+  const seen = new Set<string>(await ignoredExpenseIds());
   if (idCol < 0) return seen;
   for (const row of values.slice(1)) {
     const id = String(row[idCol] ?? "").trim();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { getExpenseLog, runExpenseCapture, type ExpenseKind } from "@/lib/expense-capture";
+import { getExpenseLog, removeExpenses, runExpenseCapture, type ExpenseKind } from "@/lib/expense-capture";
 
 export const maxDuration = 60;
 
@@ -34,5 +34,20 @@ export async function POST() {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Expense scan failed";
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+/** Remove bills/receipts rows that aren't real ones: { ids: [gmailMessageId, …] }. They won't be added back. */
+export async function DELETE(request: Request) {
+  try {
+    if (!(await isUpgradeAuthenticated())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const body = (await request.json().catch(() => ({}))) as { ids?: unknown };
+    const ids = Array.isArray(body.ids) ? body.ids.map(String).slice(0, 500) : [];
+    if (!ids.length) return NextResponse.json({ error: "Nothing to remove" }, { status: 400 });
+    return NextResponse.json({ ok: true, removed: await removeExpenses(ids) });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Couldn't remove" }, { status: 500 });
   }
 }
