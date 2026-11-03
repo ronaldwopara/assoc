@@ -4,7 +4,7 @@
  * "Imported" when the master sheet was set up, so they never show as pending.
  */
 
-import { getAccessTokenForAccount, getSheetValues, updateSheetCell } from "@/lib/google-sheets";
+import { appendSheetRows, getAccessTokenForAccount, getSheetValues, updateSheetCell } from "@/lib/google-sheets";
 import { confirmationEmail, paymentReceivedEmail, type ConfirmationKind, type Fields } from "@/lib/emails";
 import { sendEmail } from "@/lib/mailer";
 import { autoSendEnabled } from "@/lib/settings";
@@ -87,6 +87,25 @@ export async function autoConfirm(tab: MasterTabName, rowNumber: number): Promis
     await sendConfirmation(tab, rowNumber);
   } catch (error) {
     console.error(`[email] confirmation for ${tab} row ${rowNumber} failed:`, error);
+    await logFailure(tab, rowNumber, error);
+  }
+}
+
+/** Writes a failed automatic email to the Email Log tab so staff can see why. Never throws. */
+async function logFailure(tab: MasterTabName, rowNumber: number, error: unknown) {
+  try {
+    const { accessToken } = await getAccessTokenForAccount();
+    await appendSheetRows(accessToken, masterSheetId(), "Email Log", [
+      [
+        formatTimestamp(new Date()),
+        `Confirmation (${tab}, row ${rowNumber})`,
+        "",
+        "Failed",
+        error instanceof Error ? error.message : String(error),
+      ],
+    ]);
+  } catch {
+    // Logging is best effort.
   }
 }
 
@@ -110,6 +129,7 @@ export async function retryRecentConfirmations(): Promise<{ sent: number; failed
     } catch (error) {
       failed++;
       console.error(`[email] retry for ${p.tab} row ${p.rowNumber} failed:`, error);
+      await logFailure(p.tab, p.rowNumber, error);
     }
   }
   return { sent, failed };
