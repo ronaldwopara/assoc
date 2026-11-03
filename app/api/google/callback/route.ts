@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     const response = new NextResponse(
       htmlPage(
         "Google connected",
-        `<h1>Google connected</h1><p>Connected as <code>${saved.email}</code>.</p><p>${count} account${count === 1 ? "" : "s"} linked. Sign in with the other inbox and open connect again to add it. You can close this tab.</p>`,
+        `<h1>Google connected</h1><p>Connected as <code>${saved.email}</code>.</p><p>${count} account${count === 1 ? "" : "s"} linked.</p><p><a href="/upgrade?tool=dashboard">Back to the dashboard</a></p>`,
       ),
       { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
     );

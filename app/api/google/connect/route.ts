@@ -7,14 +7,24 @@ import {
   oauthStateCookieOptions,
 } from "@/lib/google-oauth";
 
-export async function GET() {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Starts "Sign in with Google" for an inbox the website reads or sends from.
+ * ?account=support@asosc.ca pre-selects that Google account.
+ * Not signed in to the dashboard yet? Go there first, then come straight back.
+ */
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const account = url.searchParams.get("account")?.trim().toLowerCase() ?? "";
   try {
     if (!(await isUpgradeAuthenticated())) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const back = `/api/google/connect${account ? `?account=${encodeURIComponent(account)}` : ""}`;
+      return NextResponse.redirect(new URL(`/upgrade?next=${encodeURIComponent(back)}`, url.origin));
     }
 
     const state = createOAuthState();
-    const response = NextResponse.redirect(buildGoogleAuthUrl(state));
+    const response = NextResponse.redirect(buildGoogleAuthUrl(state, EMAIL_RE.test(account) ? account : undefined));
     response.cookies.set(GOOGLE_OAUTH_STATE_COOKIE, state, oauthStateCookieOptions());
     return response;
   } catch (error) {

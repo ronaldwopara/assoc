@@ -166,7 +166,7 @@ export function createOAuthState() {
   return randomBytes(24).toString("base64url");
 }
 
-export function buildGoogleAuthUrl(state: string) {
+export function buildGoogleAuthUrl(state: string, loginHint?: string) {
   const { clientId, redirectUri } = getGoogleOAuthConfig();
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", clientId);
@@ -177,6 +177,8 @@ export function buildGoogleAuthUrl(state: string) {
   url.searchParams.set("prompt", "consent");
   url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("state", state);
+  // Suggest the right Google account when several are signed in on this browser.
+  if (loginHint) url.searchParams.set("login_hint", loginHint);
   return url.toString();
 }
 

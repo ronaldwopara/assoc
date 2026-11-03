@@ -109,6 +109,12 @@ function UpgradePageContentInner({
       return;
     }
     setPassword("");
+    // Came here from a "Sign in with Google" link: carry on to Google.
+    const next = searchParams.get("next");
+    if (next && next.startsWith("/api/google/connect")) {
+      window.location.href = next;
+      return;
+    }
     setAuthed(true);
 
     const [galleryRes, documentsRes, popupRes] = await Promise.all([

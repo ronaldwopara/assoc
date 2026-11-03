@@ -180,7 +180,7 @@ export function DashboardInvoicesPanel() {
             <span>
               You can write invoices, but they can&rsquo;t be emailed until you sign in with <strong>{data.sender}</strong>.
             </span>
-            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
               Sign in with {data.sender}
             </a>
           </div>
@@ -400,7 +400,7 @@ function NewInvoice({
             <span>
               You can save this invoice, but it can&rsquo;t be emailed until you sign in with <strong>{sender}</strong>.
             </span>
-            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
               Sign in with {sender}
             </a>
           </div>

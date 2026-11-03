@@ -228,7 +228,7 @@ export function DashboardComposePanel() {
             <span>
               You can write and preview an email, but it can&rsquo;t be sent until you sign in with <strong>{sender.email}</strong>.
             </span>
-            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+            <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
               Sign in with {sender.email}
             </a>
           </div>

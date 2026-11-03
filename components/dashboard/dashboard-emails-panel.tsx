@@ -172,7 +172,7 @@ export function DashboardEmailsPanel() {
                 <span>
                   Emails aren&rsquo;t going out yet. Sign in with <strong>{data.sender}</strong> once so the website can send from it.
                 </span>
-                <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+                <a className="dash-primary-btn focus-ring-light" href="/api/google/connect?account=support%40asosc.ca">
                   Sign in with {data.sender}
                 </a>
               </div>
