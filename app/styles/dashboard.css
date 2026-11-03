@@ -2158,8 +2158,9 @@ button.dash-email-item:hover .dash-email-item-action svg { transform: translateX
 /* Photo field: the photo with one "Change photo" button; × on the photo removes it. */
 .dash-image-field { gap: 1rem; }
 .dash-image-frame { position: relative; flex-shrink: 0; }
-.dash-image-frame .dash-image-thumb { display: block; width: 176px; height: 104px; border-radius: 0.5rem; }
-.dash-image-frame .dash-image-empty { width: 176px; height: 104px; }
+/* 15:8, the shape of the email's photo (1200×640) */
+.dash-image-frame .dash-image-thumb { display: block; width: 180px; height: 96px; border-radius: 0.5rem; }
+.dash-image-frame .dash-image-empty { width: 180px; height: 96px; }
 .dash-image-remove {
   position: absolute; top: 0.375rem; right: 0.375rem;
   display: grid; place-items: center; width: 1.625rem; height: 1.625rem;
