@@ -31,7 +31,7 @@ export const DASHBOARD_LISTS: Array<{
   { id: "payment-review-membership", title: "Payments", sheetTab: MASTER_TABS.payments },
   { id: "payment-review-donations", title: "Donations", sheetTab: MASTER_TABS.donations },
   // Own panel: invoices sent, and writing a new one.
-  { id: "invoices", title: "Invoices", sheetTab: "" },
+  { id: "invoices", title: "Invoices & receipts", sheetTab: "" },
   // Own panel: sending status, template previews, pending confirmations.
   { id: "emails", title: "Automatic emails", sheetTab: "" },
   // Own panel: write and send an email to lists.

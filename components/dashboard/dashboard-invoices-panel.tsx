@@ -78,7 +78,7 @@ export function DashboardInvoicesPanel() {
       });
       const d = (await res.json()) as { to?: string; error?: string };
       if (!res.ok || d.error) throw new Error(d.error || "Couldn't send");
-      setNotice(`Invoice ${inv.number} emailed to ${d.to}.`);
+      setNotice(`${inv.number.startsWith("RCT") || inv.paid ? "Receipt" : "Invoice"} ${inv.number} emailed to ${d.to}.`);
       load();
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Couldn't send");
@@ -135,7 +135,7 @@ export function DashboardInvoicesPanel() {
     <div className="dash-panel">
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
-          <h2 className="dash-panel-title">Invoices</h2>
+          <h2 className="dash-panel-title">Invoices &amp; receipts</h2>
           <p className="dash-panel-sub">Every invoice and receipt ASOSC has made, with its PDF. Write a new invoice to email it.</p>
           {all.length > 0 && (
             <div className="dash-panel-tabs">
@@ -163,7 +163,7 @@ export function DashboardInvoicesPanel() {
                 placeholder="Search name, email or number…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search invoices"
+                aria-label="Search invoices and receipts"
               />
             </div>
           )}
@@ -194,7 +194,7 @@ export function DashboardInvoicesPanel() {
         )}
         {data?.error && (
           <div className="dash-empty">
-            <p className="dash-empty-title">Invoices couldn&rsquo;t load</p>
+            <p className="dash-empty-title">This page couldn&rsquo;t load</p>
             <p className="dash-empty-text">{data.error}</p>
             <button type="button" className="dash-action-btn focus-ring-light" onClick={load}>
               Try again
@@ -203,13 +203,13 @@ export function DashboardInvoicesPanel() {
         )}
         {all.length > 0 && invoices.length === 0 && (
           <div className="dash-empty">
-            <p className="dash-empty-title">No invoices match</p>
+            <p className="dash-empty-title">Nothing matches</p>
             <p className="dash-empty-text">Try a different name, email or invoice number.</p>
           </div>
         )}
         {data && !data.error && all.length === 0 && (
           <div className="dash-empty">
-            <p className="dash-empty-title">No invoices yet</p>
+            <p className="dash-empty-title">No invoices or receipts yet</p>
             <p className="dash-empty-text">
               Invoices you write here, and receipts for payments you mark as &ldquo;Something else&rdquo;, show up in this list.
             </p>

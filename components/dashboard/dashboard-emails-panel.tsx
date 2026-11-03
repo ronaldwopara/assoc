@@ -313,6 +313,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   const dirty = JSON.stringify(copy) !== JSON.stringify(template.copy);
   const f = (k: keyof Copy) => `email-${template.id}-${k}`;
   const inserts = template.placeholders;
+  const insertLabels: Record<string, string> | undefined = undefined;
 
   const save = async () => {
     setSaving(true);
@@ -357,11 +358,11 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
       <div className="dash-compose-form">
         <section className="dash-emails-section">
           <h3 className="dash-step-title">Write the email</h3>
-          <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} />
+          <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} insertLabels={insertLabels} />
           <EmailField id={f("headline")} label="Big heading" value={copy.headline} onChange={set("headline")} />
           <EmailField id={f("subhead")} label="Line under the heading" value={copy.subhead} onChange={set("subhead")} />
           <EventImageField id={f("heroUrl")} value={copy.heroUrl ?? ""} onChange={set("heroUrl")} fallbackUrl={template.defaultHero} />
-          <EmailField id={f("intro")} label="Message" value={copy.intro} onChange={set("intro")} multiline rows={6} inserts={inserts} />
+          <EmailField id={f("intro")} label="Message" value={copy.intro} onChange={set("intro")} multiline rows={6} inserts={inserts} insertLabels={insertLabels} />
           <EmailField
             id={f("outro")}
             label="Closing message"
@@ -370,11 +371,12 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
             multiline
             rows={4}
             inserts={inserts}
+            insertLabels={insertLabels}
             hint="Comes after the payment details, which are filled in for you."
           />
           <details className="dash-more">
             <summary>More options</summary>
-            <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} />
+            <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} insertLabels={insertLabels} />
             <EmailField id={f("banner")} label="Small text along the top" value={copy.banner} onChange={set("banner")} />
           </details>
           <div className="dash-savebar dash-savebar--inline">

@@ -11,6 +11,7 @@ export const PLACEHOLDER_LABELS: Record<string, string> = {
   amount: "Amount",
   business: "Business name",
   invoice_number: "Invoice number",
+  receipt_number: "Receipt number",
 };
 
 /** One labelled text input or textarea in the email editor. `inserts` adds
@@ -25,6 +26,7 @@ export function EmailField({
   hint,
   placeholder,
   inserts,
+  insertLabels,
 }: {
   id: string;
   label: string;
@@ -35,6 +37,8 @@ export function EmailField({
   hint?: string;
   placeholder?: string;
   inserts?: string[];
+  /** Per-email names for the insert buttons (e.g. "Receipt number" instead of "Invoice number"). */
+  insertLabels?: Record<string, string>;
 }) {
   const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
   const insert = (key: string) => {
@@ -69,7 +73,7 @@ export function EmailField({
           <span>Add their:</span>
           {inserts.map((k) => (
             <button key={k} type="button" className="dash-insert focus-ring-light" onClick={() => insert(k)}>
-              {PLACEHOLDER_LABELS[k] ?? k}
+              {insertLabels?.[k] ?? PLACEHOLDER_LABELS[k] ?? k}
             </button>
           ))}
         </div>

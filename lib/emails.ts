@@ -326,7 +326,7 @@ export const AUTO_EMAILS: Array<{
   { id: "paid-membership", label: "Membership paid", when: "When an e-Transfer is matched to their membership.", placeholders: ["first_name", "category", "amount"], defaultHero: HERO.people },
   { id: "paid-donation", label: "Donation paid", when: "When an e-Transfer is matched to their donation.", placeholders: ["first_name", "amount"], defaultHero: HERO.wraps },
   { id: "paid-vendor", label: "Vendor fee paid", when: "When an e-Transfer is matched to their vendor application.", placeholders: ["first_name", "amount"], defaultHero: HERO.market },
-  { id: "invoice", label: "Receipt", when: "When you create a receipt for a payment marked \"Something else\" (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount"], defaultHero: HERO.people },
+  { id: "invoice", label: "Receipt", when: "When you create a receipt for a payment marked \"Something else\" (the PDF is attached).", placeholders: ["first_name", "receipt_number", "amount"], defaultHero: HERO.people },
   { id: "invoice-due", label: "Invoice to pay", when: "When you send someone an invoice from the Invoices page (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount", "due_date"], defaultHero: HERO.people },
   { id: "vendor-approved", label: "Vendor approved", when: "When staff set a vendor's Status to Approved (includes their fee and payment code).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
   { id: "reminder-membership", label: "Membership reminder", when: "Weekly while a membership is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
@@ -428,7 +428,7 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     outro: "Keep this email for your records. We will be in touch with booth details closer to the event.",
   },
   invoice: {
-    subject: "Your ASOSC receipt {invoice_number}",
+    subject: "Your ASOSC receipt {receipt_number}",
     preheader: "Thanks for your payment. Your receipt is attached.",
     banner: "Receipt",
     headline: "Thank you",
@@ -765,7 +765,8 @@ export function invoiceEmail(inv: InvoiceSummary, overrides?: CopyOverrides): Ou
     inv.payerEmail,
     {
       first_name: (inv.payerName || "").trim().split(/\s+/)[0] || "there",
-      invoice_number: inv.number,
+      receipt_number: inv.number,
+      invoice_number: inv.number, // older saved wording may still use this
       amount,
     },
     overrides,
@@ -807,7 +808,7 @@ export function invoiceDueEmail(inv: InvoiceSummary & { dueDate?: string }, over
 }
 
 export const SAMPLE_INVOICE: InvoiceSummary = {
-  number: "INV-2026-0001",
+  number: "RCT-2026-0001",
   payerName: "Black Spice Services",
   payerEmail: "ada@example.com",
   description: "Catering for Black History Month celebration",
@@ -902,7 +903,7 @@ export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides): Out
   if (id === "paid-donation") return paymentReceivedEmail("Donation", SAMPLE_FIELDS.donation, { amount: "50.00", date }, overrides);
   if (id === "paid-vendor") return paymentReceivedEmail("Vendor", SAMPLE_FIELDS.vendor, { amount: "150.00", date }, overrides);
   if (id === "invoice") return invoiceEmail(SAMPLE_INVOICE, overrides);
-  if (id === "invoice-due") return invoiceDueEmail({ ...SAMPLE_INVOICE, paidOn: undefined, dueDate: "2026-12-01" }, overrides);
+  if (id === "invoice-due") return invoiceDueEmail({ ...SAMPLE_INVOICE, number: "INV-2026-0001", paidOn: undefined, dueDate: "2026-12-01" }, overrides);
   if (id === "vendor-approved") return vendorApprovedEmail(SAMPLE_VENDOR, overrides);
   if (id === "reminder-membership") return reminderEmail("membership", SAMPLE_FIELDS.membership, overrides);
   if (id === "reminder-donation") return reminderEmail("donation", SAMPLE_FIELDS.donation, overrides);
