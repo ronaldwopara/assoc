@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
-import { addEventForm, importEventForm, listEventForms, removeEventForm, syncEventForms } from "@/lib/event-forms";
+import { addEventForm, importEventForm, previewEventForm, listEventForms, removeEventForm, syncEventForms } from "@/lib/event-forms";
 
 export const maxDuration = 60;
 
@@ -17,7 +17,8 @@ export async function GET() {
 }
 
 /**
- * { action: "add", name, kind, link, tab?, importExisting? } | { action: "import", id } (call again while remaining > 0)
+ * { action: "preview", link } → what's in the sheet, before adding it
+ * | { action: "add", name, kind, link, tab?, importExisting? } | { action: "import", id } (call again while remaining > 0)
  * | { action: "remove", id } | { action: "sync" }
  */
 export async function POST(request: Request) {
@@ -33,6 +34,9 @@ export async function POST(request: Request) {
         importExisting: body.importExisting === true,
       });
       return NextResponse.json({ form, forms: await listEventForms() });
+    }
+    if (body.action === "preview") {
+      return NextResponse.json({ preview: await previewEventForm(String(body.link ?? "")) });
     }
     if (body.action === "import" && typeof body.id === "string") {
       return NextResponse.json({ progress: await importEventForm(body.id) });

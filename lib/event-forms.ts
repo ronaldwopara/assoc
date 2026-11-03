@@ -94,6 +94,62 @@ async function openSheet(sheetId: string, preferred?: string): Promise<{ accessT
   throw new Error(`The website can't open that spreadsheet. Share it with ${await connectedAccountsText()} (Viewer is enough) and try again.`);
 }
 
+export type FormPreview = {
+  title: string;
+  /** The sheet title tidied into a name ("ASOSC Youth Council (Responses)" → "Youth Council"). */
+  suggestedName: string;
+  tab: string;
+  responses: number;
+  /** Responses with a usable name and email (the ones that will be added). */
+  usable: number;
+  sample: Array<{ name: string; email: string }>;
+  lastResponse?: string;
+  emailFound: boolean;
+  alreadyAdded?: string;
+};
+
+/** Reads a pasted response sheet so staff can check it's the right one before adding it. */
+export async function previewEventForm(link: string): Promise<FormPreview> {
+  const sheetId = sheetIdFromLink(link);
+  if (!sheetId) throw new Error("That doesn't look like a Google Sheets link. It should start with docs.google.com/spreadsheets.");
+  const { accessToken, tabs } = await openSheet(sheetId);
+  const tab = tabs.find((t) => /form responses/i.test(t)) || tabs[0];
+  if (!tab) throw new Error("That spreadsheet is empty.");
+  const titleRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=properties.title`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  const title = titleRes.ok ? ((await titleRes.json()) as { properties?: { title?: string } }).properties?.title ?? "" : "";
+  const [headers = [], ...rows] = await getSheetValues(accessToken, sheetId, tab);
+  const people = rows.map((r) => readResponse(headers, r)).filter((r) => r.name && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email));
+  const existing = (await listEventForms()).find((f) => f.sheetId === sheetId && f.tab === tab);
+  return {
+    title,
+    suggestedName: tidyTitle(title),
+    tab,
+    responses: rows.length,
+    usable: people.length,
+    sample: people.slice(-3).reverse().map((p) => ({ name: p.name, email: p.email })),
+    lastResponse: rows.at(-1)?.[0] || undefined,
+    emailFound: headers.some((h) => /e-?mail/i.test(h)),
+    alreadyAdded: existing?.name,
+  };
+}
+
+function tidyTitle(title: string): string {
+  return title
+    .replace(/\((form\s+)?responses?\)/gi, "")
+    .replace(/^\s*copy of\s+/i, "")
+    .replace(/\b(google\s+form|sign[- ]?up\s+form|registration\s+form|form)\b/gi, "")
+    .replace(/\s*([-–—:|]\s*){2,}/g, " - ")
+    .replace(/^\s*(asosc|africans society of strathcona county)\b\s*[-–—:|]*\s*/i, "")
+    // The page already says whether they're guests or volunteers.
+    .replace(/^\s*(guests?|volunteers?|registrations?|attendees?)\s*[-–—:|]+\s*/i, "")
+    .replace(/^\s*[-–—:|]+\s*|\s*[-–—:|]+\s*$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /** Pulls the spreadsheet id out of a pasted link (or accepts a bare id). */
 export function sheetIdFromLink(link: string): string | null {
   const m = link.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/) ?? link.trim().match(/^([A-Za-z0-9_-]{20,})$/);

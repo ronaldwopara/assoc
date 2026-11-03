@@ -4,7 +4,7 @@ import { Busy } from "@/components/dashboard/ui";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { parseSheetDate } from "@/lib/sheet-dates";
-import { AddFormFields } from "@/components/dashboard/add-form";
+import { AddFormDialog } from "@/components/dashboard/add-form";
 import { EmailField, EmailPreviewFrame, EventImageField, useEmailPreview } from "@/components/dashboard/email-editor";
 
 type Copy = {
@@ -596,25 +596,24 @@ function EventFormsCard() {
         </ul>
       )}
 
-      {adding ? (
-        <AddFormFields
-          onCancel={() => setAdding(false)}
+      {adding && (
+        <AddFormDialog
+          onClose={() => setAdding(false)}
           onDone={(message) => {
             setAdding(false);
             setStatus(message);
             loadForms();
           }}
         />
-      ) : (
-        <div className="dash-savebar dash-savebar--inline">
-          <button type="button" className="dash-action-btn focus-ring-light" onClick={syncNow} disabled={Boolean(busy)}>
-            <Busy busy={busy === "sync"}>Copy new responses now</Busy>
-          </button>
-          <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setAdding(true)}>
-            Add another form
-          </button>
-        </div>
       )}
+      <div className="dash-savebar dash-savebar--inline">
+        <button type="button" className="dash-action-btn focus-ring-light" onClick={syncNow} disabled={Boolean(busy)}>
+          <Busy busy={busy === "sync"}>Copy new responses now</Busy>
+        </button>
+        <button type="button" className="dash-text-btn focus-ring-light" onClick={() => setAdding(true)}>
+          Connect another form
+        </button>
+      </div>
       {status && <p className="dash-savebar-status">{status}</p>}
     </div>
   );

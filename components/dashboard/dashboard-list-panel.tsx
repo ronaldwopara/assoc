@@ -2,7 +2,7 @@
 
 import { Busy, Segmented } from "@/components/dashboard/ui";
 import { PushToggle } from "@/components/dashboard/push-toggle";
-import { AddFormFields } from "@/components/dashboard/add-form";
+import { AddFormDialog } from "@/components/dashboard/add-form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
@@ -14,6 +14,7 @@ import {
   X,
   Plus,
   ListFilter,
+  FileSpreadsheet,
 } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
 import { listMeta } from "@/lib/dashboard-lists";
@@ -621,13 +622,13 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 className="dash-action-btn focus-ring-light"
                 onClick={() => {
                   setFormNotice("");
-                  setAddingForm((v) => !v);
+                  setAddingForm(true);
                 }}
-                aria-expanded={addingForm}
-                title="Copy a Google Form's responses into this list"
+                aria-haspopup="dialog"
+                title="Add a Google Form's people to this list"
               >
-                <Plus size={16} />
-                New form
+                <FileSpreadsheet size={16} aria-hidden />
+                <span className="dash-btn-label">Connect form</span>
               </button>
             )}
             <button
@@ -682,28 +683,21 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
 
       </header>
-      {formKind && (addingForm || formNotice) && (
+      {formNotice && (
         <div className="dash-emails-body">
-          {formNotice && <p className="dash-notice dash-notice--plain">{formNotice}</p>}
-          {addingForm && (
-            <div className="dash-subcard">
-              <p className="dash-subcard-title">{formKind === "volunteer" ? "New volunteer form" : "New event form"}</p>
-              <p className="dash-field-hint">
-                Its responses go into {formKind === "volunteer" ? "Volunteers" : "Event registrations"} and the Master List. New ones are copied
-                every morning and get the confirmation email from Automatic emails.
-              </p>
-              <AddFormFields
-                kind={formKind}
-                onCancel={() => setAddingForm(false)}
-                onDone={(message) => {
-                  setAddingForm(false);
-                  setFormNotice(message);
-                  if (activeTab) loadRows(activeTab);
-                }}
-              />
-            </div>
-          )}
+          <p className="dash-notice dash-notice--plain">{formNotice}</p>
         </div>
+      )}
+      {formKind && addingForm && (
+        <AddFormDialog
+          kind={formKind}
+          onClose={() => setAddingForm(false)}
+          onDone={(message) => {
+            setAddingForm(false);
+            setFormNotice(message);
+            if (activeTab) loadRows(activeTab);
+          }}
+        />
       )}
 
       {listId === "form-log" && <PushToggle />}
