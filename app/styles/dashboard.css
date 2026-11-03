@@ -2154,3 +2154,41 @@ button.dash-email-item:hover .dash-email-item-action svg { transform: translateX
 /* Space between a notice and the two-column layout under it */
 .dash-notice + .dash-compose,
 .dash-notice + .dash-notice + .dash-compose { margin-top: 1.25rem; border-top: 1px solid rgba(var(--ink-rgb), 0.08); }
+
+/* Photo field: the photo with one "Change photo" button; × on the photo removes it. */
+.dash-image-field { gap: 1rem; }
+.dash-image-frame { position: relative; flex-shrink: 0; }
+.dash-image-frame .dash-image-thumb { display: block; width: 176px; height: 104px; border-radius: 0.5rem; }
+.dash-image-frame .dash-image-empty { width: 176px; height: 104px; }
+.dash-image-remove {
+  position: absolute; top: 0.375rem; right: 0.375rem;
+  display: grid; place-items: center; width: 1.625rem; height: 1.625rem;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(47, 43, 40, 0.75); color: #fff;
+  transition: background 150ms ease;
+}
+.dash-image-remove:hover { background: var(--ink); }
+.dash-image-uploading {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  border-radius: 0.5rem; background: rgba(255, 255, 255, 0.7); color: var(--ink);
+}
+.dash-photo--upload {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+  border: 1.5px dashed rgba(var(--ink-rgb), 0.3); background: #fff;
+  font: inherit; font-size: var(--text-sm); font-weight: 500; color: var(--ink);
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.dash-photo--upload:hover { border-color: var(--orange); color: var(--orange-dark); }
+
+/* Lists on small screens: no "More actions" sheet; the actions stay visible as compact icon buttons. */
+@media (max-width: 768px) {
+  .dash-actions-row--secondary { display: flex; }
+  .dash-actions-trigger, .dash-actions-backdrop, .dash-actions-sheet { display: none !important; }
+  .dash-actions-row--secondary .dash-btn-label { display: none; }
+  .dash-actions-row--secondary .dash-action-btn { min-width: 2.5rem; min-height: 2.5rem; padding: 0.5rem; }
+}
+.dash-invoice-actions { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.5rem; }
+.dash-invoice-actions:empty { display: none; }
+.dash-empty-cell { color: rgba(var(--ink-rgb), 0.45); font-weight: 500; }
+.dash-notice--on { background: #eef6ef; }
+.dash-notice .dash-primary-btn, .dash-notice .dash-action-btn { flex-shrink: 0; }

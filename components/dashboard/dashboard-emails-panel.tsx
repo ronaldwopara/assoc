@@ -167,41 +167,32 @@ export function DashboardEmailsPanel() {
 
         {data && !open && (
           <>
-            <section className="dash-emails-section">
-              <div className={`dash-status dash-status--${!data.canSend ? "setup" : data.autoSend ? "on" : "off"}`}>
-                <span className="dash-status-dot" aria-hidden />
-                <div className="dash-status-text">
-                  <p className="dash-status-title">
-                    {!data.canSend
-                      ? "Emails aren't going out yet"
-                      : data.autoSend
-                        ? "Emails are going out"
-                        : "Emails are paused"}
-                  </p>
-                  <p className="dash-status-sub">
-                    {!data.canSend
-                      ? `First, sign in with ${data.sender} so the website can send from it. You only do this once.`
-                      : data.autoSend
-                        ? "People get the emails below by themselves."
-                        : "Nobody gets the emails below until you turn them on."}
-                  </p>
-                </div>
-                {!data.canSend ? (
-                  <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
-                    Sign in with {data.sender}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    className={data.autoSend ? "dash-action-btn focus-ring-light" : "dash-primary-btn focus-ring-light"}
-                    onClick={toggleAutoSend}
-                    disabled={toggling}
-                  >
-                    <Busy busy={toggling}>{data.autoSend ? "Pause emails" : "Turn emails on"}</Busy>
-                  </button>
-                )}
+            {!data.canSend ? (
+              <div className="dash-notice">
+                <span>
+                  Emails aren&rsquo;t going out yet. Sign in with <strong>{data.sender}</strong> once so the website can send from it.
+                </span>
+                <a className="dash-primary-btn focus-ring-light" href="/api/google/connect">
+                  Sign in with {data.sender}
+                </a>
               </div>
-            </section>
+            ) : (
+              <div className={data.autoSend ? "dash-notice dash-notice--on" : "dash-notice"}>
+                <span>
+                  {data.autoSend
+                    ? "Emails are on. People get these by themselves."
+                    : "Emails are paused. Nobody gets these until you turn them on."}
+                </span>
+                <button
+                  type="button"
+                  className={data.autoSend ? "dash-action-btn focus-ring-light" : "dash-primary-btn focus-ring-light"}
+                  onClick={toggleAutoSend}
+                  disabled={toggling}
+                >
+                  <Busy busy={toggling}>{data.autoSend ? "Pause emails" : "Turn emails on"}</Busy>
+                </button>
+              </div>
+            )}
 
             {pending.length > 0 && (
               <section className="dash-emails-section">
@@ -363,6 +354,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
     <div className="dash-compose">
       <div className="dash-compose-form">
         <section className="dash-emails-section">
+          <h3 className="dash-step-title">Write the email</h3>
           <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} />
           <EmailField id={f("headline")} label="Big heading" value={copy.headline} onChange={set("headline")} />
           <EmailField id={f("subhead")} label="Line under the heading" value={copy.subhead} onChange={set("subhead")} />
@@ -383,8 +375,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
             <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} />
             <EmailField id={f("banner")} label="Small text along the top" value={copy.banner} onChange={set("banner")} />
           </details>
-        </section>
-        <div className="dash-savebar">
+          <div className="dash-savebar dash-savebar--inline">
           <button type="button" className="dash-primary-btn focus-ring-light" onClick={save} disabled={saving || !dirty}>
             <Busy busy={saving}>Save changes</Busy>
           </button>
@@ -394,7 +385,8 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
             </button>
           )}
           {status && <span className="dash-savebar-status">{status}</span>}
-        </div>
+          </div>
+        </section>
       </div>
       <aside className="dash-compose-preview">
             <div className="dash-preview-sticky">

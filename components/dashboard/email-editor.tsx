@@ -1,6 +1,6 @@
 "use client";
 
-import { Busy } from "@/components/dashboard/ui";
+import { Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 /** Plain-language names for the {placeholders} an email can use. */
@@ -133,40 +133,53 @@ export function EventImageField({
     <div className="dash-field">
       <span className="dash-field-label">Photo</span>
       <div className="dash-image-field">
-        {shown ? (
-          // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary preview thumbnail
-          <img src={thumb(shown)} alt="" className="dash-image-thumb" />
-        ) : (
-          <span className="dash-image-empty">{emptyLabel}</span>
-        )}
-        <div className="dash-image-actions">
-          <button type="button" className="dash-action-btn focus-ring-light" onClick={() => setGalleryOpen(true)}>
-            Choose from our gallery
-          </button>
-          <label className="dash-action-btn focus-ring-light" htmlFor={id}>
-            <Busy busy={uploading}>Upload from computer</Busy>
-          </label>
-          <input
-            ref={input}
-            id={id}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/heic"
-            className="sr-only"
-            disabled={uploading}
-            onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
-          />
-          {value && (
-            <button type="button" className="dash-text-btn focus-ring-light" onClick={() => onChange("")}>
-              {fallbackUrl ? "Use the standard photo" : "Remove photo"}
+        <div className="dash-image-frame">
+          {shown ? (
+            // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary preview thumbnail
+            <img src={thumb(shown, 440, 260)} alt="" className="dash-image-thumb" />
+          ) : (
+            <span className="dash-image-empty">{emptyLabel}</span>
+          )}
+          {uploading && (
+            <span className="dash-image-uploading">
+              <span className="dash-spinner" role="status" aria-label="Uploading" />
+            </span>
+          )}
+          {value && !uploading && (
+            <button
+              type="button"
+              className="dash-image-remove focus-ring-light"
+              onClick={() => onChange("")}
+              aria-label={fallbackUrl ? "Go back to the standard photo" : "Remove photo"}
+              title={fallbackUrl ? "Go back to the standard photo" : "Remove photo"}
+            >
+              <X size={14} aria-hidden />
             </button>
           )}
         </div>
+        <button type="button" className="dash-action-btn focus-ring-light" onClick={() => setGalleryOpen(true)} disabled={uploading}>
+          {shown ? "Change photo" : "Add a photo"}
+        </button>
+        <input
+          ref={input}
+          id={id}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/heic"
+          className="sr-only"
+          tabIndex={-1}
+          disabled={uploading}
+          onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+        />
       </div>
       {error && <p className="dash-error">{error}</p>}
       {galleryOpen && (
         <GalleryPicker
           current={value}
           onClose={() => setGalleryOpen(false)}
+          onUpload={() => {
+            setGalleryOpen(false);
+            input.current?.click();
+          }}
           onPick={(url) => {
             onChange(url);
             setGalleryOpen(false);
@@ -177,7 +190,17 @@ export function EventImageField({
   );
 }
 
-function GalleryPicker({ current, onPick, onClose }: { current: string; onPick: (url: string) => void; onClose: () => void }) {
+function GalleryPicker({
+  current,
+  onPick,
+  onUpload,
+  onClose,
+}: {
+  current: string;
+  onPick: (url: string) => void;
+  onUpload: () => void;
+  onClose: () => void;
+}) {
   const [albums, setAlbums] = useState<GalleryAlbum[] | null>(null);
   const [error, setError] = useState("");
   const [album, setAlbum] = useState(0);
@@ -218,7 +241,15 @@ function GalleryPicker({ current, onPick, onClose }: { current: string; onPick: 
         </div>
         {error && <p className="dash-field-hint" style={{ padding: "0 1.25rem" }}>{error}</p>}
         {!albums && !error && <p className="dash-field-hint" style={{ padding: "0 1.25rem" }}>Loading photos…</p>}
-        {albums && (
+        {albums && albums.length === 0 && (
+          <div className="dash-photo-grid">
+            <button type="button" className="dash-photo dash-photo--upload focus-ring-light" onClick={onUpload}>
+              <Upload size={20} aria-hidden />
+              Upload from your computer
+            </button>
+          </div>
+        )}
+        {albums && albums.length > 0 && (
           <>
             <div className="dash-modal-albums" role="tablist" aria-label="Events">
               {albums.map((a, i) => (
@@ -235,12 +266,18 @@ function GalleryPicker({ current, onPick, onClose }: { current: string; onPick: 
               ))}
             </div>
             <div className="dash-photo-grid">
+              {album === 0 && (
+                <button type="button" className="dash-photo dash-photo--upload focus-ring-light" onClick={onUpload}>
+                  <Upload size={20} aria-hidden />
+                  Upload from your computer
+                </button>
+              )}
               {photos.map((src) => (
                 <button
                   key={src}
                   type="button"
                   className="dash-photo focus-ring-light"
-                  aria-pressed={src === current}
+                  aria-pressed={Boolean(current) && src === current}
                   onClick={() => onPick(src)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary thumbnail */}

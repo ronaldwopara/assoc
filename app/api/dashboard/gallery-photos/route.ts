@@ -11,11 +11,12 @@ export async function GET() {
     const data = await getGalleryCmsData();
     const albums = data.programs.flatMap((program) =>
       program.years
-        .filter((y) => y.images.length > 0)
         .map((y) => ({
           title: `${program.title} ${y.year}`.trim(),
-          photos: y.images.map((img) => img.src),
-        })),
+          // The gallery keeps empty preview slots; skip them.
+          photos: y.images.map((img) => img.src).filter((src) => /^https:\/\//.test(src)),
+        }))
+        .filter((album) => album.photos.length > 0),
     );
     return NextResponse.json({ albums });
   } catch (error) {

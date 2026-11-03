@@ -11,7 +11,6 @@ import {
   Check,
   X,
   Plus,
-  SlidersHorizontal,
   ListFilter,
 } from "lucide-react";
 import type { DashboardListId } from "@/lib/dashboard-lists";
@@ -103,11 +102,19 @@ function getVisibleColumns(
 
 /** "Imported" is bookkeeping from the old sheets, and status-like columns read
  *  better empty than as a column of dashes. */
-function displayCell(header: string, value: string | undefined): string {
+function displayCell(_header: string, value: string | undefined): React.ReactNode {
   const v = (value ?? "").trim();
-  if (/^imported$/i.test(v)) return "";
-  if (!v) return "";
+  if (!v || /^imported$/i.test(v)) return <EmptyCell />;
   return v;
+}
+
+/** A light dash, so an empty cell reads as "nothing here" rather than a gap. */
+function EmptyCell() {
+  return (
+    <span className="dash-empty-cell" aria-label="Empty">
+      –
+    </span>
+  );
 }
 
 function noMatchHint(tab: string, query: string, dateFrom: string, dateTo: string): string {
@@ -163,9 +170,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
   const [dateOpen, setDateOpen] = useState(false);
   const datePopoverRef = useRef<HTMLDivElement>(null);
   const dateFilterBtnRef = useRef<HTMLButtonElement>(null);
-  /** Mobile only — Refresh/Export/Open in Sheets/event-picker live in a
-      bottom sheet there instead of a row of buttons; unused on desktop. */
-  const [actionsOpen, setActionsOpen] = useState(false);
 
   const loadRows = useCallback((tab: string, signal?: { cancelled: boolean }) => {
     setLoading(true);
@@ -403,11 +407,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
         <div className="dash-panel-actions">
           {/* Grouped into rows (dash-actions-row is `display:contents` on
-              desktop, so this nesting is invisible there — see dashboard.css).
-              On mobile, search gets its own full-width row, Add row + More
-              actions share the next, and everything else (Refresh, Export,
-              Open in Sheets, the event picker) moves into a bottom-sheet
-              modal behind "More actions". */}
+              desktop). On small screens search gets its own row and the
+              other actions shrink to icon buttons; nothing is hidden. */}
           <div className="dash-actions-row dash-actions-row--search">
             <div className="dash-search-wrap">
               <Search size={15} aria-hidden />
@@ -490,14 +491,6 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               <Plus size={16} />
               Add row
             </button>
-            <button
-              type="button"
-              className="dash-action-btn dash-actions-trigger focus-ring-light"
-              onClick={() => setActionsOpen(true)}
-            >
-              <SlidersHorizontal size={16} />
-              More actions
-            </button>
           </div>
           <div className="dash-actions-row dash-actions-row--secondary">
             <button
@@ -505,11 +498,11 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               className="dash-action-btn focus-ring-light"
               onClick={() => activeTab && loadRows(activeTab)}
               disabled={!activeTab || loading}
-              title="Refresh from Sheets"
+              aria-label="Refresh"
             >
               <Busy busy={loading}>
                 <RefreshCw size={16} aria-hidden />
-                Refresh
+                <span className="dash-btn-label">Refresh</span>
               </Busy>
             </button>
             <button
@@ -517,9 +510,10 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               className="dash-action-btn focus-ring-light"
               onClick={exportCsv}
               disabled={!rows || rows.rows.length === 0}
+              aria-label="Download as a spreadsheet"
             >
-              <Download size={16} />
-              Export CSV
+              <Download size={16} aria-hidden />
+              <span className="dash-btn-label">Download</span>
             </button>
             <a
               className="dash-action-btn focus-ring-light"
@@ -530,78 +524,14 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 if (!openInSheetsHref) e.preventDefault();
               }}
               aria-disabled={!openInSheetsHref}
+              aria-label="Open in Google Sheets"
             >
-              <ExternalLink size={16} />
-              Open in Sheets
+              <ExternalLink size={16} aria-hidden />
+              <span className="dash-btn-label">Open in Sheets</span>
             </a>
           </div>
         </div>
 
-        {/* Mobile-only bottom sheet — see dashboard.css; never shown on
-            desktop, where dash-actions-row--secondary above is already
-            visible inline. Same actions, restated here as large, fully
-            labeled rows (no icon-only controls) so they stay easy to
-            recognize for anyone who doesn't parse icons quickly. */}
-        <button
-          type="button"
-          className={`dash-actions-backdrop${actionsOpen ? " dash-actions-backdrop--visible" : ""}`}
-          onClick={() => setActionsOpen(false)}
-          aria-hidden={!actionsOpen}
-          tabIndex={-1}
-        />
-        <div
-          className={`dash-actions-sheet${actionsOpen ? " dash-actions-sheet--open" : ""}`}
-          role="dialog"
-          aria-modal="true"
-          aria-label="List actions"
-        >
-          <div className="dash-actions-sheet-head">
-            <span className="dash-actions-sheet-title">List actions</span>
-            <button
-              type="button"
-              className="dash-icon-btn dash-icon-btn--ink focus-ring-light"
-              onClick={() => setActionsOpen(false)}
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <div className="dash-actions-sheet-body" onClick={() => setActionsOpen(false)}>
-            <button
-              type="button"
-              className="dash-sheet-action focus-ring-light"
-              onClick={() => activeTab && loadRows(activeTab)}
-              disabled={!activeTab || loading}
-            >
-              <Busy busy={loading}>
-                <RefreshCw size={18} aria-hidden />
-                Refresh
-              </Busy>
-            </button>
-            <button
-              type="button"
-              className="dash-sheet-action focus-ring-light"
-              onClick={exportCsv}
-              disabled={!rows || rows.rows.length === 0}
-            >
-              <Download size={18} />
-              Export CSV
-            </button>
-            <a
-              className="dash-sheet-action focus-ring-light"
-              href={openInSheetsHref ?? undefined}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => {
-                if (!openInSheetsHref) e.preventDefault();
-              }}
-              aria-disabled={!openInSheetsHref}
-            >
-              <ExternalLink size={18} />
-              Open in Sheets
-            </a>
-          </div>
-        </div>
       </header>
 
       {initialLoading && (
@@ -766,7 +696,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                                 {row[col.index]}
                               </span>
                             ) : (
-                              ""
+                              <EmptyCell />
                             )
                           ) : (
                             displayCell(rows.headers[col.index] ?? "", row[col.index])
@@ -815,7 +745,8 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       )}
 
-      {!initialLoading && !errorMessage && rows && visibleRows.length > 0 && (
+      {/* The total is in the header; the footer only appears while searching/filtering. */}
+      {!initialLoading && !errorMessage && rows && visibleRows.length > 0 && visibleRows.length !== rows.rows.length && (
         <p className="dash-row-count">
           {visibleRows.length}
           {visibleRows.length !== rows.rows.length ? ` of ${rows.rows.length}` : ""} row

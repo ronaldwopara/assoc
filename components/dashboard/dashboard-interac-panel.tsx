@@ -29,9 +29,9 @@ type ExpenseView = "debit" | "invoice" | "receipt";
 type PaymentsView = "transfers" | ExpenseView;
 
 const VIEW_LABEL: Record<PaymentsView, string> = {
-  transfers: "e-Transfers",
-  debit: "Debits",
-  invoice: "Invoices",
+  transfers: "e-Transfers in",
+  debit: "e-Transfers out",
+  invoice: "Bills",
   receipt: "Receipts",
 };
 
@@ -370,8 +370,8 @@ export function DashboardInteracPanel() {
               onClick={exportCsv}
               disabled={isExpenseView ? !expenseLog || visibleExpenseRows.length === 0 : !log || visibleRows.length === 0}
             >
-              <Download size={16} />
-              Export CSV
+              <Download size={16} aria-hidden />
+              Download
             </button>
             <a
               className="dash-action-btn focus-ring-light"
@@ -467,7 +467,7 @@ export function DashboardInteracPanel() {
                             ? formatLogTime(value)
                             : col.header === "Amount" && value
                               ? `$${value}`
-                              : value || ""}
+                              : value || <span className="dash-empty-cell" aria-label="Empty">–</span>}
                         </td>
                       );
                     })}
@@ -532,7 +532,6 @@ export function DashboardInteracPanel() {
                   <th key={col.header}>{col.label}</th>
                 ))}
                 <th>Type</th>
-                <th>Invoice</th>
               </tr>
             </thead>
             <tbody>
@@ -552,7 +551,7 @@ export function DashboardInteracPanel() {
                             ? formatLogTime(value)
                             : col.header === "Amount" && value
                               ? `$${value}`
-                              : value || ""}
+                              : value || <span className="dash-empty-cell" aria-label="Empty">–</span>}
                         </td>
                       );
                     })}
@@ -573,8 +572,7 @@ export function DashboardInteracPanel() {
                           ))}
                         </select>
                       </label>
-                    </td>
-                    <td className="dash-row-actions">
+                      <div className="dash-invoice-actions">
                       {(() => {
                         const number = cellFor(log.headers, row, "Invoice Number");
                         if (number) {
@@ -620,7 +618,9 @@ export function DashboardInteracPanel() {
                           </button>
                         );
                       })()}
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
