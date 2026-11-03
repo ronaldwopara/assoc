@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { composerEmail, isAutoEmailId, sampleAutoEmail, type ComposerContent, type EditableCopy } from "@/lib/emails";
 
-/** Live preview of unsaved edits: { kind: "auto", id, copy } or { kind: "composer", content }. */
+/** Live preview of unsaved edits: { kind: "auto", id, copy, event? } or { kind: "composer", content }. */
 export async function POST(request: Request) {
   try {
     if (!(await isUpgradeAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const body = (await request.json()) as { kind?: string; id?: unknown; copy?: Partial<EditableCopy>; content?: ComposerContent };
+    const body = (await request.json()) as { kind?: string; id?: unknown; copy?: Partial<EditableCopy>; content?: ComposerContent; event?: unknown };
     if (body.kind === "auto" && isAutoEmailId(body.id)) {
-      const email = sampleAutoEmail(body.id, { [body.id]: body.copy ?? {} });
+      const sample: Record<string, string> = typeof body.event === "string" && body.event.trim() ? { Event: body.event.trim().slice(0, 200) } : {};
+      const email = sampleAutoEmail(body.id, { [body.id]: body.copy ?? {} }, sample);
       return NextResponse.json({ subject: email.subject, html: email.html });
     }
     if (body.kind === "composer" && body.content) {

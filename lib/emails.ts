@@ -206,7 +206,7 @@ ${c.noHero || !c.heroUrl ? "" : `<tr><td align="center" style="padding:0;font-si
 </table>
 </td></tr>
 
-<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:32px 28px 12px;">
+<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:32px 28px ${c.box ? 12 : 0}px;">
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="max-width:480px;"><tr><td align="left" style="text-align:left;">
 ${paragraphs(c.intro)}${quote}
 </td></tr></table>
@@ -214,7 +214,7 @@ ${paragraphs(c.intro)}${quote}
 
 ${c.box ? actionBox(c.box) : ""}
 
-<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:${c.box ? 8 : 8}px 28px 34px;">
+<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:${c.box ? 8 : 0}px 28px 34px;">
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="max-width:480px;"><tr><td align="left" style="text-align:left;">
 ${paragraphs(c.outro)}
 <p class="dark-text" align="left" style="margin:${c.outro?.length ? 24 : 0}px 0 0;font-family:${FONT};font-size:16px;line-height:1.5;color:${C.ink};text-align:left;"><strong>${esc(SIGNATURE[0])}</strong><br>${SIGNATURE.slice(1).map(esc).join("<br>")}</p>
@@ -236,7 +236,7 @@ ${[
 </tr></table>
 <div style="clear:both;height:0;line-height:0;font-size:0;">&nbsp;</div>
 <p class="light-text" align="left" style="margin:0 0 12px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.footerText};text-align:left;">
-${c.footerNote ? esc(c.footerNote) : `You're getting this because you filled in a form on <a href="${SITE_URL}" style="color:${C.footerText};text-decoration:underline;">asosc.ca</a>.`}${
+${c.footerNote ? esc(c.footerNote) : `You're getting this because you signed up with the Africans Society of Strathcona County.`}${
   c.unsubscribeUrl ? `<br><a href="${esc(c.unsubscribeUrl)}" style="color:${C.footerText};text-decoration:underline;">Unsubscribe</a>` : ""
 }
 </p>
@@ -927,7 +927,7 @@ export const SAMPLE_FIELDS: Record<ConfirmationKind, Fields> = {
 };
 
 /** Renders any automatic email with sample data — dashboard previews. */
-export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides): OutgoingEmail {
+export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides, sample: Fields = {}): OutgoingEmail {
   const date = new Date().toLocaleDateString("en-CA", { timeZone: "America/Edmonton", dateStyle: "long" });
   if (id === "paid-membership") return paymentReceivedEmail("Membership", SAMPLE_FIELDS.membership, { amount: "30.00", date }, overrides);
   if (id === "paid-donation") return paymentReceivedEmail("Donation", SAMPLE_FIELDS.donation, { amount: "50.00", date }, overrides);
@@ -938,5 +938,5 @@ export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides): Out
   if (id === "reminder-membership") return reminderEmail("membership", SAMPLE_FIELDS.membership, overrides);
   if (id === "reminder-donation") return reminderEmail("donation", SAMPLE_FIELDS.donation, overrides);
   if (id === "reminder-vendor") return reminderEmail("vendor", SAMPLE_VENDOR, overrides);
-  return confirmationEmail(id, SAMPLE_FIELDS[id], overrides);
+  return confirmationEmail(id, { ...SAMPLE_FIELDS[id], ...sample }, overrides);
 }

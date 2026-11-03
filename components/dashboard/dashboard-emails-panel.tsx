@@ -316,7 +316,27 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const set = (k: keyof Copy) => (v: string) => setCopy((c) => ({ ...c, [k]: v }));
-  const preview = useEmailPreview({ kind: "auto", id: template.id, copy }, [template.id, JSON.stringify(copy)]);
+  // Event confirmations: preview with any real event, including ones from connected forms.
+  const isEvent = template.id === "event";
+  const [events, setEvents] = useState<string[]>([]);
+  const [event, setEvent] = useState("");
+  useEffect(() => {
+    if (!isEvent) return;
+    let live = true;
+    fetch("/api/dashboard/compose/recipients")
+      .then((res) => res.json() as Promise<{ events?: Array<{ value: string }> }>)
+      .then((d) => {
+        if (!live) return;
+        const names = (d.events ?? []).map((e) => e.value).filter(Boolean);
+        setEvents(names);
+        setEvent((cur) => cur || names[0] || "");
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [isEvent]);
+  const preview = useEmailPreview({ kind: "auto", id: template.id, copy, event }, [template.id, JSON.stringify(copy), event]);
   const dirty = JSON.stringify(copy) !== JSON.stringify(template.copy);
   const f = (k: keyof Copy) => `email-${template.id}-${k}`;
   const inserts = template.placeholders;
@@ -401,7 +421,21 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
       </div>
       <aside className="dash-compose-preview">
             <div className="dash-preview-sticky">
-        <p className="dash-preview-label">What they&rsquo;ll see</p>
+        <div className="dash-preview-head">
+          <p className="dash-preview-label">What they&rsquo;ll see</p>
+          {isEvent && events.length > 0 && (
+            <label className="dash-preview-pick">
+              <span className="sr-only">Preview for event</span>
+              <select className="dash-select" value={event} onChange={(e) => setEvent(e.target.value)}>
+                {events.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         <EmailPreviewFrame html={preview.html || template.html} title={`${template.label} preview`} />
         </div>
       </aside>

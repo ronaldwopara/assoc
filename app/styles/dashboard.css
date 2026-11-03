@@ -1950,6 +1950,9 @@ button.dash-email-item:hover .dash-email-item-chevron { transform: translateX(2p
   text-transform: uppercase;
   color: rgba(var(--ink-rgb), 0.5);
 }
+.dash-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.dash-preview-pick { min-width: 0; max-width: 100%; }
+.dash-preview-pick .dash-select { max-width: 16rem; }
 .dash-compose .dash-email-preview { border-color: rgba(var(--ink-rgb), 0.08); box-shadow: 0 8px 24px rgba(var(--ink-rgb), 0.08); }
 
 /* Steps */
