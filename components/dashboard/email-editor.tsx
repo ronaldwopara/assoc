@@ -139,8 +139,8 @@ export function EventImageField({
       <div className="dash-image-field">
         <div className="dash-image-frame">
           {shown ? (
-            // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary preview thumbnail
             // Same 15:8 shape as the email's photo (1200×640), so what's cut off here is cut off there too.
+            // eslint-disable-next-line @next/next/no-img-element -- remote Cloudinary preview thumbnail
             <img src={thumb(shown, 480, 256)} alt="" className="dash-image-thumb" />
           ) : (
             <span className="dash-image-empty">{emptyLabel}</span>
