@@ -10,7 +10,7 @@ import { sendEmail } from "@/lib/mailer";
 import { autoSendEnabled } from "@/lib/settings";
 import { getCopyOverrides } from "@/lib/email-store";
 import { MASTER_TABS, colIndex, masterSheetId, type MasterTabName } from "@/lib/master-sheet";
-import { formatTimestamp } from "@/lib/sheet-dates";
+import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 
 /** Tabs whose rows get a confirmation, and the email kind for each. Master List only for membership rows. */
 const KIND_BY_TAB: Partial<Record<MasterTabName, ConfirmationKind>> = {
@@ -88,6 +88,31 @@ export async function autoConfirm(tab: MasterTabName, rowNumber: number): Promis
   } catch (error) {
     console.error(`[email] confirmation for ${tab} row ${rowNumber} failed:`, error);
   }
+}
+
+/** Days a failed confirmation keeps being retried by the daily run. Older ones wait for staff. */
+export const RETRY_DAYS = 3;
+
+/**
+ * Daily run: resend confirmations that didn't go out when the person signed up
+ * (e.g. Google was busy). Only recent rows, so old unstamped rows are never mass-emailed.
+ */
+export async function retryRecentConfirmations(): Promise<{ sent: number; failed: number }> {
+  if (!(await autoSendEnabled())) return { sent: 0, failed: 0 };
+  const cutoff = Date.now() - RETRY_DAYS * 86_400_000;
+  const recent = (await listPendingConfirmations()).filter((p) => (parseSheetDate(p.timestamp)?.getTime() ?? 0) >= cutoff);
+  let sent = 0;
+  let failed = 0;
+  for (const p of recent) {
+    try {
+      await sendConfirmation(p.tab, p.rowNumber);
+      sent++;
+    } catch (error) {
+      failed++;
+      console.error(`[email] retry for ${p.tab} row ${p.rowNumber} failed:`, error);
+    }
+  }
+  return { sent, failed };
 }
 
 /** Called when a payment marks a signup Paid. Never throws. */

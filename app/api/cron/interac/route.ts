@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { runPayments } from "@/lib/payments";
 import { syncEventForms } from "@/lib/event-forms";
+import { retryRecentConfirmations } from "@/lib/email-dispatch";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -20,7 +21,9 @@ async function run(request: Request) {
     const payments = await runPayments();
     // Also copy in new event Google Form responses (best effort; never fails the payment check).
     const eventForms = await syncEventForms().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
-    return NextResponse.json({ ok: true, ...payments, eventForms });
+    // Resend any recent confirmation that failed the first time (best effort).
+    const retried = await retryRecentConfirmations().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+    return NextResponse.json({ ok: true, ...payments, eventForms, retried });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Payment check failed";
     return NextResponse.json({ error: message }, { status: 500 });

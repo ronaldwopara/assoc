@@ -201,7 +201,11 @@ export function DashboardEmailsPanel() {
                   <h3 className="dash-emails-section-title">
                     {pending.length === 1 ? "1 person is waiting for their email" : `${pending.length} people are waiting for their email`}
                   </h3>
-                  <p className="dash-section-lead">They filled in a form while emails were paused.</p>
+                  <p className="dash-section-lead">
+                    {data.autoSend
+                      ? "Their confirmation didn’t go through when they signed up. It’s tried again each morning for 3 days, or you can send it now."
+                      : "They filled in a form while automatic emails were off."}
+                  </p>
                 </div>
                 <ul className="dash-email-list">
                   {pending.map((p) => {
