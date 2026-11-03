@@ -106,6 +106,9 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
     "Gmail Message ID",
     "Status",
     "Sent At",
+    // Invoices written by hand on the Invoices page are unpaid until the money arrives.
+    "Due Date",
+    "Paid On",
   ],
   /** Outgoing money found in the inboxes (Interac debits, invoices, receipts) — see lib/expense-capture.ts. */
   expenses: [

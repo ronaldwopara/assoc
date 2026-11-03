@@ -7,6 +7,7 @@ import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardListPanel } from "@/components/dashboard/dashboard-list-panel";
 import { DashboardInteracPanel } from "@/components/dashboard/dashboard-interac-panel";
 import { DashboardEmailsPanel } from "@/components/dashboard/dashboard-emails-panel";
+import { DashboardInvoicesPanel } from "@/components/dashboard/dashboard-invoices-panel";
 import { DashboardComposePanel } from "@/components/dashboard/dashboard-compose-panel";
 import { DashboardOverviewPanel } from "@/components/dashboard/dashboard-overview-panel";
 
@@ -80,6 +81,8 @@ export function DashboardWorkspace({
             <DashboardEmailsPanel />
           ) : activeId === "compose" ? (
             <DashboardComposePanel />
+          ) : activeId === "invoices" ? (
+            <DashboardInvoicesPanel />
           ) : activeId === "payment-review-membership" ? (
             <DashboardInteracPanel />
           ) : (

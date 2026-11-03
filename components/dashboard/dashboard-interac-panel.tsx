@@ -28,6 +28,15 @@ const LOG_COLUMNS: Array<{ header: string; label: string }> = [
 type ExpenseView = "debit" | "invoice" | "receipt";
 type PaymentsView = "transfers" | ExpenseView;
 
+/** What each payment type is called in the dropdown. */
+const TYPE_LABEL: Record<string, string> = {
+  Membership: "Membership",
+  Donation: "Donation",
+  Vendor: "Vendor fee",
+  Service: "Something else",
+  Blocked: "Fake notice (ignore)",
+};
+
 type LinkKind = "Membership" | "Donation" | "Vendor";
 const isLinkKind = (t: string): t is LinkKind => t === "Membership" || t === "Donation" || t === "Vendor";
 
@@ -613,10 +622,10 @@ export function DashboardInteracPanel() {
                           disabled={!messageId || savingId === messageId}
                           onChange={(e) => changeType(messageId, e.target.value)}
                         >
-                          {!type && <option value="">Unknown</option>}
-                          {PAYMENT_TYPES.map((t) => (
+                          {!type && <option value="">Needs a look</option>}
+                          {PAYMENT_TYPES.filter((t) => t !== "Blocked" || type === "Blocked").map((t) => (
                             <option key={t} value={t}>
-                              {t}
+                              {TYPE_LABEL[t] ?? t}
                             </option>
                           ))}
                         </select>
@@ -669,6 +678,9 @@ export function DashboardInteracPanel() {
                           );
                         }
                         if (type !== "Service") return null;
+                        if (!cellFor(log.headers, row, "Payer Email").trim()) {
+                          return <span className="dash-cell-note">No email on this payment, so it can&rsquo;t be invoiced.</span>;
+                        }
                         return (
                           <button
                             type="button"

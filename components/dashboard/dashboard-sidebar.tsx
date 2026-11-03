@@ -9,6 +9,7 @@ import {
   HandCoins,
   MailPlus,
   Send,
+  FileText,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
@@ -26,6 +27,7 @@ const ICONS: Record<DashboardListId, typeof List> = {
   "master-contact": Mail,
   "payment-review-membership": BadgeCheck,
   "payment-review-donations": HandCoins,
+  invoices: FileText,
   emails: MailPlus,
   compose: Send,
 };

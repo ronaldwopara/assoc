@@ -36,7 +36,7 @@ import {
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
 import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { autoPaymentReceived, toFields } from "@/lib/email-dispatch";
-import { autoInvoice } from "@/lib/invoices";
+import { setInvoicePaid, unpaidInvoiceInMemo } from "@/lib/invoices";
 
 const INTERAC_SENDER = "notify@payments.interac.ca";
 
@@ -180,7 +180,8 @@ function findByEmail(state: State, email: string, only?: PaymentType): Signup | 
   return candidates[0] ?? null;
 }
 
-export type Classification = { type: PaymentType; signup: Signup | null; how: string };
+/** type "" = couldn't tell; shown as "Needs a look" for staff to sort out. */
+export type Classification = { type: PaymentType | ""; signup: Signup | null; how: string };
 
 export function classify(state: State, t: Transfer): Classification {
   if (t.dkimFailed) return { type: "Blocked", signup: null, how: "failed DKIM check" };
@@ -196,7 +197,7 @@ export function classify(state: State, t: Transfer): Classification {
   const byEmail = findByEmail(state, t.email);
   if (byEmail) return { type: byEmail.type, signup: byEmail, how: "payer email" };
 
-  return { type: "Service", signup: null, how: "no code, keyword or signup" };
+  return { type: "", signup: null, how: "no code, keyword or signup" };
 }
 
 async function markPaid(accessToken: string, spreadsheetId: string, s: Signup, when: Date) {
@@ -285,7 +286,9 @@ export async function runPayments({ dryRun = false } = {}): Promise<PaymentRunRe
 
   for (const t of transfers) {
     try {
-      const c = classify(state, t);
+      // An e-Transfer quoting one of our unpaid invoices pays that invoice.
+      const invoice = await unpaidInvoiceInMemo(t.memo).catch(() => null);
+      const c: Classification = invoice ? { type: "Service", signup: null, how: "invoice number" } : classify(state, t);
       if (c.signup && !dryRun) {
         await markPaid(accessToken, spreadsheetId, c.signup, t.receivedAt);
         if (c.type === "Membership" || c.type === "Donation" || c.type === "Vendor") {
@@ -305,7 +308,8 @@ export async function runPayments({ dryRun = false } = {}): Promise<PaymentRunRe
         Amount: t.amount,
         Memo: t.memo,
         Type: c.type,
-        "Matched To": c.signup ? describe(c.signup) : "",
+        "Matched To": c.signup ? describe(c.signup) : invoice ? invoice.payerName || invoice.payerEmail : "",
+        "Invoice Number": invoice?.number ?? "",
         Reference: t.reference,
       });
       if (dryRun) {
@@ -314,10 +318,10 @@ export async function runPayments({ dryRun = false } = {}): Promise<PaymentRunRe
         await appendSheetRow(accessToken, spreadsheetId, payments.name, row);
       }
       payments.rows.push(row);
-      // Service payments get an invoice (emailed when automatic emails are on).
-      if (!dryRun && c.type === "Service" && t.email) await autoInvoice(t.messageId);
+      if (!dryRun && invoice) await setInvoicePaid(invoice.number, true, { messageId: t.messageId, when: t.receivedAt });
       result.logged += 1;
-      result.byType[c.type] = (result.byType[c.type] ?? 0) + 1;
+      const label = c.type || "Needs a look";
+      result.byType[label] = (result.byType[label] ?? 0) + 1;
     } catch (error) {
       result.errors.push(`${t.inbox} ${t.messageId}: ${error instanceof Error ? error.message : String(error)}`);
     }

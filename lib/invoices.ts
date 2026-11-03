@@ -1,14 +1,19 @@
 /**
- * Invoices for "Service" payments.
+ * Invoices, one row each on the master sheet's Invoices tab; the PDF is drawn
+ * on demand from that row (nothing stored), in the asosc.ca theme.
  *
- * One row per invoice on the master sheet's Invoices tab; the PDF is drawn on
- * demand from that row (nothing stored), in the asosc.ca theme. The invoice
- * email is an editable automatic email ("invoice") with the PDF attached.
+ *  - Paid invoices: made for a "Service" e-Transfer (a receipt-style invoice).
+ *  - Invoices to pay: written by hand on the dashboard's Invoices page. They
+ *    show how to pay, and are marked paid when an e-Transfer quoting the
+ *    invoice number arrives (or by hand).
+ *
+ * Emails are editable automatic emails ("invoice", "invoice-due") with the PDF attached.
  */
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetCell } from "@/lib/google-sheets";
-import { EMAIL_LOGO_URL, invoiceEmail } from "@/lib/emails";
+import { appendSheetRow, getAccessTokenForAccount, getSheetValues, updateSheetCell, updateSheetRow } from "@/lib/google-sheets";
+import { EMAIL_LOGO_URL, invoiceDueEmail, invoiceEmail } from "@/lib/emails";
+import { E_TRANSFER_EMAIL } from "@/lib/payment-links";
 import { getCopyOverrides } from "@/lib/email-store";
 import { sendEmail } from "@/lib/mailer";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, rowFromFields } from "@/lib/master-sheet";
@@ -25,9 +30,13 @@ export type Invoice = {
   messageId: string;
   status: string;
   sentAt: string;
-  /** From the Payments row: when the money arrived and the Interac reference. */
+  /** yyyy-mm-dd, invoices to pay only. */
+  dueDate?: string;
+  /** When the money arrived (Paid On column, or the linked Payments row). */
   paidOn?: string;
   reference?: string;
+  /** Paid when it came from an e-Transfer, or has a Paid On date. */
+  paid: boolean;
 };
 
 const ORG = {
@@ -45,6 +54,14 @@ type Tab = { headers: string[]; rows: string[][] };
 async function loadTab(tab: string): Promise<Tab> {
   const { accessToken } = await getAccessTokenForAccount();
   const [headers = [], ...rows] = await getSheetValues(accessToken, masterSheetId(), tab);
+  if (tab === MASTER_TABS.invoices) {
+    // Self-heal columns added after the sheet was built (Due Date, Paid On).
+    const missing = MASTER_HEADERS.invoices.filter((h) => colIndex(headers, h) < 0);
+    if (missing.length) {
+      headers.push(...missing);
+      await updateSheetRow(accessToken, masterSheetId(), tab, 1, headers);
+    }
+  }
   return { headers, rows };
 }
 
@@ -61,6 +78,9 @@ function toInvoice(t: Tab, row: string[]): Invoice {
     messageId: cell(t, row, "Gmail Message ID"),
     status: cell(t, row, "Status"),
     sentAt: cell(t, row, "Sent At"),
+    dueDate: cell(t, row, "Due Date"),
+    paidOn: cell(t, row, "Paid On") || undefined,
+    paid: Boolean(cell(t, row, "Gmail Message ID") || cell(t, row, "Paid On")),
   };
 }
 
@@ -122,12 +142,13 @@ export async function createInvoiceForPayment(messageId: string): Promise<Invoic
     messageId,
     status: "Created",
     sentAt: "",
+    paid: true,
   };
   await appendSheetRow(
     accessToken,
     spreadsheetId,
     MASTER_TABS.invoices,
-    rowFromFields(MASTER_HEADERS.invoices, {
+    rowFromFields(invoices.headers, {
       "Invoice Number": invoice.number,
       Date: invoice.date,
       "Payer Name": invoice.payerName,
@@ -149,7 +170,7 @@ export async function getInvoice(number: string): Promise<Invoice | null> {
   if (!row) return null;
   const invoice = toInvoice(invoices, row);
   const p = invoice.messageId ? await paymentDetails(invoice.messageId) : null;
-  return { ...invoice, paidOn: p?.received, reference: p?.reference };
+  return { ...invoice, paidOn: invoice.paidOn || p?.received, reference: p?.reference };
 }
 
 export async function listInvoices(): Promise<Invoice[]> {
@@ -180,7 +201,8 @@ export async function sendInvoice(number: string): Promise<{ to: string }> {
   const invoice = await getInvoice(number);
   if (!invoice) throw new Error("Invoice not found");
   const pdf = await renderInvoicePdf(invoice);
-  const email = invoiceEmail(invoice, await getCopyOverrides());
+  const overrides = await getCopyOverrides();
+  const email = invoice.paid ? invoiceEmail(invoice, overrides) : invoiceDueEmail(invoice, overrides);
   await sendEmail({
     ...email,
     attachments: [{ filename: invoiceFilename(invoice), contentType: "application/pdf", content: pdf }],
@@ -189,14 +211,92 @@ export async function sendInvoice(number: string): Promise<{ to: string }> {
   return { to: invoice.payerEmail };
 }
 
-/** Called when a payment is logged as Service. Never throws. */
-export async function autoInvoice(messageId: string): Promise<void> {
-  try {
-    const invoice = await createInvoiceForPayment(messageId);
-    if (invoice.status !== "Sent" && (await autoSendEnabled())) await sendInvoice(invoice.number);
-  } catch (error) {
-    console.error(`[invoice] for payment ${messageId} failed:`, error);
+export type NewInvoice = { name: string; email: string; description: string; amount: string; dueDate?: string };
+
+/** An invoice written by hand on the dashboard. Unpaid until marked paid or matched to an e-Transfer. */
+export async function createManualInvoice(input: NewInvoice): Promise<Invoice> {
+  const email = input.email.trim();
+  const amount = String(input.amount ?? "").replace(/[^0-9.]/g, "");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address");
+  if (!(Number(amount) > 0)) throw new Error("Enter an amount");
+  if (!input.description.trim()) throw new Error("Say what the invoice is for");
+  const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(input.dueDate ?? "") ? input.dueDate! : "";
+
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const invoices = await loadTab(MASTER_TABS.invoices);
+  const invoice: Invoice = {
+    number: nextNumber(invoices, new Date().getFullYear()),
+    date: formatTimestamp(new Date()),
+    payerName: input.name.trim().slice(0, 200),
+    payerEmail: email,
+    description: input.description.trim().slice(0, 2000),
+    amount: Number(amount).toFixed(2),
+    messageId: "",
+    status: "Created",
+    sentAt: "",
+    dueDate,
+    paid: false,
+  };
+  await appendSheetRow(
+    accessToken,
+    spreadsheetId,
+    MASTER_TABS.invoices,
+    rowFromFields(invoices.headers, {
+      "Invoice Number": invoice.number,
+      Date: invoice.date,
+      "Payer Name": invoice.payerName,
+      "Payer Email": invoice.payerEmail,
+      Description: invoice.description,
+      Amount: invoice.amount,
+      Status: invoice.status,
+      "Due Date": dueDate,
+    }),
+  );
+  return invoice;
+}
+
+/** A draft invoice for previewing the PDF before it's saved. */
+export function draftInvoice(input: NewInvoice): Invoice {
+  return {
+    number: `INV-${new Date().getFullYear()}-0000`,
+    date: formatTimestamp(new Date()),
+    payerName: input.name.trim(),
+    payerEmail: input.email.trim(),
+    description: input.description.trim(),
+    amount: String(input.amount ?? "").replace(/[^0-9.]/g, "") || "0",
+    messageId: "",
+    status: "Draft",
+    sentAt: "",
+    dueDate: input.dueDate,
+    paid: false,
+  };
+}
+
+/** Mark an invoice paid (or not), optionally recording the e-Transfer that paid it. */
+export async function setInvoicePaid(number: string, paid: boolean, payment?: { messageId: string; when: Date }): Promise<void> {
+  const spreadsheetId = masterSheetId();
+  const { accessToken } = await getAccessTokenForAccount();
+  const invoices = await loadTab(MASTER_TABS.invoices);
+  const index = invoices.rows.findIndex((r) => cell(invoices, r, "Invoice Number") === number);
+  if (index < 0) throw new Error("Invoice not found");
+  const writes: Array<[string, string]> = [["Paid On", paid ? formatTimestamp(payment?.when ?? new Date()) : ""]];
+  if (payment) writes.push(["Gmail Message ID", payment.messageId]);
+  for (const [col, value] of writes) {
+    const c = colIndex(invoices.headers, col);
+    if (c >= 0) await updateSheetCell(accessToken, spreadsheetId, MASTER_TABS.invoices, index + 2, c + 1, value);
   }
+}
+
+const INVOICE_RE = /\bINV\s*-?\s*(\d{4})\s*-?\s*(\d{4,})\b/i;
+
+/** The unpaid invoice an e-Transfer memo quotes ("INV-2026-0003"), if any. */
+export async function unpaidInvoiceInMemo(memo: string): Promise<Invoice | null> {
+  const m = memo.match(INVOICE_RE);
+  if (!m) return null;
+  const number = `INV-${m[1]}-${m[2].padStart(4, "0")}`;
+  const invoice = await getInvoice(number);
+  return invoice && !invoice.paid ? invoice : null;
 }
 
 // ---------------------------------------------------------------- PDF
@@ -286,7 +386,9 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   const meta: Array<[string, string]> = [
     ["Invoice number", inv.number],
     ["Date issued", longDate(inv.date)],
-    ["Payment received", inv.paidOn ? longDate(inv.paidOn) : "—"],
+    inv.paid
+      ? ["Payment received", inv.paidOn ? longDate(inv.paidOn) : "-"]
+      : ["Due date", inv.dueDate ? longDate(`${inv.dueDate}T12:00:00`) : "On receipt"],
   ];
   text("BILL TO", M, y, 9, bold, INK_SOFT);
   meta.forEach(([k, v], i) => {
@@ -296,10 +398,12 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   text(inv.payerName || inv.payerEmail, M, y - 18, 13, bold);
   if (inv.payerName) text(inv.payerEmail, M, y - 36, 11, regular, INK_SOFT);
 
-  // PAID stamp
+  // PAID stamp (paid invoices only)
   const stampY = y - 88;
-  page.drawRectangle({ x: M, y: stampY, width: 74, height: 28, borderColor: ORANGE_DARK, borderWidth: 2, color: CREAM_LIGHT, opacity: 1 });
-  text("PAID", M + 15, stampY + 8, 15, bold, ORANGE_DARK);
+  if (inv.paid) {
+    page.drawRectangle({ x: M, y: stampY, width: 74, height: 28, borderColor: ORANGE_DARK, borderWidth: 2, color: CREAM_LIGHT, opacity: 1 });
+    text("PAID", M + 15, stampY + 8, 15, bold, ORANGE_DARK);
+  }
 
   // Line items table
   y = stampY - 40;
@@ -318,7 +422,7 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   const totals: Array<[string, string, boolean]> = [
     ["Subtotal", money(inv.amount), false],
     ["Total", money(inv.amount), true],
-    ["Paid", `-${money(inv.amount)}`, false],
+    ...(inv.paid ? [["Paid", `-${money(inv.amount)}`, false] as [string, string, boolean]] : []),
   ];
   totals.forEach(([k, v, strong], i) => {
     right(k, W - M - 120, y - i * 20, 11, strong ? bold : regular, strong ? INK : INK_SOFT);
@@ -327,17 +431,23 @@ export async function renderInvoicePdf(inv: Invoice): Promise<Buffer> {
   y -= totals.length * 20 + 8;
   page.drawRectangle({ x: W - M - 250, y: y - 10, width: 250, height: 32, color: INK });
   text("BALANCE DUE", W - M - 238, y + 1, 10, bold, CREAM);
-  right("$0.00", W - M - 12, y, 13, bold, ORANGE);
+  right(inv.paid ? "$0.00" : money(inv.amount), W - M - 12, y, 13, bold, ORANGE);
 
   // Payment details
   y -= 64;
-  text("PAYMENT", M, y, 9, bold, INK_SOFT);
-  text(
-    `Paid by Interac e-Transfer${inv.paidOn ? ` on ${longDate(inv.paidOn)}` : ""}${inv.reference ? `  ·  Reference ${inv.reference}` : ""}`,
-    M,
-    y - 18,
-    11,
-  );
+  if (inv.paid) {
+    text("PAYMENT", M, y, 9, bold, INK_SOFT);
+    text(
+      `Paid by Interac e-Transfer${inv.paidOn ? ` on ${longDate(inv.paidOn)}` : ""}${inv.reference ? `  ·  Reference ${inv.reference}` : ""}`,
+      M,
+      y - 18,
+      11,
+    );
+  } else {
+    text("HOW TO PAY", M, y, 9, bold, INK_SOFT);
+    text(`Send an Interac e-Transfer to ${E_TRANSFER_EMAIL}`, M, y - 18, 11, bold);
+    text(`and type ${inv.number} in the message box so we can match your payment.`, M, y - 34, 11);
+  }
 
   // Footer
   page.drawLine({ start: { x: M, y: 92 }, end: { x: W - M, y: 92 }, thickness: 1, color: LINE });
