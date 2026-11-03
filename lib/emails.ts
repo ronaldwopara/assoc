@@ -497,9 +497,25 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
 export type CopyOverrides = Partial<Record<AutoEmailId, Partial<EditableCopy>>>;
 
 /** Fills {placeholders}; unknown ones are left as-is so a typo is visible in the preview. */
+/** Ways people naturally write the name placeholder: {name}, {{Your Name}}, {First Name}… */
+const PLACEHOLDER_ALIASES: Record<string, string> = {
+  name: "first_name",
+  your_name: "first_name",
+  first_name: "first_name",
+  firstname: "first_name",
+  first: "first_name",
+  full_name: "first_name",
+  their_name: "first_name",
+};
+
 export function fillPlaceholders(text: string, vars: Record<string, string>): string {
   return text
-    .replace(/\{([a-z_]+)\}/g, (m, key: string) => (key in vars ? vars[key] : m))
+    .replace(/\{\{?\s*([A-Za-z][A-Za-z _-]*?)\s*\}?\}/g, (m, raw: string) => {
+      const key = raw.trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (key in vars) return vars[key];
+      const alias = PLACEHOLDER_ALIASES[key];
+      return alias && alias in vars ? vars[alias] : m;
+    })
     .replace(/[ \t]{2,}/g, " ")
     .replace(/ ([.,!?])/g, "$1");
 }
