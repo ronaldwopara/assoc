@@ -179,10 +179,9 @@ export function DashboardEmailsPanel() {
               </div>
             ) : (
               <div className={data.autoSend ? "dash-notice dash-notice--on" : "dash-notice"}>
-                <span>
-                  {data.autoSend
-                    ? "Emails are on. People get these by themselves."
-                    : "Emails are paused. Nobody gets these until you turn them on."}
+                <span className="dash-email-status">
+                  <span className="dash-email-status-dot" aria-hidden />
+                  {data.autoSend ? "Emails are ON" : "Emails are PAUSED"}
                 </span>
                 <button
                   type="button"
@@ -194,6 +193,11 @@ export function DashboardEmailsPanel() {
                 </button>
               </div>
             )}
+
+            <section className="dash-emails-section">
+              <h3 className="dash-emails-section-title">Reminders</h3>
+              <RemindersCard autoSend={Boolean(data.autoSend)} canSend={Boolean(data.canSend)} />
+            </section>
 
             {pending.length > 0 && (
               <section className="dash-emails-section">
@@ -265,10 +269,6 @@ export function DashboardEmailsPanel() {
               );
             })}
 
-            <section className="dash-emails-section">
-              <h3 className="dash-emails-section-title">Reminders</h3>
-              <RemindersCard autoSend={Boolean(data.autoSend)} canSend={Boolean(data.canSend)} />
-            </section>
           </>
         )}
       </div>
@@ -443,12 +443,12 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   );
 }
 
-type Schedule = { daysBetween: number; perRound: number; pauseDays: number; rounds: number };
-/** What the dashboard shows: one plain rule. */
-type SimpleSchedule = { every: number; stopAfter: number };
+type Schedule = { days: number[] };
+/** What the dashboard shows: the days as typed, e.g. "1, 3, 7". */
+type SimpleSchedule = { days: string };
 
 function simplify(s: Schedule): SimpleSchedule {
-  return { every: s.daysBetween, stopAfter: Math.min(10, s.perRound * s.rounds) };
+  return { days: s.days.join(", ") };
 }
 
 /** How often unpaid people are reminded (stored in the master sheet's Settings tab), plus a manual run. */
@@ -470,8 +470,7 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
       .catch(() => setStatus("Couldn't load the reminder settings."));
   }, []);
 
-  const setNum = (k: keyof SimpleSchedule) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setRule((r) => (r ? { ...r, [k]: Number(e.target.value) } : r));
+  const setDays = (e: React.ChangeEvent<HTMLInputElement>) => setRule((r) => (r ? { ...r, days: e.target.value } : r));
 
   const save = async () => {
     if (!rule) return;
@@ -481,7 +480,7 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
       const res = await fetch("/api/dashboard/reminders", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ daysBetween: rule.every, perRound: rule.stopAfter, pauseDays: rule.every, rounds: 1 }),
+        body: JSON.stringify({ days: rule.days }),
       });
       const d = (await res.json()) as { schedule?: Schedule; error?: string };
       if (!res.ok || !d.schedule) throw new Error(d.error || "Couldn't save");
@@ -520,14 +519,19 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
 
   return (
     <div className="dash-subcard">
-      <p className="dash-subcard-title">How often to remind people who haven&rsquo;t paid</p>
+      <p className="dash-subcard-title">When to remind people who haven&rsquo;t paid</p>
       {rule && (
         <p className="dash-reminder-sentence">
-          Remind them every
-          <input aria-label="Days between reminders" type="number" min={1} max={60} value={rule.every} onChange={setNum("every")} />
-          days, and stop after
-          <input aria-label="Most reminders to send" type="number" min={1} max={10} value={rule.stopAfter} onChange={setNum("stopAfter")} />
-          reminders.
+          Remind them
+          <input
+            aria-label="Days after first contact to send each reminder"
+            type="text"
+            inputMode="numeric"
+            size={9}
+            value={rule.days}
+            onChange={setDays}
+          />
+          days after they sign up, then stop.
         </p>
       )}
       {!autoSend && <p className="dash-field-hint">Reminders only go out while emails are on.</p>}

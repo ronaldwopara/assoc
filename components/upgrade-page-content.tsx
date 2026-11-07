@@ -160,7 +160,7 @@ function UpgradePageContentInner({
     ).length;
     if (removedCount > 0) {
       const ok = window.confirm(
-        `This will permanently delete ${removedCount} image${removedCount === 1 ? "" : "s"} from Cloudinary that are no longer referenced anywhere in the gallery (removed years, cleared slots, replaced uploads, etc.). This cannot be undone. Continue?`,
+        `${removedCount} photo${removedCount === 1 ? " you removed or replaced" : "s you removed or replaced"} will be permanently deleted. This can't be undone. Continue?`,
       );
       if (!ok) return;
     }
@@ -183,8 +183,8 @@ function UpgradePageContentInner({
         type: "ok",
         message:
           activeTool === "announcement"
-            ? "Saved. The announcement bar will use this content now."
-            : "Saved. Removed preview images were deleted from Cloudinary. The public gallery will use this content now.",
+            ? "Saved. Your changes are now live on the website."
+            : "Saved. Your changes are now live on the gallery page.",
       });
       router.refresh();
     } catch {
@@ -213,7 +213,7 @@ function UpgradePageContentInner({
       setDocumentsStatus({
         type: "ok",
         message:
-          "Saved. Removed Cloudinary documents were deleted. The About Us documents section will use this content now.",
+          "Saved. Your changes are now live on the About Us page.",
       });
       router.refresh();
     } catch {

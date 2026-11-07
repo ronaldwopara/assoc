@@ -170,7 +170,7 @@ export function UpgradeDocumentsEditor({
     <div className="mt-8 space-y-6">
       <UpgradeToolHeader
         title="Documents"
-        description="Manage About Us downloads — financial reports, bylaws, and plans. Upload, replace, or remove files, then Save to publish. Removed Cloudinary files are deleted on Save."
+        description="The financial reports, bylaws and plans people can download from the About Us page. Upload, replace or remove files, then press Save to publish. Files you remove are deleted when you save."
         isDirty={isDirty}
         saving={saving}
         status={status}

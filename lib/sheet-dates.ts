@@ -136,6 +136,12 @@ export function parseSheetDate(value: string): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
+/** The Edmonton calendar day as a day count, so "1 day after" means the next calendar day, whatever the time. */
+export function edmontonDayNumber(date: Date): number {
+  const p = zonedParts(date);
+  return Math.round(Date.UTC(p.year, p.month - 1, p.day) / 86_400_000);
+}
+
 /** YYYYMMDD integer for calendar-day comparisons (local date, no time). */
 export function dateKey(date: Date): number {
   return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();

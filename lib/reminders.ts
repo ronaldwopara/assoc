@@ -5,9 +5,10 @@
  *  - Vendors whose Status is "Approved", with a Fee entered, who haven't had the
  *    approval email get a V-#### payment code and the "You're approved" email.
  *  - Unpaid memberships (Master List, Source = Membership), donations, and
- *    approved vendors with a fee get reminders on the dashboard-set schedule:
- *    `perRound` reminders `daysBetween` days apart, then a `pauseDays` pause,
- *    for up to `rounds` rounds. Stops when Paid, or "Stop Reminders" is filled.
+ *    approved vendors with a fee get a reminder on each of the dashboard-set
+ *    days after first contact (sign-up, or the vendor's approval email):
+ *    1, 3 and 7 days by default, then they stop. Also stops when Paid, or
+ *    "Stop Reminders" is filled.
  *
  * Only rows created by the new system (they have a payment code) are chased,
  * so imported history is never emailed.
@@ -20,10 +21,8 @@ import { newPaymentCode } from "@/lib/form-submissions";
 import { isPaid } from "@/lib/gmail";
 import { sendEmail } from "@/lib/mailer";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, type MasterTabKey } from "@/lib/master-sheet";
-import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
+import { edmontonDayNumber, formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { autoSendEnabled, getReminderSchedule, type ReminderSchedule } from "@/lib/settings";
-
-const DAY = 24 * 60 * 60 * 1000;
 
 type Tab = { key: MasterTabKey; name: string; headers: string[]; rows: string[][] };
 
@@ -50,22 +49,21 @@ async function loadTab(accessToken: string, spreadsheetId: string, key: MasterTa
 const get = (t: Tab, row: string[], col: string) => String(row[colIndex(t.headers, col)] ?? "").trim();
 const fields = (t: Tab, row: string[]): Fields => Object.fromEntries(t.headers.map((h, i) => [h.trim(), String(row[i] ?? "").trim()]));
 
-/** What to do with one row today, given its reminder state. */
+/**
+ * What to do with one row today: send if another reminder day has been reached.
+ * `count` is how many have gone out. If several days have passed at once
+ * (emails were off, or the schedule changed), only one email goes out and the
+ * missed ones are counted as done, so nobody gets a pile of reminders.
+ */
 export function nextReminder(
-  state: { count: number; round: number; last: Date | null; start: Date | null },
+  state: { count: number; start: Date | null },
   s: ReminderSchedule,
   now: Date,
-): { send: false } | { send: true; count: number; round: number } {
-  const base = state.last ?? state.start;
-  if (!base) return { send: false };
-  const since = now.getTime() - base.getTime();
-  const round = Math.max(1, state.round || 1);
-  const count = Math.max(0, state.count || 0);
-  if (count < s.perRound) {
-    return since >= s.daysBetween * DAY ? { send: true, count: count + 1, round } : { send: false };
-  }
-  if (round >= s.rounds) return { send: false };
-  return since >= s.pauseDays * DAY ? { send: true, count: 1, round: round + 1 } : { send: false };
+): { send: false } | { send: true; count: number } {
+  if (!state.start) return { send: false };
+  const age = edmontonDayNumber(now) - edmontonDayNumber(state.start);
+  const due = s.days.filter((d) => age >= d).length;
+  return due > Math.max(0, state.count || 0) ? { send: true, count: due } : { send: false };
 }
 
 export async function runReminders({ force = false } = {}): Promise<ReminderRunResult> {
@@ -141,8 +139,6 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
       const step = nextReminder(
         {
           count: Number(get(t, row, "Reminder Count")) || 0,
-          round: Number(get(t, row, "Reminder Round")) || 1,
-          last: parseSheetDate(get(t, row, "Last Reminder")),
           start: parseSheetDate(job.start(row)),
         },
         schedule,
@@ -153,7 +149,6 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
         await sendEmail(reminderEmail(job.kind, fields(t, row), overrides));
         await setCells(t, i, {
           "Reminder Count": String(step.count),
-          "Reminder Round": String(step.round),
           "Last Reminder": stamp,
         });
         result.reminders[job.kind] += 1;

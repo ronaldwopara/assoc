@@ -119,7 +119,7 @@ export function UpgradePopupEditor({
     <div className="mt-8 space-y-6">
       <UpgradeToolHeader
         title="Popup"
-        description="Homepage flyer shown once per session after visitors scroll into About Us. Save to publish; replaced images are removed from Cloudinary."
+        description="The flyer that pops up once per visit when someone scrolls down to About Us on the homepage. Press Save to publish."
         isDirty={isDirty}
         saving={saving}
         status={status}

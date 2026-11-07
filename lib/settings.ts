@@ -57,46 +57,33 @@ export async function setAutoSend(on: boolean): Promise<void> {
 // ---------------------------------------------------------------- reminder schedule
 
 export type ReminderSchedule = {
-  /** Days between reminders within a round (also: days after signup before the first). */
-  daysBetween: number;
-  /** Reminders per round. */
-  perRound: number;
-  /** Days to pause after a round before starting the next. */
-  pauseDays: number;
-  /** Rounds before reminders stop for good. */
-  rounds: number;
+  /** Days after first contact (sign-up, or a vendor's approval) to send each reminder. Then they stop. */
+  days: number[];
 };
 
-/** Every 7 days, 3 reminders, then stop. (The round/pause fields stay for older saved settings;
- *  the dashboard now saves a single round.) */
-export const DEFAULT_SCHEDULE: ReminderSchedule = { daysBetween: 7, perRound: 3, pauseDays: 7, rounds: 1 };
+/** 1, 3 and 7 days after first contact, then stop. */
+export const DEFAULT_SCHEDULE: ReminderSchedule = { days: [1, 3, 7] };
 
 const SCHEDULE_KEY = "Reminder schedule";
-const LIMITS: Record<keyof ReminderSchedule, [number, number]> = {
-  daysBetween: [1, 60],
-  perRound: [1, 10],
-  pauseDays: [1, 365],
-  rounds: [1, 12],
-};
 
-export function cleanSchedule(input: Partial<Record<keyof ReminderSchedule, unknown>>): ReminderSchedule {
-  const out = { ...DEFAULT_SCHEDULE };
-  for (const k of Object.keys(LIMITS) as Array<keyof ReminderSchedule>) {
-    const n = Math.round(Number(input[k]));
-    if (Number.isFinite(n)) out[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], n));
-  }
-  return out;
+/** Whole days 1–365, no repeats, in order, at most 10. Older saved settings (every-N-days) fall back to the default. */
+export function cleanSchedule(input: { days?: unknown }): ReminderSchedule {
+  const raw = Array.isArray(input.days) ? input.days : typeof input.days === "string" ? input.days.split(/[^\d]+/) : [];
+  const days = [...new Set(raw.map((d) => Math.round(Number(d))).filter((d) => Number.isFinite(d) && d >= 1 && d <= 365))]
+    .sort((a, b) => a - b)
+    .slice(0, 10);
+  return days.length ? { days } : { days: [...DEFAULT_SCHEDULE.days] };
 }
 
 export async function getReminderSchedule(): Promise<ReminderSchedule> {
   try {
     return cleanSchedule(JSON.parse((await getSetting(SCHEDULE_KEY)) || "{}"));
   } catch {
-    return { ...DEFAULT_SCHEDULE };
+    return { days: [...DEFAULT_SCHEDULE.days] };
   }
 }
 
-export async function setReminderSchedule(schedule: Partial<ReminderSchedule>): Promise<ReminderSchedule> {
+export async function setReminderSchedule(schedule: { days?: unknown }): Promise<ReminderSchedule> {
   const clean = cleanSchedule(schedule);
   await setSetting(SCHEDULE_KEY, JSON.stringify(clean));
   return clean;

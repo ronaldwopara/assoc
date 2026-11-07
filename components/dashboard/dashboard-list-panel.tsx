@@ -687,11 +687,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
 
       </header>
-      {formNotice && (
-        <div className="dash-emails-body">
-          <p className="dash-notice dash-notice--plain">{formNotice}</p>
-        </div>
-      )}
+      {formNotice && <p className="dash-notice dash-notice--plain dash-notice--list">{formNotice}</p>}
       {formKind && addingForm && (
         <AddFormDialog
           kind={formKind}

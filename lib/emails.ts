@@ -125,6 +125,9 @@ function actionBox(box: ActionBox): string {
     parts.push(
       `<p class="muted-text" style="margin:${box.code ? 18 : 4}px auto 0;max-width:320px;font-family:${FONT};font-size:13px;line-height:1.5;color:${C.inkSoft};text-wrap:balance;">${nl2br(box.note)}</p>`,
     );
+  // A button on its own needs no frame around it.
+  if (box.button && !parts.length)
+    return `<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:8px 28px 28px;">${button(box.button)}</td></tr>`;
   if (box.button)
     parts.push(`<div style="height:${box.note || box.code ? 18 : 6}px;line-height:0;font-size:0;">&nbsp;</div>${button(box.button)}`);
   return `<tr><td align="center" class="band-bg" style="background-color:${C.cream};padding:4px 28px 28px;">
@@ -331,9 +334,9 @@ export const AUTO_EMAILS: Array<{
   { id: "invoice", label: "Receipt", when: "When you email a receipt from the Invoices & receipts or Payments page (the PDF is attached).", placeholders: ["first_name", "receipt_number", "amount"], defaultHero: HERO.people },
   { id: "invoice-due", label: "Invoice to pay", when: "When you email an invoice from the Invoices & receipts page (the PDF is attached).", placeholders: ["first_name", "invoice_number", "amount", "due_date"], defaultHero: HERO.people },
   { id: "vendor-approved", label: "Vendor approved", when: "When staff set a vendor's Status to Approved (includes their fee and payment code).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
-  { id: "reminder-membership", label: "Membership reminder", when: "Weekly while a membership is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
-  { id: "reminder-donation", label: "Donation reminder", when: "Weekly while a donation is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "amount", "payment_code"], defaultHero: HERO.wraps },
-  { id: "reminder-vendor", label: "Vendor fee reminder", when: "Weekly while an approved vendor's fee is unpaid (3 per round, 30-day pause, up to 3 rounds).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
+  { id: "reminder-membership", label: "Membership reminder", when: "1, 3 and 7 days after sign-up while a membership is unpaid (the days are set under Reminders).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
+  { id: "reminder-donation", label: "Donation reminder", when: "1, 3 and 7 days after the pledge while a donation is unpaid (the days are set under Reminders).", placeholders: ["first_name", "amount", "payment_code"], defaultHero: HERO.wraps },
+  { id: "reminder-vendor", label: "Vendor fee reminder", when: "1, 3 and 7 days after approval while a vendor's fee is unpaid (the days are set under Reminders).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
 ];
 
 export function isAutoEmailId(value: unknown): value is AutoEmailId {

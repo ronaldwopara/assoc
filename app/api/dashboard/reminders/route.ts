@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isUpgradeAuthenticated } from "@/lib/gallery-cms/auth";
 import { runReminders } from "@/lib/reminders";
-import { getReminderSchedule, setReminderSchedule, type ReminderSchedule } from "@/lib/settings";
+import { getReminderSchedule, setReminderSchedule } from "@/lib/settings";
 
 export const maxDuration = 60;
 
@@ -19,12 +19,12 @@ export async function GET() {
   }
 }
 
-/** Save the reminder schedule: { daysBetween, perRound, pauseDays, rounds }. */
+/** Save the reminder schedule: { days: [1, 3, 7] } (days after first contact). */
 export async function PUT(request: Request) {
   const denied = await guard();
   if (denied) return denied;
   try {
-    const body = (await request.json()) as Partial<ReminderSchedule>;
+    const body = (await request.json()) as { days?: unknown };
     return NextResponse.json({ ok: true, schedule: await setReminderSchedule(body) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to save" }, { status: 500 });
