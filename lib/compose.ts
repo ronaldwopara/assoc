@@ -5,13 +5,13 @@
  * sheet's "Email Log" tab.
  */
 
-import { appendSheetRows, ensureSheetTab, getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
+import { getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
 import { composerEmail, type ComposerAttachment, type ComposerContent } from "@/lib/emails";
 import { isPaid } from "@/lib/gmail";
 import { listEventForms } from "@/lib/event-forms";
-import { sendEmail, type EmailAttachment } from "@/lib/mailer";
+import { logEmails, sendEmail, type EmailAttachment } from "@/lib/mailer";
 import { MASTER_TABS, colIndex, masterSheetId } from "@/lib/master-sheet";
-import { formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
+import { parseSheetDate } from "@/lib/sheet-dates";
 import { SITE_ORIGIN, unsubscribedEmails, unsubscribeToken, unsubscribeUrl } from "@/lib/unsubscribe";
 
 export const RECIPIENT_LISTS = {
@@ -262,22 +262,11 @@ export async function sendBatch(content: ComposerContent, batch: Recipient[], op
     }
   }
 
-  try {
-    const spreadsheetId = masterSheetId();
-    const { accessToken } = await getAccessTokenForAccount();
-    await ensureSheetTab(accessToken, spreadsheetId, "Email Log");
-    const existing = await getSheetValues(accessToken, spreadsheetId, "Email Log");
-    const rows = results.map((x) => [
-      formatTimestamp(new Date()),
-      opts.test ? `[TEST] ${content.subject}` : content.subject,
-      x.email,
-      x.ok ? "Sent" : "Failed",
-      x.error ?? "",
-    ]);
-    if (existing.length === 0) rows.unshift(["Sent At", "Subject", "Email", "Status", "Error"]);
-    await appendSheetRows(accessToken, spreadsheetId, "Email Log", rows);
-  } catch (error) {
-    console.error("[compose] couldn't write Email Log:", error);
-  }
+  // Sent and failed sends are logged by sendEmail; log the ones we skipped before sending.
+  await logEmails(
+    results
+      .filter((x) => x.error === "Invalid address" || x.error === "Unsubscribed")
+      .map((x) => ({ subject: opts.test ? `[TEST] ${content.subject}` : content.subject, to: x.email, status: "Skipped" as const, error: x.error })),
+  );
   return results;
 }

@@ -251,6 +251,56 @@ export async function ensureSheetTab(
   readCache.delete(`${spreadsheetId}::tabs`);
 }
 
+const checkboxDone = new Set<string>();
+
+/**
+ * Turns a column into tick boxes (rows 2 down), once per tab per server
+ * instance. Ticked reads back as "TRUE", unticked as "FALSE".
+ */
+export async function ensureCheckboxColumn(
+  accessToken: string,
+  spreadsheetId: string,
+  tabTitle: string,
+  columnIndex: number,
+): Promise<void> {
+  const key = `${spreadsheetId}::${tabTitle}::${columnIndex}`;
+  if (columnIndex < 0 || checkboxDone.has(key)) return;
+  const { tabs } = await getSpreadsheetTabs(accessToken, spreadsheetId);
+  const tab = tabs.find((t) => t.title === tabTitle);
+  if (!tab) return;
+  const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requests: [
+        {
+          setDataValidation: {
+            range: {
+              sheetId: tab.sheetId,
+              startRowIndex: 1,
+              endRowIndex: Math.max(tab.rowCount, 1000),
+              startColumnIndex: columnIndex,
+              endColumnIndex: columnIndex + 1,
+            },
+            rule: { condition: { type: "BOOLEAN" }, strict: false, showCustomUi: true },
+          },
+        },
+      ],
+    }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error?.message || `Couldn't add tick boxes (${response.status})`);
+  }
+  checkboxDone.add(key);
+}
+
+/** True when a "Stop Reminders" cell means stop: ticked, or anything typed other than "no"/"false". */
+export function isStopTicked(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return v !== "" && v !== "false" && v !== "no";
+}
+
 /** Adds a "PAID OR NOT" header if the tab doesn't already have one (case-insensitive). */
 export async function ensurePaidColumn(
   accessToken: string,

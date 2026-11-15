@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "optimize-images": "node scripts/optimize-images.mjs",
+    "bunny:sync": "node --env-file=.env --env-file=.env.local scripts/bunny-sync.mjs",
     "smoke:gallery-upload": "node --env-file=.env --env-file=.env.local scripts/smoke-gallery-upload.mjs",
     "smoke:gallery-delete": "node --env-file=.env --env-file=.env.local scripts/smoke-gallery-delete.mjs"
   },

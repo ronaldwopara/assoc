@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { recordCardPayment } from "@/lib/payments";
+import { siteOrigin } from "@/lib/licences/session";
+import { LICENCE_EVENTS, handleLicenceCheckout, handleLicenceEvent, isLicenceCheckout } from "@/lib/licences/stripe-events";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -38,12 +40,21 @@ type CheckoutSession = {
   payment_intent?: string | null;
   customer_details?: { email?: string | null; name?: string | null } | null;
   customer_email?: string | null;
+  mode?: string;
+  payment_link?: string | null;
+  subscription?: string | null;
+  customer?: string | null;
+  metadata?: Record<string, string> | null;
 };
 
 /**
  * Stripe webhook for the card payment links. Set STRIPE_WEBHOOK_SECRET and point a
- * Stripe webhook at /api/stripe/webhook for checkout.session.completed and
- * checkout.session.async_payment_succeeded.
+ * Stripe webhook at /api/stripe/webhook for checkout.session.completed,
+ * checkout.session.async_payment_succeeded, invoice.paid,
+ * customer.subscription.updated and customer.subscription.deleted.
+ *
+ * Library licence sales (lib/licences) are handled separately and never
+ * logged as membership/donation payments.
  */
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
@@ -54,17 +65,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  let event: { type?: string; data?: { object?: CheckoutSession } };
+  let event: { type?: string; data?: { object?: unknown } };
   try {
     event = JSON.parse(body);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const handled = event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded";
-  const session = event.data?.object;
+  const type = event.type ?? "";
+  if (LICENCE_EVENTS.has(type)) {
+    try {
+      const result = await handleLicenceEvent(type, event.data?.object);
+      return NextResponse.json({ received: true, ...result });
+    } catch (error) {
+      console.error("[stripe] licence webhook failed:", error);
+      return NextResponse.json({ error: "Couldn't update the licence" }, { status: 500 });
+    }
+  }
+
+  const handled = type === "checkout.session.completed" || type === "checkout.session.async_payment_succeeded";
+  const session = event.data?.object as CheckoutSession | undefined;
   if (!handled || !session || session.payment_status !== "paid") {
     return NextResponse.json({ received: true, ignored: true });
+  }
+
+  if (isLicenceCheckout(session)) {
+    try {
+      const result = await handleLicenceCheckout(session, siteOrigin(request));
+      return NextResponse.json({ received: true, ...result });
+    } catch (error) {
+      console.error("[stripe] licence checkout failed:", error);
+      return NextResponse.json({ error: "Couldn't record the licence" }, { status: 500 });
+    }
   }
 
   const email = session.customer_details?.email || session.customer_email || "";

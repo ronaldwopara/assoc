@@ -502,7 +502,7 @@ function RemindersCard({ autoSend, canSend }: { autoSend: boolean; canSend: bool
       const d = (await res.json()) as { approvals?: number; reminders?: Record<string, number>; errors?: string[]; error?: string };
       if (!res.ok || d.error) throw new Error(d.error || "Couldn't send");
       const r = d.reminders ?? {};
-      const total = (r.membership ?? 0) + (r.donation ?? 0) + (r.vendor ?? 0) + (d.approvals ?? 0);
+      const total = Object.values(r).reduce((sum, n) => sum + (n ?? 0), 0) + (d.approvals ?? 0);
       setStatus(
         total === 0
           ? "Nobody is due a reminder today."

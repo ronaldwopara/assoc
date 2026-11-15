@@ -8,13 +8,23 @@
  *    approved vendors with a fee get a reminder on each of the dashboard-set
  *    days after first contact (sign-up, or the vendor's approval email):
  *    1, 3 and 7 days by default, then they stop. Also stops when Paid, or
- *    "Stop Reminders" is filled.
+ *    the "Stop Reminders" box is ticked.
+ *  - Library licences: someone who gave their email and went to Stripe but
+ *    hasn't paid ("Checkout started" on the Licences tab) gets the same
+ *    schedule, with a button back to their checkout. Paying stops it.
  *
  * Only rows created by the new system (they have a payment code) are chased,
  * so imported history is never emailed.
  */
 
-import { getAccessTokenForAccount, getSheetValues, updateSheetCell, updateSheetRow } from "@/lib/google-sheets";
+import {
+  ensureCheckboxColumn,
+  getAccessTokenForAccount,
+  getSheetValues,
+  isStopTicked,
+  updateSheetCell,
+  updateSheetRow,
+} from "@/lib/google-sheets";
 import { reminderEmail, vendorApprovedEmail, type Fields, type ReminderKind } from "@/lib/emails";
 import { getCopyOverrides } from "@/lib/email-store";
 import { newPaymentCode } from "@/lib/form-submissions";
@@ -23,6 +33,11 @@ import { sendEmail } from "@/lib/mailer";
 import { MASTER_HEADERS, MASTER_TABS, colIndex, masterSheetId, type MasterTabKey } from "@/lib/master-sheet";
 import { edmontonDayNumber, formatTimestamp, parseSheetDate } from "@/lib/sheet-dates";
 import { autoSendEnabled, getReminderSchedule, type ReminderSchedule } from "@/lib/settings";
+import { tierById } from "@/lib/licences/catalogue";
+import { licenceReminderEmail } from "@/lib/licences/emails";
+import { activeLicenceFor, markCheckoutReminded, pendingCheckouts } from "@/lib/licences/store";
+
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://asosc.ca").replace(/\/$/, "");
 
 type Tab = { key: MasterTabKey; name: string; headers: string[]; rows: string[][] };
 
@@ -30,7 +45,7 @@ export type ReminderRunResult = {
   ran: boolean;
   reason?: string;
   approvals: number;
-  reminders: Record<ReminderKind, number>;
+  reminders: Record<ReminderKind | "licence", number>;
   errors: string[];
 };
 
@@ -43,6 +58,8 @@ async function loadTab(accessToken: string, spreadsheetId: string, key: MasterTa
     headers.push(...missing);
     await updateSheetRow(accessToken, spreadsheetId, name, 1, headers);
   }
+  // "Stop Reminders" is a tick box: tick it and that person gets no more reminders.
+  await ensureCheckboxColumn(accessToken, spreadsheetId, name, colIndex(headers, "Stop Reminders")).catch(() => {});
   return { key, name, headers, rows };
 }
 
@@ -67,7 +84,7 @@ export function nextReminder(
 }
 
 export async function runReminders({ force = false } = {}): Promise<ReminderRunResult> {
-  const result: ReminderRunResult = { ran: false, approvals: 0, reminders: { membership: 0, donation: 0, vendor: 0 }, errors: [] };
+  const result: ReminderRunResult = { ran: false, approvals: 0, reminders: { membership: 0, donation: 0, vendor: 0, licence: 0 }, errors: [] };
   if (!force && !(await autoSendEnabled())) {
     return { ...result, reason: "Automatic emails are off" };
   }
@@ -135,7 +152,7 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
       const row = t.rows[i];
       if (!job.eligible(row)) continue;
       if (!get(t, row, "Email") || !get(t, row, "Payment Code")) continue;
-      if (isPaid(get(t, row, "Paid")) || get(t, row, "Stop Reminders")) continue;
+      if (isPaid(get(t, row, "Paid")) || isStopTicked(get(t, row, "Stop Reminders"))) continue;
       const step = nextReminder(
         {
           count: Number(get(t, row, "Reminder Count")) || 0,
@@ -156,6 +173,41 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
         result.errors.push(`${t.name} row ${i + 2}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+  }
+
+  // 3. Library checkouts that were started but not paid.
+  try {
+    for (const p of await pendingCheckouts()) {
+      const step = nextReminder({ count: p.reminderCount, start: parseSheetDate(p.started) }, schedule, now);
+      if (!step.send) continue;
+      try {
+        // Paid under this email some other way (or a hand-entered licence): don't chase.
+        if (await activeLicenceFor(p.email)) continue;
+        const tier = tierById(p.tier);
+        const term = p.term === "month" ? "month" : "year";
+        const link = tier?.links[term];
+        const price = tier?.prices[term];
+        if (!tier || !link || price === undefined) continue;
+        const payUrl = new URL(link);
+        payUrl.searchParams.set("prefilled_email", p.email);
+        payUrl.searchParams.set("client_reference_id", Buffer.from(p.email).toString("base64url"));
+        await sendEmail(
+          licenceReminderEmail({
+            to: p.email,
+            tierName: tier.name,
+            price: `$${price.toLocaleString("en-CA")}/${term}`,
+            payUrl: payUrl.toString(),
+            pageUrl: `${SITE}/stories`,
+          }),
+        );
+        await markCheckoutReminded(p.rowNumber, step.count);
+        result.reminders.licence += 1;
+      } catch (error) {
+        result.errors.push(`${MASTER_TABS.licences} row ${p.rowNumber}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  } catch (error) {
+    result.errors.push(`Licences: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   return result;

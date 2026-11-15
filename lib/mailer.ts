@@ -9,7 +9,9 @@
 
 import { randomBytes } from "node:crypto";
 import { listGoogleAccounts } from "@/lib/google-oauth";
-import { getAccessTokenForAccount } from "@/lib/google-sheets";
+import { appendSheetRows, ensureSheetTab, getAccessTokenForAccount, getSheetValues } from "@/lib/google-sheets";
+import { masterSheetId } from "@/lib/master-sheet";
+import { formatTimestamp } from "@/lib/sheet-dates";
 
 export const SENDER_EMAIL = "support@asosc.ca";
 const SENDER_NAME = "Africans Society of Strathcona County";
@@ -90,9 +92,62 @@ export async function senderCanSend(): Promise<boolean> {
   return Boolean(sender?.scope?.includes("gmail.send"));
 }
 
-/** Sends one email; returns the Gmail message id. */
+export const EMAIL_LOG_TAB = "Email Log";
+export const EMAIL_LOG_HEADERS = ["Sent At", "Subject", "Email", "Status", "Error"];
+let logReady: Promise<void> | null = null;
+
+/**
+ * Adds rows to the master sheet's Email Log tab. Every email the site sends
+ * lands here (sendEmail calls it), so staff can see what went to whom.
+ * Best effort: never throws, never blocks a send.
+ */
+export async function logEmails(rows: Array<{ subject: string; to: string; status: "Sent" | "Failed" | "Skipped"; error?: string }>): Promise<void> {
+  if (!rows.length) return;
+  try {
+    const spreadsheetId = masterSheetId();
+    const { accessToken } = await getAccessTokenForAccount();
+    logReady ??= (async () => {
+      await ensureSheetTab(accessToken, spreadsheetId, EMAIL_LOG_TAB);
+      const existing = await getSheetValues(accessToken, spreadsheetId, EMAIL_LOG_TAB);
+      if (existing.length === 0) await appendSheetRows(accessToken, spreadsheetId, EMAIL_LOG_TAB, [EMAIL_LOG_HEADERS]);
+    })().catch((error) => {
+      logReady = null;
+      throw error;
+    });
+    await logReady;
+    const at = formatTimestamp(new Date());
+    await appendSheetRows(
+      accessToken,
+      spreadsheetId,
+      EMAIL_LOG_TAB,
+      rows.map((r) => [at, r.subject, r.to, r.status, r.error ?? ""]),
+    );
+  } catch (error) {
+    console.error("[mailer] couldn't write Email Log:", error);
+  }
+}
+
+/** Thrown by sendEmail; it has already been written to the Email Log. */
+export class EmailSendError extends Error {
+  readonly logged = true;
+}
+
+/** Sends one email and logs it to the Email Log tab; returns the Gmail message id. */
 export async function sendEmail(email: OutgoingEmail): Promise<string> {
   const to = email.to.trim();
+  try {
+    const id = await deliver({ ...email, to });
+    await logEmails([{ subject: email.subject, to, status: "Sent" }]);
+    return id;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await logEmails([{ subject: email.subject, to, status: "Failed", error: message }]);
+    throw new EmailSendError(message);
+  }
+}
+
+async function deliver(email: OutgoingEmail): Promise<string> {
+  const to = email.to;
   if (!/^[^\s@,<>]+@[^\s@,<>]+\.[^\s@,<>]+$/.test(to)) throw new Error(`Invalid recipient: ${to || "(blank)"}`);
 
   if (!(await senderCanSend())) {
@@ -101,7 +156,7 @@ export async function sendEmail(email: OutgoingEmail): Promise<string> {
     );
   }
   const { accessToken } = await getAccessTokenForAccount(SENDER_EMAIL);
-  const raw = Buffer.from(buildMime({ ...email, to }), "utf8").toString("base64url");
+  const raw = Buffer.from(buildMime(email), "utf8").toString("base64url");
 
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",

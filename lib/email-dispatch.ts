@@ -6,7 +6,7 @@
 
 import { appendSheetRows, getAccessTokenForAccount, getSheetValues, updateSheetCell } from "@/lib/google-sheets";
 import { confirmationEmail, paymentReceivedEmail, type ConfirmationKind, type Fields } from "@/lib/emails";
-import { sendEmail } from "@/lib/mailer";
+import { EmailSendError, sendEmail } from "@/lib/mailer";
 import { autoSendEnabled } from "@/lib/settings";
 import { getCopyOverrides } from "@/lib/email-store";
 import { MASTER_TABS, colIndex, masterSheetId, type MasterTabName } from "@/lib/master-sheet";
@@ -93,6 +93,7 @@ export async function autoConfirm(tab: MasterTabName, rowNumber: number): Promis
 
 /** Writes a failed automatic email to the Email Log tab so staff can see why. Never throws. */
 async function logFailure(tab: MasterTabName, rowNumber: number, error: unknown) {
+  if (error instanceof EmailSendError) return; // sendEmail already logged it
   try {
     const { accessToken } = await getAccessTokenForAccount();
     await appendSheetRows(accessToken, masterSheetId(), "Email Log", [

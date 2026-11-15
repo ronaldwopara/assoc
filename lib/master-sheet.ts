@@ -21,6 +21,8 @@ export const MASTER_TABS = {
   registrations: "Event Registrations",
   /** One row for every form that comes in (website forms and event Google Forms). */
   formLog: "Form Log",
+  /** Educational Resource Library licences sold through Stripe (see lib/licences). */
+  licences: "Licences",
 } as const;
 
 export type MasterTabKey = keyof typeof MASTER_TABS;
@@ -133,6 +135,30 @@ export const MASTER_HEADERS: Record<MasterTabKey, readonly string[]> = {
   ],
   registrations: ["Timestamp", "Full Name", "Email", "Phone Number", "Event", "Details", "Confirmation Sent"],
   formLog: ["Timestamp", "Form", "Full Name", "Email", "Phone Number", "From", "Details", "New or returning"],
+  /**
+   * One row per licence (per Stripe subscription). Access is allowed while
+   * Status isn't "Ended" and Access Until hasn't passed. Staff can type a row
+   * by hand to grant a licence paid some other way (leave the Stripe columns blank).
+   */
+  licences: [
+    "Timestamp",
+    "Full Name",
+    "Email",
+    "Tier",
+    "Term",
+    "Amount",
+    "Status",
+    "Access Until",
+    "Last Payment",
+    "Stripe Subscription",
+    "Stripe Customer",
+    "Stripe Session",
+    "Access Email Sent",
+    // Reminders for people who started checkout but haven't paid (Status "Checkout started").
+    "Reminder Count",
+    "Last Reminder",
+    "Stop Reminders",
+  ],
 };
 
 export function masterSheetId(): string {
