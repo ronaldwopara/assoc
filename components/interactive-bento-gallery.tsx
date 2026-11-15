@@ -24,8 +24,6 @@ import type { MediaItemType } from "@/lib/featured-programs-data";
 import { SETTLEMENT_WELLBEING_TITLE } from "@/lib/program-names";
 import { joinActionHref } from "@/lib/join-actions";
 
-const ctaClassName =
-  "hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out";
 const drawerCtaClassName =
   "hero-cta-btn focus-ring-light inline-flex min-h-12 min-w-0 flex-1 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out sm:min-h-14 sm:flex-none sm:px-10 sm:py-4 sm:text-base";
 type ProgramActionLink = { label: "Register" | "Volunteer"; href: string };
@@ -227,7 +225,7 @@ function GalleryModal({
               <p className="mt-4 max-w-152 text-base font-normal leading-relaxed text-white/90 sm:text-lg">
                 {selectedItem.desc}
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-3 sm:flex sm:w-auto sm:max-w-none">
                 <button
                   ref={learnMoreRef}
                   type="button"
@@ -235,7 +233,7 @@ function GalleryModal({
                     e.stopPropagation();
                     setDrawerOpen((v) => !v);
                   }}
-                  className={`${ctaClassName} pointer-events-auto relative z-50`}
+                  className="hero-cta-btn focus-ring-light pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide whitespace-nowrap text-black transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
                 >
                   Learn More
                 </button>
@@ -243,7 +241,7 @@ function GalleryModal({
                   <Link
                     href="/stories"
                     onClick={(e) => e.stopPropagation()}
-                    className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide transition duration-200 ease-out"
+                    className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide whitespace-nowrap transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
                   >
                     Watch the Film
                   </Link>
