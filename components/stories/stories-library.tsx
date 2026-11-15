@@ -8,6 +8,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2, Play, X } from "lucide-react";
 import { guidedFieldInputClassName } from "@/components/guided-form";
 import { LICENCE_TIERS, STORIES, type LicenceTerm, type LicenceTier, type Story } from "@/lib/licences/catalogue";
+import { joinActionHref } from "@/lib/join-actions";
 import { cn } from "@/lib/utils";
 
 type Session = { signedIn: boolean; email?: string; active?: boolean; tier?: string | null; accessUntil?: string | null };
@@ -514,7 +515,12 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
                 </ChoiceList>
                 <p className="pt-1 text-center text-sm text-black/55">
                   Need something broader?{" "}
-                  <Link href="/contact" className={QUIET_BTN}>
+                  <Link
+                    href={joinActionHref("contact", {
+                      message: "I'd like a quote for a Walking in Their Shoes licence for our organization.",
+                    })}
+                    className={QUIET_BTN}
+                  >
                     Ask for a quote
                   </Link>
                 </p>
