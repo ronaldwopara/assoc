@@ -68,9 +68,10 @@ function UpgradePageContentInner({
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/upgrade/session")
-      .then((res) => {
-        if (!cancelled) setAuthed(res.ok);
+    fetch("/api/upgrade/session", { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<{ authenticated?: unknown }>) : { authenticated: false }))
+      .then((body) => {
+        if (!cancelled) setAuthed(body.authenticated === true);
       })
       .catch(() => {
         if (!cancelled) setAuthed(false);

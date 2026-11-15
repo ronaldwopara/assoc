@@ -8,15 +8,8 @@ const NO_STORE = {
 } as const;
 
 export async function GET() {
+  // Always 200: every visitor's browser asks this, and a 401 shows up as a red
+  // console error for everyone who isn't staff. The answer is in the body.
   const ok = await isUpgradeAuthenticated();
-  if (!ok) {
-    return NextResponse.json(
-      { authenticated: false },
-      { status: 401, headers: NO_STORE },
-    );
-  }
-  return NextResponse.json(
-    { authenticated: true },
-    { status: 200, headers: NO_STORE },
-  );
+  return NextResponse.json({ authenticated: ok }, { status: 200, headers: NO_STORE });
 }

@@ -129,7 +129,7 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
           />
           <span className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
-          <span className="absolute inset-y-0 left-[22%] right-0 grid place-items-center sm:left-0">
+          <span className="absolute inset-0 grid place-items-center">
             <span className="grid size-14 place-items-center rounded-full bg-white/95 text-(--ink) shadow-xl shadow-black/30 transition-transform duration-300 ease-out group-hover:scale-110 sm:size-20">
               <Play className="ml-1 size-5 fill-current sm:size-7" aria-hidden />
             </span>
@@ -269,7 +269,7 @@ function StoryModal({
     };
     window.addEventListener("keydown", onKey);
     const frame = requestAnimationFrame(() =>
-      dialogRef.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus({ preventScroll: true }),
+      dialogRef.current?.focus({ preventScroll: true }),
     );
 
     return () => {
@@ -302,20 +302,20 @@ function StoryModal({
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
+            tabIndex={-1}
             aria-labelledby={titleId}
             initial={reduce ? { opacity: 0, maxWidth: video ? 896 : 460 } : { opacity: 0, y: 32, scale: 0.98, maxWidth: video ? 896 : 460 }}
             animate={{ opacity: 1, y: 0, scale: 1, maxWidth: video ? 896 : 460 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 420, damping: 36, mass: 0.8 }}
             className={cn(
-              "relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl shadow-[0_24px_48px_rgba(0,0,0,0.28)] sm:rounded-2xl",
+              "relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl outline-none shadow-[0_24px_48px_rgba(0,0,0,0.28)] sm:rounded-2xl",
               video ? "bg-black" : "bg-(--cream-light)",
             )}
           >
             <button
               type="button"
               onClick={onClose}
-              data-autofocus
               aria-label="Close"
               className={cn(
                 "focus-ring-light absolute z-20 grid cursor-pointer place-items-center rounded-full transition",
@@ -420,7 +420,7 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
       };
 
   return (
-    <div className="px-6 pb-7 pt-6 sm:px-8 sm:pb-8 sm:pt-7">
+    <div className="px-5 pb-7 pt-6 sm:px-8 sm:pb-8 sm:pt-7">
       <div>
         <p className="mb-3 pr-12 text-sm font-semibold tracking-wide text-black/55" aria-live="polite">
           Step {step + 1} of {TOTAL}
@@ -456,7 +456,7 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
                     }}
                   />
                   <Choice
-                    title="A school or organization"
+                    title="School or organization"
                     price={`From ${money(orgTiers[0].prices.year ?? 0)}/yr`}
                     selected={audience === "org"}
                     onSelect={() => {
@@ -624,7 +624,7 @@ function Choice({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "guided-option focus-ring-light box-border w-full max-w-full cursor-pointer rounded-xl border px-3.5 py-3 text-left text-[0.9375rem] font-medium transition-colors duration-150",
+        "guided-option focus-ring-light box-border w-full max-w-full cursor-pointer rounded-xl border px-3 py-3 text-left text-sm font-medium sm:px-3.5 sm:text-[0.9375rem] transition-colors duration-150",
         selected
           ? "border-(--hero-cta) bg-(--hero-cta)/15 text-(--orange-dark)"
           : "border-(--brown-dark)/15 bg-white text-black hover:bg-(--brown-dark)/5",
@@ -644,7 +644,7 @@ function Choice({
           {title}
           {note && <span className="ml-2 text-sm font-semibold text-(--orange-dark)">{note}</span>}
         </span>
-        <span className="shrink-0 text-sm font-semibold text-black/60">{price}</span>
+        <span className="shrink-0 text-[0.8125rem] font-semibold text-black/60 sm:text-sm">{price}</span>
       </span>
     </button>
   );
@@ -673,7 +673,7 @@ function SignIn({ titleId }: { titleId: string }) {
   }
 
   return (
-    <div className="px-6 pb-7 pt-6 sm:px-8 sm:pb-8 sm:pt-7">
+    <div className="px-5 pb-7 pt-6 sm:px-8 sm:pb-8 sm:pt-7">
       <AnimatePresence mode="wait" initial={false}>
         {state.kind === "sent" ? (
           <motion.div key="sent" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-2 pr-8">
