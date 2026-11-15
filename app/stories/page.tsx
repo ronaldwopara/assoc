@@ -15,7 +15,10 @@ export default async function StoriesPage({ searchParams }: { searchParams: Prom
     <>
       <Navbar />
       <main id="main-content" className="site-main">
-        <StoriesLibrary notice={notice} />
+        {/* section-shell clears the fixed header, the same way /join does. */}
+        <div className="section-shell">
+          <StoriesLibrary notice={notice} />
+        </div>
       </main>
     </>
   );

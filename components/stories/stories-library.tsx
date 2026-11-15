@@ -85,7 +85,7 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
   }
 
   return (
-    <section aria-labelledby="stories-heading" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:flex lg:min-h-[calc(100dvh-var(--navbar-height)-var(--announcement-bar-height))] lg:flex-col lg:justify-center">
+    <section aria-labelledby="stories-heading" className="mx-auto w-full max-w-6xl lg:flex lg:min-h-[calc(100dvh-var(--header-height)-var(--announcement-bar-height,0px)-7.5rem)] lg:flex-col lg:justify-center">
       <AnimatePresence initial={false}>
         {session.signedIn && (
           <motion.div
@@ -129,9 +129,9 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
           />
           <span className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
-          <span className="absolute inset-0 grid place-items-center">
-            <span className="grid size-16 place-items-center rounded-full bg-white/95 text-(--ink) shadow-xl shadow-black/30 transition-transform duration-300 ease-out group-hover:scale-110 sm:size-20">
-              <Play className="ml-1 size-6 fill-current sm:size-7" aria-hidden />
+          <span className="absolute inset-y-0 left-[22%] right-0 grid place-items-center sm:left-0">
+            <span className="grid size-14 place-items-center rounded-full bg-white/95 text-(--ink) shadow-xl shadow-black/30 transition-transform duration-300 ease-out group-hover:scale-110 sm:size-20">
+              <Play className="ml-1 size-5 fill-current sm:size-7" aria-hidden />
             </span>
           </span>
           {!licensed && FILM.trailerId && (
@@ -142,7 +142,7 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
         </button>
 
         <div className="mx-auto max-w-xl text-center lg:w-fit lg:text-left">
-          <h1 id="stories-heading" className="text-3xl font-bold leading-tight tracking-tight text-balance text-(--ink) sm:whitespace-nowrap sm:text-4xl lg:text-[clamp(2rem,2.9vw,2.75rem)]">
+          <h1 id="stories-heading" className="text-[1.75rem] font-bold leading-tight tracking-tight text-balance text-(--ink) sm:whitespace-nowrap sm:text-4xl lg:text-[clamp(2rem,2.9vw,2.75rem)]">
             {FILM.title}
           </h1>
           <p className="mt-3 text-base text-pretty text-black/70 sm:text-lg lg:max-w-md">
