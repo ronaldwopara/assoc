@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -226,17 +227,28 @@ function GalleryModal({
               <p className="mt-4 max-w-152 text-base font-normal leading-relaxed text-white/90 sm:text-lg">
                 {selectedItem.desc}
               </p>
-              <button
-                ref={learnMoreRef}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDrawerOpen((v) => !v);
-                }}
-                className={`${ctaClassName} pointer-events-auto relative z-50 mt-6`}
-              >
-                Learn More
-              </button>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  ref={learnMoreRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDrawerOpen((v) => !v);
+                  }}
+                  className={`${ctaClassName} pointer-events-auto relative z-50`}
+                >
+                  Learn More
+                </button>
+                {selectedItem.area === "story" && (
+                  <Link
+                    href="/stories"
+                    onClick={(e) => e.stopPropagation()}
+                    className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide transition duration-200 ease-out"
+                  >
+                    Watch the Film
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
