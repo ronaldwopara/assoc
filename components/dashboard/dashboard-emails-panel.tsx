@@ -377,7 +377,7 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
       const defaults = { ...template.defaults, heroUrl: "" };
       setCopy(defaults);
       onSaved(defaults, false);
-      setStatus("Back to the original");
+      setStatus("Original wording restored.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Couldn't reset");
     } finally {
@@ -427,6 +427,17 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
                 <EmailField id={f("outro")} label="Closing message" value={copy.outro} onChange={set("outro")} multiline rows={5} inserts={inserts} insertLabels={insertLabels} />
               ),
             },
+            {
+              key: "more",
+              title: "More options",
+              hint: "Optional.",
+              content: (
+                <>
+                  <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} insertLabels={insertLabels} />
+                  <EmailField id={f("banner")} label="Small text along the top" value={copy.banner} onChange={set("banner")} />
+                </>
+              ),
+            },
           ]}
           onFinish={() => void (dirty && save())}
           finishLabel="Save changes"
@@ -435,8 +446,15 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
         <div className="dash-savebar dash-savebar--inline">
           {status && <span className="dash-savebar-status">{status}</span>}
           {template.edited && (
-            <button type="button" className="dash-text-btn focus-ring-light" onClick={reset} disabled={saving}>
-              Go back to the original wording
+            <button
+              type="button"
+              className="dash-text-btn dash-text-btn--danger focus-ring-light"
+              onClick={() => {
+                if (confirm("Undo all your changes to this email and use the original wording? Your edits will be lost.")) void reset();
+              }}
+              disabled={saving}
+            >
+              Undo all my changes to this email
             </button>
           )}
         </div>

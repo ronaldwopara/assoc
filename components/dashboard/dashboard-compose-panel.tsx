@@ -587,6 +587,17 @@ export function DashboardComposePanel() {
       ),
     },
     {
+      key: "more",
+      title: "More options",
+      hint: "Optional.",
+      content: (
+        <>
+          <EmailField id="compose-preheader" label="Preview text in the inbox" value={content.preheader} onChange={set("preheader")} />
+          <EmailField id="compose-banner" label="Small text along the top" value={content.banner} onChange={set("banner")} />
+        </>
+      ),
+    },
+    {
       key: "who",
       title: "Who should get it?",
       ready: count > 0 && !loadingRecipients,
