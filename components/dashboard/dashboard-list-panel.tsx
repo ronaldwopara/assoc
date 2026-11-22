@@ -4,6 +4,7 @@ import { Busy } from "@/components/dashboard/ui";
 import { PushToggle } from "@/components/dashboard/push-toggle";
 import { AddFormDialog } from "@/components/dashboard/add-form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { rowHasContent } from "@/lib/sheet-rows";
 import {
   ExternalLink,
   Download,
@@ -279,6 +280,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     if (!rows || fromColumnIndex < 0) return [];
     const counts = new Map<string, number>();
     for (const row of rows.rows) {
+      if (!rowHasContent(row)) continue;
       const v = fromValue(row);
       if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
     }
@@ -314,12 +316,15 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
     };
   }, [dateOpen]);
 
+  const peopleCount = useMemo(() => rows?.rows.filter(rowHasContent).length ?? 0, [rows]);
+
   // rowNumber is 1-indexed and includes the header row, matching the Sheets API range.
   const visibleRows = useMemo(() => {
     if (!rows) return [];
     const withRowNumbers = rows.rows.map((row, i) => ({ row, rowNumber: i + 2 }));
     const q = query.trim().toLowerCase();
     const matching = withRowNumbers.filter(({ row }) => {
+      if (!rowHasContent(row)) return false;
       if (fromFilter && fromValue(row) !== fromFilter) return false;
       if (dateFilterActive && !rowMatchesDateFilter(row, dateColumnIndex, dateFrom, dateTo)) {
         return false;
@@ -521,9 +526,9 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       <header className="dash-panel-head">
         <div className="dash-panel-heading">
           <h2 className="dash-panel-title">{meta.title}</h2>
-          {rows && rows.rows.length > 0 && (
+          {rows && peopleCount > 0 && (
             <p className="dash-panel-sub">
-              {rows.rows.length} {rows.rows.length === 1 ? "person" : "people"}
+              {peopleCount} {peopleCount === 1 ? "person" : "people"}
             </p>
           )}
         </div>
@@ -540,7 +545,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 onChange={(e) => setFromFilter(e.target.value)}
               >
                 <option value="">
-                  {fromConfig.all} ({rows?.rows.length ?? 0})
+                  {fromConfig.all} ({peopleCount})
                 </option>
                 {fromOptions.map(([v, n]) => (
                   <option key={v} value={v}>
@@ -557,7 +562,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 placeholder="Search this list…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                disabled={!rows || rows.rows.length === 0}
+                disabled={!rows || peopleCount === 0}
               />
               <button
                 ref={dateFilterBtnRef}
@@ -571,7 +576,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
                 aria-expanded={dateOpen}
                 aria-haspopup="dialog"
                 aria-controls="dash-date-popover"
-                disabled={!rows || rows.rows.length === 0}
+                disabled={!rows || peopleCount === 0}
                 onClick={() => setDateOpen((open) => !open)}
               >
                 <ListFilter size={15} aria-hidden />
@@ -663,7 +668,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
               type="button"
               className="dash-action-btn focus-ring-light"
               onClick={exportCsv}
-              disabled={!rows || rows.rows.length === 0}
+              disabled={!rows || peopleCount === 0}
               aria-label="Download as a spreadsheet"
             >
               <Download size={16} aria-hidden />
@@ -737,7 +742,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       )}
 
-      {!initialLoading && !errorMessage && activeTab && rows && rows.rows.length === 0 && !addingNewRow && (
+      {!initialLoading && !errorMessage && activeTab && rows && peopleCount === 0 && !addingNewRow && (
         <div className="dash-empty">
           <p className="dash-empty-title">{listId === "form-log" ? "No forms yet" : "Nobody here yet"}</p>
           <p className="dash-muted">
@@ -748,7 +753,7 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
         </div>
       )}
 
-      {!initialLoading && !errorMessage && rows && rows.rows.length > 0 && visibleRows.length === 0 && !addingNewRow && (
+      {!initialLoading && !errorMessage && rows && peopleCount > 0 && visibleRows.length === 0 && !addingNewRow && (
         <div className="dash-empty">
           <p>No matches.</p>
           <p className="dash-muted">{noMatchHint(activeTab || meta.title, query, dateFrom, dateTo)}</p>
@@ -954,11 +959,11 @@ export function DashboardListPanel({ listId }: DashboardListPanelProps) {
       )}
 
       {/* The total is in the header; the footer only appears while searching/filtering. */}
-      {!initialLoading && !errorMessage && rows && visibleRows.length > 0 && visibleRows.length !== rows.rows.length && (
+      {!initialLoading && !errorMessage && rows && visibleRows.length > 0 && visibleRows.length !== peopleCount && (
         <p className="dash-row-count">
           {visibleRows.length}
-          {visibleRows.length !== rows.rows.length ? ` of ${rows.rows.length}` : ""} row
-          {rows.rows.length === 1 ? "" : "s"}
+          {visibleRows.length !== peopleCount ? ` of ${peopleCount}` : ""} row
+          {peopleCount === 1 ? "" : "s"}
           {dateFilterActive
             ? dateFrom && dateTo
               ? ` · ${formatIsoDayLabel(dateFrom)} to ${formatIsoDayLabel(dateTo)}`

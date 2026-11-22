@@ -1,3 +1,4 @@
+import { rowHasContent } from "@/lib/sheet-rows";
 /** Aggregates Interac / Expenses / roster data for the staff Overview tab. Every
  * source is optional (an unconfigured spreadsheet just drops that slice) since not
  * every deployment has every sheet wired up. */
@@ -60,7 +61,7 @@ function masterTab(accessToken: string, tab: string, errors: string[]): Promise<
     return Promise.resolve(null);
   }
   return getSheetValues(accessToken, spreadsheetId, tab)
-    .then(([headers = [], ...rows]) => ({ headers, rows }))
+    .then(([headers = [], ...rows]) => ({ headers, rows: rows.filter(rowHasContent) }))
     .catch((error) => {
       errors.push(`${tab}: ${error instanceof Error ? error.message : String(error)}`);
       return null;
