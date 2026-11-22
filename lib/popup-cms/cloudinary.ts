@@ -27,7 +27,7 @@ function sign(params: Record<string, string | number>, apiSecret: string) {
     .digest("hex");
 }
 
-async function uploadRawJson(options: {
+export async function uploadRawJson(options: {
   publicId: string;
   filename: string;
   json: string;
@@ -86,7 +86,7 @@ export async function uploadPopupCmsJson(
 const RAW_URL_TTL_MS = 5 * 60 * 1000;
 const rawUrlCache = new Map<string, { url: string; at: number }>();
 
-async function fetchRawJsonUrl(publicId: string): Promise<string | null> {
+export async function fetchRawJsonUrl(publicId: string): Promise<string | null> {
   const cached = rawUrlCache.get(publicId);
   if (cached && Date.now() - cached.at < RAW_URL_TTL_MS) return cached.url;
   const { cloudName, apiKey, apiSecret } = requireCloudinary();

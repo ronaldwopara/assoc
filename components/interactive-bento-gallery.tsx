@@ -243,7 +243,7 @@ function GalleryModal({
                     onClick={(e) => e.stopPropagation()}
                     className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide whitespace-nowrap transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
                   >
-                    Watch the Film
+                    Access the Stories
                   </Link>
                 )}
               </div>

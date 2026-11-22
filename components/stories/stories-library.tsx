@@ -7,7 +7,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2, Play, X } from "lucide-react";
 import { guidedFieldInputClassName } from "@/components/guided-form";
-import { LICENCE_TIERS, STORIES, type LicenceTerm, type LicenceTier, type Story } from "@/lib/licences/catalogue";
+import { LICENCE_TIERS, type LicenceTerm, type LicenceTier, type Story } from "@/lib/licences/catalogue";
 import { joinActionHref } from "@/lib/join-actions";
 import { cn } from "@/lib/utils";
 
@@ -40,10 +40,13 @@ const money = (n: number) => `$${n.toLocaleString("en-CA")}`;
 
 // ---------------------------------------------------------------- page section
 
-/** The library holds one film for now; the page is built around it. */
-const FILM = STORIES[0];
-
-export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" }) {
+/**
+ * One licence opens every documentary. The first is the feature; the rest sit
+ * below it as cards. Staff manage the list under Upgrade → Documentaries.
+ */
+export function StoriesLibrary({ films, notice }: { films: Story[]; notice?: "signed-in" | "expired" }) {
+  const FILM = films[0];
+  const [active, setActive] = useState<Story | undefined>(FILM);
   const [session, setSession] = useState<Session>({ signedIn: false });
   // An expired emailed link drops the reader straight into the sign-in step.
   const [view, setView] = useState<View | null>(() => (notice === "expired" ? "sign-in" : null));
@@ -79,10 +82,26 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
 
   const licensed = Boolean(session.signedIn && session.active);
 
+  function openFilm(story: Story) {
+    setActive(story);
+    setView(licensed ? "player" : story.trailerId ? "trailer" : "buy");
+  }
+
   async function signOut() {
     await fetch("/api/licence/sign-out", { method: "POST" });
     setJustSignedIn(false);
     await refreshSession();
+  }
+
+  if (!FILM) {
+    return (
+      <section aria-labelledby="stories-heading" className="mx-auto max-w-xl py-16 text-center">
+        <h1 id="stories-heading" className="text-3xl font-bold tracking-tight text-(--ink)">
+          Our Story, Our Voice
+        </h1>
+        <p className="mt-3 text-base text-black/60">New documentaries are coming soon.</p>
+      </section>
+    );
   }
 
   return (
@@ -117,7 +136,7 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
         {/* The cover already carries the title art, so nothing sits on top of it. */}
         <button
           type="button"
-          onClick={() => setView(licensed ? "player" : FILM.trailerId ? "trailer" : "buy")}
+          onClick={() => openFilm(FILM)}
           className="group focus-ring-light relative block aspect-3/2 w-full overflow-hidden rounded-2xl bg-(--cream) shadow-xl shadow-black/15"
           aria-label={licensed ? `Watch ${FILM.title}` : `Watch the ${FILM.title} trailer`}
         >
@@ -148,7 +167,7 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
           </h1>
           <p className="mt-3 text-base text-pretty text-black/70 sm:text-lg lg:max-w-md">
             {FILM.summary}{" "}
-            {!more && (
+            {!more && FILM.hook && (
               <button type="button" onClick={() => setMore(true)} aria-expanded={more} className={QUIET_BTN}>
                 Read more
               </button>
@@ -181,12 +200,12 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
 
           <div className="mx-auto mt-8 max-w-xs lg:max-w-none">
             {licensed ? (
-              <button type="button" onClick={() => setView("player")} className={PRIMARY_BTN}>
+              <button type="button" onClick={() => openFilm(FILM)} className={PRIMARY_BTN}>
                 Watch the film
               </button>
             ) : (
               <button type="button" onClick={() => setView("buy")} className={PRIMARY_BTN}>
-                Get access
+                Choose a licence
               </button>
             )}
           </div>
@@ -205,13 +224,62 @@ export function StoriesLibrary({ notice }: { notice?: "signed-in" | "expired" })
         </div>
       </motion.div>
 
+      {films.length > 1 && (
+        <div className="mt-16 sm:mt-20">
+          <h2 className="text-center text-xl font-bold tracking-tight text-(--ink) sm:text-2xl lg:text-left">
+            More documentaries
+          </h2>
+          <ul className="mt-6 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {films.slice(1).map((film) => (
+              <li key={film.id}>
+                <FilmCard film={film} licensed={licensed} onOpen={() => openFilm(film)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <StoryModal
-        state={view ? { story: FILM, view } : null}
+        state={view && active ? { story: active, view } : null}
         session={session}
         onView={setView}
         onClose={() => setView(null)}
       />
     </section>
+  );
+}
+
+function FilmCard({ film, licensed, onOpen }: { film: Story; licensed: boolean; onOpen: () => void }) {
+  return (
+    <div className="text-center sm:text-left">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group focus-ring-light relative block aspect-3/2 w-full overflow-hidden rounded-2xl bg-(--cream) shadow-lg shadow-black/10"
+        aria-label={licensed || !film.trailerId ? `Watch ${film.title}` : `Watch the ${film.title} trailer`}
+      >
+        <Image
+          src={film.cover}
+          alt=""
+          fill
+          sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+        />
+        <span className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid size-12 place-items-center rounded-full bg-white/95 text-(--ink) shadow-xl shadow-black/30 transition-transform duration-300 ease-out group-hover:scale-110 sm:size-14">
+            <Play className="ml-0.5 size-5 fill-current" aria-hidden />
+          </span>
+        </span>
+        {!licensed && film.trailerId && (
+          <span className="absolute right-3 top-3 bg-(--hero-cta) px-2.5 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wider text-black shadow-md">
+            Trailer
+          </span>
+        )}
+      </button>
+      <h3 className="mt-4 text-lg font-bold leading-snug text-balance text-(--ink)">{film.title}</h3>
+      <p className="mt-1 text-sm text-pretty text-black/65">{film.summary}</p>
+    </div>
   );
 }
 
@@ -448,7 +516,7 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
               <Question titleId={titleId} title="Who is this for?">
                 <ChoiceList>
                   <Choice
-                    title="Just me"
+                    title="Individual"
                     price={`From ${money(individual.prices.month ?? 0)}/mo`}
                     selected={audience === "me"}
                     onSelect={() => {
@@ -557,7 +625,7 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
                     autoCapitalize="none"
                     spellCheck={false}
                     autoComplete="email"
-                    placeholder="you@school.ca"
+                    placeholder={audience === "me" ? "you@gmail.com" : "you@school.ca"}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={cn(guidedFieldInputClassName, "py-3")}

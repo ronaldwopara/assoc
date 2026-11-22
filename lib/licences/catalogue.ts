@@ -2,8 +2,8 @@
  * What a licence is, what it costs, and what it opens. Safe to import from
  * client components: nothing here is secret.
  *
- * One licence opens the Educational Resource Library: for now, the
- * Walking in Their Shoes documentary. The tiers are sized by how many
+ * One licence opens every Our Story, Our Voice documentary on the site
+ * (staff add them under Upgrade → Documentaries). The tiers are sized by how many
  * people it covers. Prices and Payment Links live in the ASOSC live Stripe account (product prod_Vd5rfQeFUNLkGO, all CAD, all
  * auto-renewing). Change a price in Stripe and change it here too: the figure
  * shown on the card has to match what the link charges.
@@ -80,14 +80,16 @@ export function tierById(id: string): LicenceTier | undefined {
 }
 
 export type Story = {
+  /** Stable id used in /api/licence/watch?story=… — never changes once made. */
   id: string;
   title: string;
   /** Short line under the title. */
   theme: string;
-  /** One line shown first in the modal. */
+  /** One line shown first. */
   summary: string;
   /** The longer description, shown on "Read more". */
   hook: string;
+  /** A local /images path or a Cloudinary URL. Landscape, 3:2. */
   cover: string;
   /**
    * Bunny Stream video ids. Not secret on their own: playback is protected by
@@ -96,9 +98,15 @@ export type Story = {
    */
   videoId: string;
   trailerId: string;
+  /** Shown on the Stories page. Off keeps it saved but hidden. */
+  published: boolean;
 };
 
-export const STORIES: Story[] = [
+/**
+ * The first documentary, used until staff save the list from the dashboard.
+ * The live list is in lib/documentaries.
+ */
+export const SEED_STORIES: Story[] = [
   {
     id: "walking-in-their-shoes",
     title: "Walking in Their Shoes",
@@ -109,9 +117,6 @@ export const STORIES: Story[] = [
     // Bunny: "OSOV-Valueboard- Subtitled.mp4" (18 min) and "Our Story Our Voice -AdetolaTrailer.mp4".
     videoId: "187eaa09-d85a-4885-bae5-775ef158e72f",
     trailerId: "c9fac500-137f-4897-a172-3e3570c8a062",
+    published: true,
   },
 ];
-
-export function storyById(id: string): Story | undefined {
-  return STORIES.find((s) => s.id === id);
-}

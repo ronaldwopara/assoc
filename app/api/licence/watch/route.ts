@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { storyById } from "@/lib/licences/catalogue";
+import { documentaryById } from "@/lib/documentaries";
 import { bunnyConfigured, signedEmbedUrl } from "@/lib/licences/bunny";
 import { sessionEmail } from "@/lib/licences/session";
 import { activeLicenceFor } from "@/lib/licences/store";
@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const story = storyById(url.searchParams.get("story") ?? "");
-  if (!story) return NextResponse.json({ error: "Unknown story" }, { status: 404 });
+  const story = await documentaryById(url.searchParams.get("story") ?? "");
+  if (!story || !story.published) return NextResponse.json({ error: "Unknown story" }, { status: 404 });
 
   const trailer = url.searchParams.get("trailer") === "1";
   const videoId = trailer ? story.trailerId : story.videoId;

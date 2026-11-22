@@ -3,7 +3,8 @@ export type UpgradeToolId =
   | "gallery"
   | "announcement"
   | "documents"
-  | "popup";
+  | "popup"
+  | "documentaries";
 
 export type UpgradeTool = {
   id: UpgradeToolId;
@@ -36,6 +37,11 @@ export const UPGRADE_TOOLS: UpgradeTool[] = [
     id: "popup",
     title: "Popup",
     description: "Homepage flyer popup after scrolling into About Us — one active campaign.",
+  },
+  {
+    id: "documentaries",
+    title: "Documentaries",
+    description: "Add the films licence holders can watch on the Stories page.",
   },
 ];
 
