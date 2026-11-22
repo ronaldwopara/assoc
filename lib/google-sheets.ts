@@ -406,7 +406,7 @@ export async function updateSheetCell(
   ]);
 }
 
-function columnLetter(count: number): string {
+export function columnLetter(count: number): string {
   let n = Math.max(count, 1);
   let letters = "";
   while (n > 0) {
