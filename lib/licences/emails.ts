@@ -18,7 +18,7 @@ export function libraryLinkEmail(opts: {
   return renderEmail({
     to: opts.to,
     subject: welcome ? "Your ASOSC library is ready" : "Your sign-in link for the ASOSC library",
-    preheader: welcome ? "Your access to Walking in Their Shoes is ready." : "This link signs you in for the next 30 minutes.",
+    preheader: welcome ? "Your access to the Our Story Our Voice documentaries is ready." : "This link signs you in for the next 30 minutes.",
     banner: "Educational Resource Library",
     headline: welcome ? "Welcome to the library" : "Sign in to the library",
     subhead: welcome ? "Your licence is active" : "Use the button below to sign in",
@@ -27,13 +27,13 @@ export function libraryLinkEmail(opts: {
     intro: welcome
       ? [
           `Hi ${first},`,
-          `Thank you for licensing the ASOSC Educational Resource Library${opts.tierName ? ` (${opts.tierName})` : ""}. Your licence opens Walking in Their Shoes, the Our Story, Our Voice documentary.`,
+          `Thank you for licensing the ASOSC Educational Resource Library${opts.tierName ? ` (${opts.tierName})` : ""}. Your licence opens all the Our Story Our Voice documentaries.`,
         ]
       : [`Hi ${first},`, "Here is your link to sign in to the ASOSC Educational Resource Library."],
     box: {
       heading: { text: "This link works for **30 minutes** and signs you in on this device." },
       button: { label: welcome ? "Open the library" : "Sign in", href: opts.link },
-      note: "After that, come back any time and choose “Already licensed? Sign in” to get a new link sent here.",
+      note: "After that, come back any time and choose “Sign in” on the Stories page to get a new link sent here.",
     },
     outro: [
       "Your licence renews automatically. To update your card or cancel, reply to this email and we'll sort it out.",
@@ -51,16 +51,16 @@ export function libraryLinkEmail(opts: {
 export function licenceReminderEmail(opts: { to: string; tierName: string; price: string; payUrl: string; pageUrl: string }): OutgoingEmail {
   return renderEmail({
     to: opts.to,
-    subject: "Finish getting access to Walking in Their Shoes",
+    subject: "Finish getting access to the Our Story Our Voice documentaries",
     preheader: "Your checkout is still waiting for you.",
     banner: "Educational Resource Library",
     headline: "You're almost there",
-    subhead: "Walking in Their Shoes",
+    subhead: "Our Story Our Voice documentaries",
     heroUrl: HERO.people,
     heroAlt: "ASOSC community event",
     intro: [
       "Hi there,",
-      "You started getting access to Walking in Their Shoes, the Our Story, Our Voice documentary, but didn't finish checking out.",
+      "You started getting access to the Our Story Our Voice documentaries, but didn't finish checking out.",
     ],
     box: {
       heading: { text: `**${opts.tierName}** · ${opts.price}` },

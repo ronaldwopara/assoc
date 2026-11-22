@@ -585,7 +585,7 @@ function BuyFlow({ titleId, defaultEmail }: { titleId: string; defaultEmail?: st
                   Need something broader?{" "}
                   <Link
                     href={joinActionHref("contact", {
-                      message: "I'd like a quote for a Walking in Their Shoes licence for our organization.",
+                      message: "I'd like a quote for an Our Story Our Voice documentaries licence for our organization.",
                     })}
                     className={QUIET_BTN}
                   >
