@@ -128,7 +128,7 @@ export function DashboardEmailsPanel() {
           {open && (
             <button type="button" className="dash-back focus-ring-light" onClick={() => setOpenId(null)}>
               <ChevronLeft size={16} aria-hidden />
-              Back
+              All emails
             </button>
           )}
           {open && <p className="dash-eyebrow">{personFor(open.id)}</p>}

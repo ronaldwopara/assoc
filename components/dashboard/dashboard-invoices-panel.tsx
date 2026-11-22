@@ -508,7 +508,7 @@ function NewReceipt({
             onClick={onBack}
           >
             <ChevronLeft size={16} aria-hidden />
-            Back
+            All invoices &amp; receipts
           </button>
           <h2 className="dash-panel-title">New {word}</h2>
           <p className="dash-panel-sub">
