@@ -198,7 +198,7 @@ export async function runReminders({ force = false } = {}): Promise<ReminderRunR
             price: `$${price.toLocaleString("en-CA")}/${term}`,
             payUrl: payUrl.toString(),
             pageUrl: `${SITE}/stories`,
-          }),
+          }, overrides),
         );
         await markCheckoutReminded(p.rowNumber, step.count);
         result.reminders.licence += 1;

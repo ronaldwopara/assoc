@@ -312,7 +312,10 @@ export type AutoEmailId =
   | "vendor-approved"
   | "reminder-membership"
   | "reminder-donation"
-  | "reminder-vendor";
+  | "reminder-vendor"
+  | "licence-welcome"
+  | "licence-signin"
+  | "licence-reminder";
 
 export const AUTO_EMAILS: Array<{
   id: AutoEmailId;
@@ -337,6 +340,9 @@ export const AUTO_EMAILS: Array<{
   { id: "reminder-membership", label: "Membership reminder", when: "1, 3 and 7 days after sign-up while a membership is unpaid (the days are set under Reminders).", placeholders: ["first_name", "category", "amount", "payment_code"], defaultHero: HERO.people },
   { id: "reminder-donation", label: "Donation reminder", when: "1, 3 and 7 days after the pledge while a donation is unpaid (the days are set under Reminders).", placeholders: ["first_name", "amount", "payment_code"], defaultHero: HERO.wraps },
   { id: "reminder-vendor", label: "Vendor fee reminder", when: "1, 3 and 7 days after approval while a vendor's fee is unpaid (the days are set under Reminders).", placeholders: ["first_name", "business", "amount", "payment_code"], defaultHero: HERO.market },
+  { id: "licence-welcome", label: "Documentaries licence: welcome", when: "Right after someone buys a documentaries licence. Includes their sign-in button.", placeholders: ["first_name", "licence"], defaultHero: HERO.people },
+  { id: "licence-signin", label: "Documentaries licence: sign-in link", when: "When a licence holder asks for a new sign-in link on the Stories page.", placeholders: ["first_name"], defaultHero: HERO.people },
+  { id: "licence-reminder", label: "Documentaries licence: unfinished checkout", when: "1, 3 and 7 days after someone starts buying a licence but doesn't pay (the days are set under Reminders).", placeholders: ["licence", "price"], defaultHero: HERO.people },
 ];
 
 export function isAutoEmailId(value: unknown): value is AutoEmailId {
@@ -495,6 +501,33 @@ export const DEFAULT_COPY: Record<AutoEmailId, EditableCopy> = {
     intro: "Hi {first_name},\n\nWe haven't received the vendor fee for {business} yet. Your spot isn't confirmed until it comes through.",
     outro: "Already paid? Reply to this email and we will sort it out. If you can no longer make it, reply and we will free up your spot.",
   },
+  "licence-welcome": {
+    subject: "Your Our Story Our Voice documentaries are ready",
+    preheader: "Your access to the Our Story Our Voice documentaries is ready.",
+    banner: "Our Story Our Voice",
+    headline: "Welcome",
+    subhead: "Your licence is active",
+    intro: "Hi {first_name},\n\nThank you for your {licence} licence. It opens all the Our Story Our Voice documentaries.",
+    outro: "Your licence renews automatically. To update your card or cancel, reply to this email and we'll sort it out.",
+  },
+  "licence-signin": {
+    subject: "Your sign-in link for the Our Story Our Voice documentaries",
+    preheader: "This link signs you in for the next 30 minutes.",
+    banner: "Our Story Our Voice",
+    headline: "Sign in",
+    subhead: "Use the button below to sign in",
+    intro: "Hi {first_name},\n\nHere is your link to sign in and watch the Our Story Our Voice documentaries.",
+    outro: "If you didn't ask for this email, you can ignore it.",
+  },
+  "licence-reminder": {
+    subject: "Finish getting access to the Our Story Our Voice documentaries",
+    preheader: "Your checkout is still waiting for you.",
+    banner: "Our Story Our Voice",
+    headline: "You're almost there",
+    subhead: "Our Story Our Voice documentaries",
+    intro: "Hi there,\n\nYou started getting access to the Our Story Our Voice documentaries, but didn't finish checking out.",
+    outro: "Questions about licences for your school or organization? Just reply to this email.",
+  },
 };
 
 export type CopyOverrides = Partial<Record<AutoEmailId, Partial<EditableCopy>>>;
@@ -562,7 +595,7 @@ function buildFromCopy(
   to: string,
   vars: Record<string, string>,
   overrides: CopyOverrides | undefined,
-  extra: Pick<EmailContent, "box" | "quote"> = {},
+  extra: Pick<EmailContent, "box" | "quote" | "footerNote"> = {},
 ): OutgoingEmail {
   const copy = copyFor(id, overrides);
   const meta = AUTO_EMAILS.find((e) => e.id === id)!;
@@ -929,6 +962,40 @@ export const SAMPLE_FIELDS: Record<ConfirmationKind, Fields> = {
   newsletter: { "Full Name": "Ada Okafor", Email: "ada@example.com" },
 };
 
+// ---------------------------------------------------------------- documentaries licence
+
+/** Welcome (after buying) or a fresh sign-in link. The button signs them in. */
+export function licenceLinkEmail(
+  opts: { to: string; name?: string; link: string; kind: "welcome" | "sign-in"; tierName?: string },
+  overrides?: CopyOverrides,
+): OutgoingEmail {
+  const welcome = opts.kind === "welcome";
+  const first = (opts.name ?? "").trim().split(/\s+/)[0] || "there";
+  return buildFromCopy(welcome ? "licence-welcome" : "licence-signin", opts.to, { first_name: first, licence: opts.tierName || "documentaries" }, overrides, {
+    box: {
+      heading: { text: "This link works for **30 minutes** and signs you in on this device." },
+      button: { label: welcome ? "Start watching" : "Sign in", href: opts.link },
+      note: "After that, come back any time and choose “Sign in” on the Stories page to get a new link sent here.",
+    },
+    footerNote: "You're receiving this because this address holds an ASOSC documentaries licence.",
+  });
+}
+
+/** Someone started checkout but didn't pay. The button goes back to the same checkout. */
+export function licenceReminderEmail(
+  opts: { to: string; tierName: string; price: string; payUrl: string; pageUrl: string },
+  overrides?: CopyOverrides,
+): OutgoingEmail {
+  return buildFromCopy("licence-reminder", opts.to, { licence: opts.tierName, price: opts.price }, overrides, {
+    box: {
+      heading: { text: `**${opts.tierName}** · ${opts.price}` },
+      button: { label: "Finish checkout", href: opts.payUrl },
+      note: `Want to watch a trailer first? They're at ${opts.pageUrl}`,
+    },
+    footerNote: "You're receiving this because this address was entered to get access on asosc.ca. Reply STOP and we won't remind you again.",
+  });
+}
+
 /** Renders any automatic email with sample data — dashboard previews. */
 export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides, sample: Fields = {}): OutgoingEmail {
   const date = new Date().toLocaleDateString("en-CA", { timeZone: "America/Edmonton", dateStyle: "long" });
@@ -941,5 +1008,17 @@ export function sampleAutoEmail(id: AutoEmailId, overrides?: CopyOverrides, samp
   if (id === "reminder-membership") return reminderEmail("membership", SAMPLE_FIELDS.membership, overrides);
   if (id === "reminder-donation") return reminderEmail("donation", SAMPLE_FIELDS.donation, overrides);
   if (id === "reminder-vendor") return reminderEmail("vendor", SAMPLE_VENDOR, overrides);
+  if (id === "licence-welcome" || id === "licence-signin") {
+    return licenceLinkEmail(
+      { to: "ada@example.com", name: "Ada Okafor", link: "https://asosc.ca/stories", kind: id === "licence-welcome" ? "welcome" : "sign-in", tierName: "Individual" },
+      overrides,
+    );
+  }
+  if (id === "licence-reminder") {
+    return licenceReminderEmail(
+      { to: "ada@example.com", tierName: "Individual", price: "$20/month", payUrl: "https://asosc.ca/stories", pageUrl: "https://asosc.ca/stories" },
+      overrides,
+    );
+  }
   return confirmationEmail(id, { ...SAMPLE_FIELDS[id], ...sample }, overrides);
 }

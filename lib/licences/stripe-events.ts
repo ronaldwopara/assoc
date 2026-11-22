@@ -10,6 +10,7 @@
 import { sendEmail } from "@/lib/mailer";
 import { LICENCE_PAYMENT_LINK_IDS, tierById, type LicenceTerm } from "@/lib/licences/catalogue";
 import { libraryLinkEmail } from "@/lib/licences/emails";
+import { getCopyOverrides } from "@/lib/email-store";
 import { createLinkToken } from "@/lib/licences/session";
 import { markAccessEmailSent, recordLicence, updateSubscription } from "@/lib/licences/store";
 
@@ -80,7 +81,7 @@ export async function handleLicenceCheckout(s: Session, origin: string) {
   // here returns 500 so Stripe tries again.
   if (!emailSent) {
     const link = `${origin}/api/licence/verify?t=${encodeURIComponent(createLinkToken(email))}`;
-    await sendEmail(libraryLinkEmail({ to: email, name, link, kind: "welcome", tierName: tierById(tier)?.name }));
+    await sendEmail(libraryLinkEmail({ to: email, name, link, kind: "welcome", tierName: tierById(tier)?.name }, await getCopyOverrides().catch(() => undefined)));
     await markAccessEmailSent(rowNumber);
   }
   return { licence: created ? "recorded" : "already recorded", tier };

@@ -294,6 +294,9 @@ const EMAILS: Record<string, { name: string; about: string }> = {
   newsletter: { name: "When someone subscribes", about: "Welcomes them to the newsletter." },
   contact: { name: "When someone sends us a message", about: "Lets them know we got it and will reply." },
   invoice: { name: "When you send a receipt", about: "Sent when you email a receipt from the Receipts or Payments page. The PDF is attached." },
+  "licence-welcome": { name: "When they buy a licence", about: "Welcomes them and gives them a button to start watching." },
+  "licence-signin": { name: "When they ask to sign in", about: "Sends a fresh sign-in link from the Stories page." },
+  "licence-reminder": { name: "If they don't finish paying", about: "A reminder to finish checkout." },
 };
 
 /** Grouped by the person getting the email, in the order they'd get them. */
@@ -305,6 +308,7 @@ const PEOPLE: Array<{ title: string; ids: string[] }> = [
   { title: "Events", ids: ["event"] },
   { title: "Newsletter and messages", ids: ["newsletter", "contact"] },
   { title: "Invoices & receipts", ids: ["invoice-due", "invoice"] },
+  { title: "Documentaries", ids: ["licence-welcome", "licence-signin", "licence-reminder"] },
 ];
 
 function personFor(id: string): string {

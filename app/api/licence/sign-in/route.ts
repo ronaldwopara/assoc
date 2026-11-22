@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/mailer";
 import { tierById } from "@/lib/licences/catalogue";
 import { libraryLinkEmail } from "@/lib/licences/emails";
+import { getCopyOverrides } from "@/lib/email-store";
 import { createLinkToken, siteOrigin } from "@/lib/licences/session";
 import { activeLicenceFor } from "@/lib/licences/store";
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     if (licence) {
       const link = `${siteOrigin(request)}/api/licence/verify?t=${encodeURIComponent(createLinkToken(email))}`;
       await sendEmail(
-        libraryLinkEmail({ to: email, name: licence.name, link, kind: "sign-in", tierName: tierById(licence.tier)?.name }),
+        libraryLinkEmail({ to: email, name: licence.name, link, kind: "sign-in", tierName: tierById(licence.tier)?.name }, await getCopyOverrides().catch(() => undefined)),
       );
     }
   } catch (error) {
