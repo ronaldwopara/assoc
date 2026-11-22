@@ -9,6 +9,7 @@ import {
   Images,
   Megaphone,
   Clapperboard,
+  LayoutTemplate,
   type LucideIcon,
 } from "lucide-react";
 import { UPGRADE_TOOLS, type UpgradeToolId } from "@/lib/upgrade-tools";
@@ -32,6 +33,7 @@ const TOOL_ICONS: Record<UpgradeToolId, LucideIcon> = {
   documents: FileText,
   popup: AppWindow,
   documentaries: Clapperboard,
+  site: LayoutTemplate,
 };
 
 interface UpgradeChooserProps {

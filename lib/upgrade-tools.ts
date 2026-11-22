@@ -4,7 +4,8 @@ export type UpgradeToolId =
   | "announcement"
   | "documents"
   | "popup"
-  | "documentaries";
+  | "documentaries"
+  | "site";
 
 export type UpgradeTool = {
   id: UpgradeToolId;
@@ -13,6 +14,11 @@ export type UpgradeTool = {
 };
 
 export const UPGRADE_TOOLS: UpgradeTool[] = [
+  {
+    id: "site",
+    title: "Site sections",
+    description: "Change the words and pictures on every part of the website.",
+  },
   {
     id: "dashboard",
     title: "Dashboard",

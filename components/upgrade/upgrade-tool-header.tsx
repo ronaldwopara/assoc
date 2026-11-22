@@ -16,6 +16,8 @@ interface UpgradeToolHeaderProps {
   onLogout: () => void;
   /** When false, hide the Save button (read-only tools). Default true. */
   showSave?: boolean;
+  /** Text on the back button. Default "All tools". */
+  backLabel?: string;
   children?: ReactNode;
 }
 
@@ -30,6 +32,7 @@ export function UpgradeToolHeader({
   onSave,
   onLogout,
   showSave = true,
+  backLabel = "All tools",
   children,
 }: UpgradeToolHeaderProps) {
   return (
@@ -41,7 +44,7 @@ export function UpgradeToolHeader({
             onClick={onBack}
             className="mb-3 inline-flex min-h-10 cursor-pointer items-center rounded-lg border border-(--ink)/15 bg-white/80 px-3 text-sm font-medium text-(--ink) transition hover:bg-white"
           >
-            ← All tools
+            ← {backLabel}
           </button>
           <h1 className="text-3xl font-semibold text-(--ink)">{title}</h1>
           <p className="mt-2 max-w-xl text-sm text-(--ink)/70">{description}</p>

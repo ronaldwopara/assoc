@@ -6,18 +6,20 @@ import { MediaPlaceholderVideo } from "@/components/media-placeholder";
 import { PageBackLink } from "@/components/page-back-link";
 import { SectionLogoHeading } from "@/components/section-logo-heading";
 import { ContentBrow } from "@/components/content-brow";
-import { eventActionLinks, upcomingEvents } from "@/lib/events-data";
+import { useSiteContent } from "@/components/site-content-provider";
 import { joinActionHref } from "@/lib/join-actions";
 
 function EventsList() {
+  const { events } = useSiteContent();
   return (
       <div className="mx-auto mt-12 max-w-4xl">
-        {upcomingEvents.map((event) => {
-          const actionLink = eventActionLinks[event.title];
+        {events.map((event, i) => {
+          const actionLink =
+            event.actionLabel && event.actionHref ? { label: event.actionLabel, href: event.actionHref } : undefined;
 
           return (
             <div
-              key={event.title}
+              key={`${event.title}-${i}`}
               className="flex flex-col items-start gap-4 border-b border-(--cream-light)/15 py-6 last:border-b-0 sm:flex-row sm:items-center sm:gap-6"
             >
               <div className="w-20 shrink-0 text-center sm:w-16">
@@ -29,7 +31,7 @@ function EventsList() {
               <MediaPlaceholderVideo
                 className="h-24 w-full shrink-0 rounded-xl object-cover sm:h-24 sm:w-36"
                 wrapperClassName="h-24 w-full shrink-0 rounded-xl sm:h-24 sm:w-36"
-                src={event.videoSrc}
+                src={event.video}
                 tone="black"
                 muted
                 loop

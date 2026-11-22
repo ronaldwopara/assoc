@@ -10,6 +10,7 @@ import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { joinActionHref } from "@/lib/join-actions";
 import { cn } from "@/lib/utils";
 import { ContentBrow } from "@/components/content-brow";
+import { useSiteContent } from "@/components/site-content-provider";
 
 const communityActions = [
   {
@@ -84,7 +85,9 @@ function communityActionHref(item: (typeof communityActions)[number]): string {
 
 export function CommunityActionSection({ actionId }: CommunityActionSectionProps) {
   const router = useRouter();
-  const item = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
+  const base = communityActions.find((action) => action.id === actionId) ?? communityActions[0];
+  // Wording comes from Upgrade → Site sections; layout and links stay here.
+  const item = { ...base, ...useSiteContent().actions[base.id] };
   const isDark = "theme" in item && item.theme === "dark";
 
   return (
@@ -141,7 +144,7 @@ export function CommunityActionSection({ actionId }: CommunityActionSectionProps
 
           <div className="mt-8 flex justify-center">
             <Link
-              href={communityActionHref(item)}
+              href={communityActionHref(base)}
               className="hero-cta-btn focus-ring-light inline-flex min-h-14 cursor-pointer items-center justify-center px-10 py-4 text-base font-semibold tracking-wide text-black transition duration-200 ease-out"
             >
               {item.button}

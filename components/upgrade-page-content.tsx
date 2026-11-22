@@ -18,6 +18,7 @@ import { UpgradeDocumentsEditor } from "@/components/upgrade/upgrade-documents-e
 import { UpgradeGalleryEditor } from "@/components/upgrade/upgrade-gallery-editor";
 import { UpgradePopupEditor } from "@/components/upgrade/upgrade-popup-editor";
 import { UpgradeDocumentariesEditor } from "@/components/upgrade/upgrade-documentaries-editor";
+import { UpgradeSiteEditor } from "@/components/upgrade/upgrade-site-editor";
 import type { UpgradeStatus } from "@/components/upgrade/upgrade-tool-header";
 
 type UpgradePageContentProps = {
@@ -437,6 +438,8 @@ function UpgradePageContentInner({
         />
       ) : activeTool === "documentaries" ? (
         <UpgradeDocumentariesEditor onBack={backToHub} onHome={goHome} onLogout={logout} />
+      ) : activeTool === "site" ? (
+        <UpgradeSiteEditor onBack={backToHub} onHome={goHome} onLogout={logout} />
       ) : null}
     </div>
   );

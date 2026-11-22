@@ -7,6 +7,8 @@ import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
 import { GALLERY_BOTTOM_HREF } from "@/lib/gallery-scroll";
 import { joinActionHref } from "@/lib/join-actions";
 import { handleSectionLinkClick } from "@/lib/section-link";
+import { useSiteContent } from "@/components/site-content-provider";
+import type { ContactContent } from "@/lib/site-content/types";
 
 function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -47,12 +49,16 @@ const getInvolvedLinks = [
   { label: "Vendor", href: joinActionHref("vendor") },
 ];
 
-const connectLinks = [
-  { label: "info@asosc.ca", href: "mailto:info@asosc.ca", icon: Mail },
-  { label: "(587) 566-3212", href: "tel:+15875663212", icon: Phone },
-  { label: "Facebook", href: "https://www.facebook.com/people/Africans-Society-of-Strathcona-County/61550552301286/?mibextid=wwXIfr&rdid=JKQw6RpiLSmQFyry&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F156xwBzZdx%2F%3Fmibextid%3DwwXIfr%26ref%3D1", icon: FacebookIcon },
-  { label: "Instagram", href: "https://www.instagram.com/africansocietystrathconacounty?igsh=MmdwOTJrYWE3N2Jv&utm_source=qr", icon: InstagramIcon },
-];
+function connectLinksFor(c: ContactContent) {
+  const digits = c.phone.replace(/[^\d+]/g, "");
+  const tel = digits.startsWith("+") ? digits : `+1${digits}`;
+  return [
+    c.email && { label: c.email, href: `mailto:${c.email}`, icon: Mail },
+    c.phone && { label: c.phone, href: `tel:${tel}`, icon: Phone },
+    c.facebook && { label: "Facebook", href: c.facebook, icon: FacebookIcon },
+    c.instagram && { label: "Instagram", href: c.instagram, icon: InstagramIcon },
+  ].filter(Boolean) as { label: string; href: string; icon: typeof Mail | typeof FacebookIcon }[];
+}
 
 const FOOTER_MASK_SVG =
   "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 260'>" +
@@ -65,6 +71,7 @@ const FOOTER_MASK_URL = `url("data:image/svg+xml,${encodeURIComponent(FOOTER_MAS
 export function Footer() {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const connectLinks = connectLinksFor(useSiteContent().contact);
 
   if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/upgrade")) {
     return null;

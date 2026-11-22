@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { EVENTS_PAGE_PATH } from "@/lib/events-nav";
-import { upcomingEvents, type UpcomingEvent } from "@/lib/events-data";
+import { useSiteContent } from "@/components/site-content-provider";
+import type { EventItem as UpcomingEvent } from "@/lib/site-content/types";
 
 const MONTH_BY_BADGE: Record<string, number> = { FEB: 2, AUG: 8, DEC: 12 };
 
@@ -67,6 +68,7 @@ function EventTicket({ event, year }: { event: UpcomingEvent; year: number }) {
 }
 
 export function EventTicketMarquee() {
+  const upcomingEvents = useSiteContent().events;
   const now = new Date();
   // Track is duplicated once so the -50% translate loops seamlessly.
   const loop = [...upcomingEvents, ...upcomingEvents];

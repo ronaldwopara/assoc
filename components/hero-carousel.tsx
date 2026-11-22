@@ -4,15 +4,9 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { MediaPlaceholder } from "@/components/media-placeholder";
 import { cn } from "@/lib/utils";
+import { useSiteContent } from "@/components/site-content-provider";
+import type { Slide } from "@/lib/site-content/types";
 
-const SLIDES = [
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp", alt: "Community members gathered together at an ASOSC event" },
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp", alt: "Group portrait celebrating in vibrant traditional attire" },
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/3-c.webp", alt: "Friends posing together in colourful festival dress" },
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/4-c.webp", alt: "A large community gathering in the park" },
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010321/asosc/caurosel/5-c.webp", alt: "Friends posing together on the grass at a summer event" },
-  { src: "https://res.cloudinary.com/daldas2e7/image/upload/v1782010321/asosc/caurosel/6-c.webp", alt: "Children with painted faces enjoying a community picnic" },
-];
 
 const SLIDE_DURATION = 5550;
 
@@ -27,7 +21,7 @@ function HeroSlide({
   isActive,
   tick,
 }: {
-  slide: (typeof SLIDES)[number];
+  slide: Slide;
   index: number;
   isActive: boolean;
   tick: number;
@@ -58,6 +52,7 @@ function HeroSlide({
 }
 
 export function HeroCarousel() {
+  const SLIDES = useSiteContent().hero.slides.filter((s) => s.src);
   const [active, setActive] = useState(0);
   const [tick, setTick] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -67,12 +62,12 @@ export function HeroCarousel() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const id = setTimeout(() => {
-      setActive((i) => (i + 1) % SLIDES.length);
+      setActive((i) => (i + 1) % Math.max(SLIDES.length, 1));
       setTick((t) => t + 1);
     }, SLIDE_DURATION);
 
     return () => clearTimeout(id);
-  }, [active, paused]);
+  }, [active, paused, SLIDES.length]);
 
   return (
     <div

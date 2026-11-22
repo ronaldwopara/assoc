@@ -11,6 +11,8 @@ import { Footer } from "@/components/footer";
 import { GalleryCmsProvider } from "@/components/gallery-cms-provider";
 import { StaffToolsFabHost } from "@/components/staff-tools-fab-host";
 import { getGalleryCmsData } from "@/lib/gallery-cms";
+import { getSiteContent } from "@/lib/site-content";
+import { SiteContentProvider } from "@/components/site-content-provider";
 import "./globals.css";
 
 // Social share/preview image — the same logo shown in the header, forced to
@@ -66,7 +68,7 @@ export default async function RootLayout({
   // Warm the shared nav texture at low priority so the Join modal header and
   // mobile-nav panel don't wait on a cold 129KB fetch when first opened.
   preload("/nav.webp", { as: "image", fetchPriority: "low" });
-  const galleryCms = await getGalleryCmsData();
+  const [galleryCms, siteContent] = await Promise.all([getGalleryCmsData(), getSiteContent()]);
   const announcementActive =
     galleryCms.announcement.enabled && galleryCms.announcement.text.trim().length > 0;
 
@@ -88,8 +90,10 @@ export default async function RootLayout({
         <AnnouncementBar announcement={galleryCms.announcement} />
         <PreventTextCaret />
         <SkipLink />
-        <GalleryCmsProvider data={galleryCms}>{children}</GalleryCmsProvider>
-        <Footer />
+        <SiteContentProvider data={siteContent}>
+          <GalleryCmsProvider data={galleryCms}>{children}</GalleryCmsProvider>
+          <Footer />
+        </SiteContentProvider>
         <StaffToolsFabHost />
         <OrientationLock />
         <Analytics />

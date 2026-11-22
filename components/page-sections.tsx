@@ -12,34 +12,10 @@ import { useGalleryCms } from "@/components/gallery-cms-provider";
 import { getGalleryPreviewUrlsFromCms } from "@/lib/gallery-cms/helpers";
 import type { DocumentsCmsData } from "@/lib/documents-cms/types";
 import { toPublicDocumentHref } from "@/lib/documents-cms/helpers";
+import { useSiteContent } from "@/components/site-content-provider";
+import { youtubeEmbedUrl } from "@/lib/site-content/normalize";
 
 export { EventsPageContent } from "@/components/events-section";
-
-const CLOUDINARY_BASE = "https://res.cloudinary.com/daldas2e7/image/upload";
-
-const UPDATE_IMAGES: string[] = [
-  `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-1.webp`,
-  `${CLOUDINARY_BASE}/v1782010330/asosc/updates/updates-2.webp`,
-  `${CLOUDINARY_BASE}/v1782010331/asosc/updates/updates-3.webp`,
-  `${CLOUDINARY_BASE}/v1782755924/asosc/updates/certificate.webp`,
-];
-
-const SPONSOR_IMAGES: string[] = [
-  `${CLOUDINARY_BASE}/v1782764734/asosc/sponsors/sevus.webp`,
-  `${CLOUDINARY_BASE}/v1784895521/asosc/sponsors/pembina.webp`,
-  `${CLOUDINARY_BASE}/v1784895521/asosc/sponsors/synergy-fa-care-clin.webp`,
-  `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/canada.webp`,
-  `${CLOUDINARY_BASE}/v1782764735/asosc/sponsors/alberta.webp`,
-  `${CLOUDINARY_BASE}/v1782764736/asosc/sponsors/strathcona-county.webp`,
-];
-
-function getUpdateImages(): string[] {
-  return UPDATE_IMAGES;
-}
-
-function getSponsorImages(): string[] {
-  return SPONSOR_IMAGES;
-}
 
 interface DocumentItem {
   label: string;
@@ -79,6 +55,7 @@ export function AboutContent({
    *  card's image is fetched eagerly rather than lazily. */
   priorityFirstImage?: boolean;
 }) {
+  const { about } = useSiteContent();
   return (
     <>
       <SectionLogoHeading id="about-heading">
@@ -87,74 +64,40 @@ export function AboutContent({
 
       <StackedCards>
         <StackedCardBody
-          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010316/asosc/caurosel/1-c.webp"
+          imageSrc={about.images[0] ?? ""}
           imageAlt="Community members gathered together at an ASOSC event"
           mediaTone="orange"
           priority={priorityFirstImage}
         >
           <h3 className="mb-4">Our Mission</h3>
           <ul className="stacked-card__list">
-            <CardBullet>
-              To educate the broader community about the heritage and lived
-              realities of Africans
-            </CardBullet>
-            <CardBullet>
-              To organize community events and initiatives that celebrate
-              African culture
-            </CardBullet>
-            <CardBullet>
-              To provide capacity-building opportunities that empower African
-              youth and families to thrive socially, culturally, and
-              economically.
-            </CardBullet>
+            {about.mission.map((line, i) => (
+              <CardBullet key={i}>{line}</CardBullet>
+            ))}
           </ul>
         </StackedCardBody>
 
         <StackedCardBody
-          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010318/asosc/caurosel/2-c.webp"
+          imageSrc={about.images[1] ?? ""}
           imageAlt="Group portrait celebrating in vibrant traditional attire"
           mediaTone="ink"
         >
           <h3 className="mb-4 text-(--orange-light)!">Our Vision</h3>
-          <p className="text-(--orange-light)!">
-            A vibrant, inclusive community where Africans contribute visibly
-            to the social, economic, and cultural fabric of Strathcona County
-            and Alberta.
-          </p>
+          <p className="text-(--orange-light)!">{about.vision}</p>
         </StackedCardBody>
 
         <StackedCardBody
-          imageSrc="https://res.cloudinary.com/daldas2e7/image/upload/v1782010319/asosc/caurosel/3-c.webp"
+          imageSrc={about.images[2] ?? ""}
           imageAlt="Friends posing together in colourful festival dress"
           mediaTone="orange"
         >
           <h3 className="mb-4">Our Values</h3>
           <ul className="stacked-card__list">
-            <CardBullet>
-              <strong>Excellence &amp; Innovation:</strong> We hold our
-              programs to a high standard and keep looking for better, more
-              creative ways to serve our community.
-            </CardBullet>
-            <CardBullet>
-              <strong>Community Engagement:</strong> We build with our
-              community, not for it. The people we serve shape what we do
-              and how we do it.
-            </CardBullet>
-            <CardBullet>
-              <strong>Integrity &amp; Accountability:</strong> We are honest
-              about our commitments and answerable for our results, to our
-              members and to those who support us.
-            </CardBullet>
-            <CardBullet>
-              <strong>Inclusion &amp; Belonging:</strong> Everyone is
-              welcome. We build spaces where people feel seen, valued and at
-              home.
-            </CardBullet>
-            <CardBullet>
-              <strong>Cultural Pride:</strong> We celebrate African heritage
-              openly and help the next generation carry it forward with
-              confidence.
-            </CardBullet>
+            {about.values.map((v, i) => (
+              <CardBullet key={i}>
+                {v.title && <strong>{v.title}:</strong>} {v.text}
+              </CardBullet>
+            ))}
           </ul>
         </StackedCardBody>
       </StackedCards>
@@ -251,7 +194,8 @@ export function DocumentsSection({
 }
 
 export function UpdatesSection() {
-  const images = getUpdateImages();
+  const { updates } = useSiteContent();
+  const images = updates.photos.filter(Boolean);
   // Triple so the seamless loop never visibly resets
   const galleryImages = images.length > 0 ? [...images, ...images, ...images] : [];
 
@@ -265,57 +209,84 @@ export function UpdatesSection() {
         Updates
       </SectionLogoHeading>
 
-      <div className="mx-auto max-w-4xl rounded-3xl border border-(--orange)/25 bg-black px-5 py-6 text-center shadow-2xl shadow-black/20 sm:px-8 sm:py-8">
-        <ContentBrow theme="dark">February 2026</ContentBrow>
-        <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">
-          CBC News Edmonton Feature
-        </h3>
-        <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">
-          CBC News Edmonton features the founder of ASOSC, Busayo Disu, on Edmonton AM to discuss
-          how Strathcona County is celebrating its first Black History Month,
-          and to talk about her new documentary series, &ldquo;Our Story, Our
-          Voice.&rdquo;
-        </p>
-
-        <div className="mt-7 overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-black shadow-xl shadow-black/30">
-          <div className="relative aspect-video w-full">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src="https://www.youtube.com/embed/WCMRMos38AM?si=P0-7dpw59P4iw0pv"
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-          </div>
-        </div>
-
-        <div className="mt-7 flex justify-center">
-          <a
-            href="https://www.cbc.ca/player/play/video/9.7106403"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+      {updates.items.map((item, i) => {
+        const embed = item.video ? youtubeEmbedUrl(item.video) : "";
+        return item.dark ? (
+          <div
+            key={i}
+            className={`mx-auto max-w-4xl rounded-3xl border border-(--orange)/25 bg-black px-5 py-6 text-center shadow-2xl shadow-black/20 sm:px-8 sm:py-8${i > 0 ? " mt-8" : ""}`}
           >
-            View Article
-          </a>
-        </div>
-      </div>
-
-      <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <ContentBrow>February 2026</ContentBrow>
-        <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
-          Black History Month
-        </h3>
-        <p className="mt-4 text-lg leading-relaxed text-black/80">
-          For the first time, Strathcona County officially declared
-          Black History Month celebration in February 2026,
-          recognizing the contributions, culture, and resilience of
-          Black communities while supporting inclusive community
-          initiatives.
-        </p>
-      </div>
+            {item.date && <ContentBrow theme="dark">{item.date}</ContentBrow>}
+            <h3 className="mt-4 text-2xl font-bold text-(--cream-light) sm:text-3xl">{item.title}</h3>
+            {item.text && (
+              <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-(--cream)/85 sm:text-lg">{item.text}</p>
+            )}
+            {embed && (
+              <div className="mt-7 overflow-hidden rounded-2xl border border-(--cream-light)/15 bg-black shadow-xl shadow-black/30">
+                <div className="relative aspect-video w-full">
+                  <iframe
+                    className="absolute inset-0 h-full w-full"
+                    src={embed}
+                    title={item.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
+            {item.linkHref && (
+              <div className="mt-7 flex justify-center">
+                <a
+                  href={item.linkHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+                >
+                  {item.linkLabel || "Read more"}
+                </a>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            key={i}
+            className={`mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10${i > 0 ? " mt-8" : ""}`}
+          >
+            {item.date && <ContentBrow>{item.date}</ContentBrow>}
+            <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">{item.title}</h3>
+            {item.text && <p className="mt-4 text-lg leading-relaxed text-black/80">{item.text}</p>}
+            {embed && (
+              <div className="mt-7 overflow-hidden rounded-2xl">
+                <div className="relative aspect-video w-full">
+                  <iframe
+                    className="absolute inset-0 h-full w-full"
+                    src={embed}
+                    title={item.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
+            {item.linkHref && (
+              <div className="mt-7 flex justify-center">
+                <a
+                  href={item.linkHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hero-cta-btn focus-ring-light inline-flex min-h-12 cursor-pointer items-center justify-center px-8 py-3 text-sm font-semibold tracking-wide text-black transition duration-200 ease-out"
+                >
+                  {item.linkLabel || "Read more"}
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {galleryImages.length > 0 && (
         <div className="updates-marquee mt-12">
@@ -343,7 +314,8 @@ export function UpdatesSection() {
 }
 
 export function SponsorsSection() {
-  const images = getSponsorImages();
+  const { sponsors } = useSiteContent();
+  const images = sponsors.logos.filter(Boolean);
   // Original design: 4 logos × 4 loops = 16 slots at 22.5°. Keep that
   // geometry fixed and cycle the roster through the slots so spacing never
   // changes when sponsors are added or removed.
@@ -361,13 +333,12 @@ export function SponsorsSection() {
       </SectionLogoHeading>
 
       <div className="mx-auto max-w-3xl rounded-3xl border border-(--brown-dark)/10 bg-(--cream)/60 px-6 py-8 text-center sm:px-10 sm:py-10">
-        <ContentBrow>Community Partners</ContentBrow>
+        <ContentBrow>{sponsors.eyebrow}</ContentBrow>
         <h3 className="mt-4 text-2xl font-bold text-black sm:text-3xl">
-          Thank You To Our Sponsors
+          {sponsors.title}
         </h3>
         <p className="mt-4 text-lg leading-relaxed text-black/80">
-          Thank you to the partners who help make ASOSC programs, events, and
-          community initiatives possible.
+          {sponsors.text}
         </p>
       </div>
 
