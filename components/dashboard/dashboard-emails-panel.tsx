@@ -1,6 +1,7 @@
 "use client";
 
 import { Busy } from "@/components/dashboard/ui";
+import { StepWizard } from "@/components/ui/step-wizard";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { parseSheetDate } from "@/lib/sheet-dates";
@@ -383,41 +384,58 @@ function AutoEmailEditor({ template, onSaved }: { template: Template; onSaved: (
   return (
     <div className="dash-compose">
       <div className="dash-compose-form">
-        <section className="dash-emails-section">
-          <h3 className="dash-step-title">Write the email</h3>
-          <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} insertLabels={insertLabels} />
-          <EmailField id={f("headline")} label="Big heading" value={copy.headline} onChange={set("headline")} />
-          <EmailField id={f("subhead")} label="Line under the heading" value={copy.subhead} onChange={set("subhead")} />
-          <EventImageField id={f("heroUrl")} value={copy.heroUrl ?? ""} onChange={set("heroUrl")} fallbackUrl={template.defaultHero} />
-          <EmailField id={f("intro")} label="Message" value={copy.intro} onChange={set("intro")} multiline rows={6} inserts={inserts} insertLabels={insertLabels} />
-          <EmailField
-            id={f("outro")}
-            label="Closing message"
-            value={copy.outro}
-            onChange={set("outro")}
-            multiline
-            rows={4}
-            inserts={inserts}
-            insertLabels={insertLabels}
-            hint="Comes after the payment details, which are filled in for you."
-          />
-          <details className="dash-more">
-            <summary>More options</summary>
-            <EmailField id={f("preheader")} label="Preview text in the inbox" value={copy.preheader} onChange={set("preheader")} inserts={inserts} insertLabels={insertLabels} />
-            <EmailField id={f("banner")} label="Small text along the top" value={copy.banner} onChange={set("banner")} />
-          </details>
-          <div className="dash-savebar dash-savebar--inline">
-          <button type="button" className="dash-primary-btn focus-ring-light" onClick={save} disabled={saving || !dirty}>
-            <Busy busy={saving}>Save changes</Busy>
-          </button>
+        <StepWizard
+          key={template.id}
+          steps={[
+            {
+              key: "subject",
+              title: "Subject line",
+              ready: Boolean(copy.subject.trim()),
+              content: <EmailField id={f("subject")} label="Subject line" value={copy.subject} onChange={set("subject")} inserts={inserts} insertLabels={insertLabels} />,
+            },
+            {
+              key: "heading",
+              title: "Big heading",
+              ready: Boolean(copy.headline.trim()),
+              content: (
+                <>
+                  <EmailField id={f("headline")} label="Big heading" value={copy.headline} onChange={set("headline")} />
+                  <EmailField id={f("subhead")} label="Line under it" value={copy.subhead} onChange={set("subhead")} />
+                </>
+              ),
+            },
+            {
+              key: "photo",
+              title: "Photo",
+              content: <EventImageField id={f("heroUrl")} value={copy.heroUrl ?? ""} onChange={set("heroUrl")} fallbackUrl={template.defaultHero} />,
+            },
+            {
+              key: "message",
+              title: "Message",
+              ready: Boolean(copy.intro.trim()),
+              content: <EmailField id={f("intro")} label="Message" value={copy.intro} onChange={set("intro")} multiline rows={8} inserts={inserts} insertLabels={insertLabels} />,
+            },
+            {
+              key: "closing",
+              title: "Closing message",
+              hint: "Comes after the details we fill in for you.",
+              content: (
+                <EmailField id={f("outro")} label="Closing message" value={copy.outro} onChange={set("outro")} multiline rows={5} inserts={inserts} insertLabels={insertLabels} />
+              ),
+            },
+          ]}
+          onFinish={() => void (dirty && save())}
+          finishLabel="Save changes"
+          finishing={saving}
+        />
+        <div className="dash-savebar dash-savebar--inline">
+          {status && <span className="dash-savebar-status">{status}</span>}
           {template.edited && (
             <button type="button" className="dash-text-btn focus-ring-light" onClick={reset} disabled={saving}>
               Go back to the original wording
             </button>
           )}
-          {status && <span className="dash-savebar-status">{status}</span>}
-          </div>
-        </section>
+        </div>
       </div>
       <aside className="dash-compose-preview">
             <div className="dash-preview-sticky">

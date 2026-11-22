@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Paperclip, Send, X } from "lucide-react";
 import { Segmented, Busy } from "@/components/dashboard/ui";
+import { StepWizard, WizardChoices, WizardOption, type WizardStep } from "@/components/ui/step-wizard";
 import {
   HERO,
   type ComposerAttachment,
@@ -427,134 +428,102 @@ export function DashboardComposePanel() {
 
   const count = recipients?.length ?? 0;
 
-  const steps = [Boolean(ready), count > 0];
-
-  return (
-    <div className="dash-panel">
-      <header className="dash-panel-head">
-        <div className="dash-panel-heading">
-          <h2 className="dash-panel-title">Send an email</h2>
-          <p className="dash-panel-sub">
-            Write it, pick who gets it, then send. Everyone gets their own copy.
-          </p>
-        </div>
-      </header>
-
-      <div className="dash-emails-body">
-        {sender && !sender.canSend && (
-          <div className="dash-notice">
-            <span>
-              You can write and preview an email, but it can&rsquo;t be sent
-              until you sign in with <strong>{sender.email}</strong>.
-            </span>
-            <a
-              className="dash-primary-btn focus-ring-light"
-              href="/api/google/connect?account=support%40asosc.ca"
-            >
-              Sign in with {sender.email}
-            </a>
-          </div>
-        )}
-        {notice && <p className="dash-notice dash-notice--plain">{notice}</p>}
-
-        <div className="dash-compose">
-          <div className="dash-compose-form">
-            {templates.length > 0 && (
-              <section className="dash-emails-section">
-                <h3 className="dash-emails-section-title">
-                  Start from a saved email
-                </h3>
-                <div className="dash-saved">
-                  <button
-                    type="button"
-                    className="dash-saved-card focus-ring-light"
-                    aria-pressed={!templateId}
-                    onClick={() => pickTemplate("")}
-                  >
-                    <span className="dash-saved-name">New email</span>
-                    <span className="dash-saved-meta">Start fresh</span>
-                  </button>
-                  {templates.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className="dash-saved-card focus-ring-light"
-                      aria-pressed={templateId === t.id}
-                      onClick={() => pickTemplate(t.id)}
-                    >
-                      <span className="dash-saved-name">{t.name}</span>
-                      <span className="dash-saved-meta">
-                        Saved {t.updated.split(" ")[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section className="dash-emails-section">
-              <StepTitle n={1} done={steps[0]}>
-                Write your email
-              </StepTitle>
-              <EmailField
-                id="compose-subject"
-                label="Subject line"
-                value={content.subject}
-                onChange={set("subject")}
-              />
-              <EmailField
-                id="compose-headline"
-                label="Big heading"
-                value={content.headline}
-                onChange={set("headline")}
-              />
-              <EmailField
-                id="compose-subhead"
-                label="Line under the heading"
-                value={content.subhead}
-                onChange={set("subhead")}
-              />
-              <EventImageField
-                id="compose-hero"
-                value={content.heroUrl}
-                onChange={set("heroUrl")}
-                emptyLabel="No photo"
-              />
-              <EmailField
-                id="compose-body"
-                label="Message"
-                value={content.body}
-                onChange={set("body")}
-                multiline
-                rows={8}
-                inserts={["first_name"]}
-              />
-              <div className="dash-email-row">
-                <EmailField
-                  id="compose-button-label"
-                  label="Button words"
-                  value={content.button?.label ?? ""}
-                  onChange={(v) =>
-                    set("button")({ label: v, url: content.button?.url ?? "" })
-                  }
-                  hint="Leave empty if you don't want a button."
-                />
-                <EmailField
-                  id="compose-button-url"
-                  label="Where the button goes"
-                  value={content.button?.url ?? ""}
-                  onChange={(v) =>
-                    set("button")({
-                      label: content.button?.label ?? "",
-                      url: v,
-                    })
-                  }
-                  placeholder="https://asosc.ca/events"
-                />
-              </div>
-
+  const steps: WizardStep[] = [];
+  if (templates.length > 0) {
+    steps.push({
+      key: "start",
+      title: "Start from…",
+      content: (
+        <WizardChoices>
+          <WizardOption title="A new email" selected={!templateId} onSelect={() => pickTemplate("")} />
+          {templates.map((t) => (
+            <WizardOption
+              key={t.id}
+              title={t.name}
+              sub={`Saved ${t.updated.split(" ")[0]}`}
+              selected={templateId === t.id}
+              onSelect={() => pickTemplate(t.id)}
+            />
+          ))}
+        </WizardChoices>
+      ),
+    });
+  }
+  steps.push(
+    {
+      key: "subject",
+      title: "What's the subject line?",
+      ready: Boolean(content.subject.trim()),
+      content: (
+        <EmailField id="compose-subject" label="Subject line" value={content.subject} onChange={set("subject")} />
+      ),
+    },
+    {
+      key: "heading",
+      title: "Add a big heading",
+      ready: Boolean(content.headline.trim()),
+      content: (
+        <>
+          <EmailField id="compose-headline" label="Big heading" value={content.headline} onChange={set("headline")} />
+          <EmailField id="compose-subhead" label="Line under it (optional)" value={content.subhead} onChange={set("subhead")} />
+        </>
+      ),
+    },
+    {
+      key: "photo",
+      title: "Pick a photo",
+      content: (
+        <EventImageField id="compose-hero" value={content.heroUrl} onChange={set("heroUrl")} emptyLabel="No photo" />
+      ),
+    },
+    {
+      key: "message",
+      title: "Write your message",
+      ready: Boolean(content.body.trim()),
+      content: (
+        <EmailField
+          id="compose-body"
+          label="Message"
+          value={content.body}
+          onChange={set("body")}
+          multiline
+          rows={10}
+          inserts={["first_name"]}
+        />
+      ),
+    },
+    {
+      key: "button",
+      title: "Add a button?",
+      hint: "Optional.",
+      skippable: !content.button?.label?.trim(),
+      ready: !content.button?.label?.trim() || Boolean(content.button?.url?.trim()),
+      content: (
+        <>
+          <EmailField
+            id="compose-button-label"
+            label="Button words"
+            value={content.button?.label ?? ""}
+            onChange={(v) => set("button")({ label: v, url: content.button?.url ?? "" })}
+            placeholder="See upcoming events"
+          />
+          <EmailField
+            id="compose-button-url"
+            label="Where it goes"
+            value={content.button?.url ?? ""}
+            onChange={(v) => set("button")({ label: content.button?.label ?? "", url: v })}
+            placeholder="https://asosc.ca/events"
+          />
+        </>
+      ),
+    },
+    {
+      key: "files",
+      title: "Attach any files?",
+      hint: "Optional. PDFs, pictures or documents, up to 4 MB each.",
+      skippable: (content.attachments ?? []).length === 0,
+      content: (
               <div className="dash-field">
-                <span className="dash-field-label">Attach files</span>
                 {(content.attachments ?? []).length > 0 && (
                   <ul className="dash-attachments">
                     {content.attachments!.map((a) => (
@@ -615,27 +584,14 @@ export function DashboardComposePanel() {
                 )}
               </div>
 
-              <details className="dash-more">
-                <summary>More options</summary>
-                <EmailField
-                  id="compose-preheader"
-                  label="Preview text in the inbox"
-                  value={content.preheader}
-                  onChange={set("preheader")}
-                />
-                <EmailField
-                  id="compose-banner"
-                  label="Small text along the top"
-                  value={content.banner}
-                  onChange={set("banner")}
-                />
-              </details>
-            </section>
-
-            <section className="dash-emails-section">
-              <StepTitle n={2} done={steps[1]}>
-                Who gets it
-              </StepTitle>
+      ),
+    },
+    {
+      key: "who",
+      title: "Who should get it?",
+      ready: count > 0 && !loadingRecipients,
+      content: (
+        <>
               <Segmented
                 label="Who gets it"
                 value={audience}
@@ -799,12 +755,14 @@ export function DashboardComposePanel() {
                   </>
                 )}
               </div>
-            </section>
-
-            <section className="dash-emails-section">
-              <StepTitle n={3} done={false}>
-                Send it
-              </StepTitle>
+        </>
+      ),
+    },
+    {
+      key: "send",
+      title: "Send it",
+      content: (
+        <>
               {!confirming ? (
                 <div className="dash-savebar dash-savebar--inline">
                   <button
@@ -868,13 +826,6 @@ export function DashboardComposePanel() {
                     </button>
                   </div>
                 </div>
-              )}
-
-              {!ready && (
-                <p className="dash-field-hint">
-                  Add a subject line, a big heading and a message before
-                  sending.
-                </p>
               )}
 
               <div className="dash-test-box">
@@ -950,7 +901,40 @@ export function DashboardComposePanel() {
                   )}
                 </div>
               )}
-            </section>
+        </>
+      ),
+    },
+  );
+
+  return (
+    <div className="dash-panel">
+      <header className="dash-panel-head">
+        <div className="dash-panel-heading">
+          <h2 className="dash-panel-title">Send an email</h2>
+          <p className="dash-panel-sub">Everyone gets their own copy.</p>
+        </div>
+      </header>
+
+      <div className="dash-emails-body">
+        {sender && !sender.canSend && (
+          <div className="dash-notice">
+            <span>
+              You can write and preview an email, but it can&rsquo;t be sent
+              until you sign in with <strong>{sender.email}</strong>.
+            </span>
+            <a
+              className="dash-primary-btn focus-ring-light"
+              href="/api/google/connect?account=support%40asosc.ca"
+            >
+              Sign in with {sender.email}
+            </a>
+          </div>
+        )}
+        {notice && <p className="dash-notice dash-notice--plain">{notice}</p>}
+
+        <div className="dash-compose">
+          <div className="dash-compose-form">
+            <StepWizard key={templates.length > 0 ? "t" : "n"} steps={steps} onFinish={() => {}} hideFinish busy={uploading || sending} />
           </div>
 
           <aside className="dash-compose-preview">
@@ -966,24 +950,5 @@ export function DashboardComposePanel() {
         </div>
       </div>
     </div>
-  );
-}
-
-function StepTitle({
-  n,
-  done,
-  children,
-}: {
-  n: number;
-  done: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <h3 className="dash-step-title">
-      <span className="dash-step-num" data-done={done || undefined} aria-hidden>
-        {done ? <Check size={14} /> : n}
-      </span>
-      {children}
-    </h3>
   );
 }

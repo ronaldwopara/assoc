@@ -1,16 +1,25 @@
 "use client";
 
-import { useMemo } from "react";
-import type { GalleryCmsData } from "@/lib/gallery-cms/types";
+import { useState } from "react";
+import type { AnnouncementCms, GalleryCmsData } from "@/lib/gallery-cms/types";
+import { UpgradeToolHeader, type UpgradeStatus } from "@/components/upgrade/upgrade-tool-header";
 import {
-  ANNOUNCEMENT_SPEED_MAX,
-  ANNOUNCEMENT_SPEED_MIN,
-} from "@/lib/gallery-cms/helpers";
-import {
-  UpgradeToolHeader,
-  useUpgradeDirtyGuard,
-  type UpgradeStatus,
-} from "@/components/upgrade/upgrade-tool-header";
+  StepWizard,
+  WizardChoices,
+  WizardDone,
+  WizardOption,
+  WIZARD_INPUT,
+  type WizardStep,
+} from "@/components/ui/step-wizard";
+
+const SPEEDS = [
+  { label: "Slow", seconds: 40 },
+  { label: "Normal", seconds: 26 },
+  { label: "Fast", seconds: 14 },
+];
+
+const nearestSpeed = (s: number) =>
+  SPEEDS.reduce((best, x) => (Math.abs(x.seconds - s) < Math.abs(best.seconds - s) ? x : best)).seconds;
 
 interface UpgradeAnnouncementEditorProps {
   data: GalleryCmsData;
@@ -18,160 +27,114 @@ interface UpgradeAnnouncementEditorProps {
   setData: React.Dispatch<React.SetStateAction<GalleryCmsData>>;
   saving: boolean;
   status: UpgradeStatus;
-  onSave: () => void;
+  onSave: (next?: GalleryCmsData) => Promise<boolean>;
   onBack: () => void;
   onHome: () => void;
   onLogout: () => void;
 }
 
-export function UpgradeAnnouncementEditor({
-  data,
-  savedData,
-  setData,
-  saving,
-  status,
-  onSave,
-  onBack,
-  onHome,
-  onLogout,
-}: UpgradeAnnouncementEditorProps) {
-  const isDirty = useMemo(
-    () => JSON.stringify(data) !== JSON.stringify(savedData),
-    [data, savedData],
-  );
-  useUpgradeDirtyGuard(isDirty);
+export function UpgradeAnnouncementEditor({ savedData, saving, status, onSave, onBack, onHome, onLogout }: UpgradeAnnouncementEditorProps) {
+  const [draft, setDraft] = useState<AnnouncementCms>(savedData.announcement);
+  const [round, setRound] = useState(0);
+  const [done, setDone] = useState(false);
+  const set = (patch: Partial<AnnouncementCms>) => setDraft((d) => ({ ...d, ...patch }));
+
+  const steps: WizardStep[] = [
+    {
+      key: "on",
+      title: "Show the announcement bar?",
+      content: (
+        <WizardChoices>
+          <WizardOption title="Yes, show it" selected={draft.enabled} onSelect={() => set({ enabled: true })} />
+          <WizardOption title="No, hide it" selected={!draft.enabled} onSelect={() => set({ enabled: false })} />
+        </WizardChoices>
+      ),
+    },
+  ];
+  if (draft.enabled) {
+    steps.push(
+      {
+        key: "text",
+        title: "What should it say?",
+        ready: draft.text.trim().length > 0,
+        content: <input autoFocus className={WIZARD_INPUT} value={draft.text} onChange={(e) => set({ text: e.target.value })} />,
+      },
+      {
+        key: "link",
+        title: "Should it link somewhere?",
+        hint: "Optional. A web address, or a page like /join.",
+        skippable: !draft.href.trim(),
+        content: (
+          <input
+            autoFocus
+            inputMode="url"
+            className={WIZARD_INPUT}
+            value={draft.href}
+            placeholder="/events"
+            onChange={(e) => set({ href: e.target.value })}
+          />
+        ),
+      },
+      {
+        key: "speed",
+        title: "How fast should it scroll?",
+        content: (
+          <WizardChoices>
+            {SPEEDS.map((s) => (
+              <WizardOption
+                key={s.label}
+                title={s.label}
+                selected={nearestSpeed(draft.speedSeconds) === s.seconds}
+                onSelect={() => set({ speedSeconds: s.seconds })}
+              />
+            ))}
+          </WizardChoices>
+        ),
+      },
+      {
+        key: "direction",
+        title: "Which way should it scroll?",
+        content: (
+          <WizardChoices>
+            <WizardOption title="Left to right →" selected={draft.direction === "ltr"} onSelect={() => set({ direction: "ltr" })} />
+            <WizardOption title="← Right to left" selected={draft.direction === "rtl"} onSelect={() => set({ direction: "rtl" })} />
+          </WizardChoices>
+        ),
+      },
+    );
+  }
+
+  async function finish() {
+    if (await onSave({ ...savedData, announcement: draft })) setDone(true);
+  }
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className="mt-8 space-y-8">
       <UpgradeToolHeader
         title="Announcement bar"
-        description="Edit the site-wide announcement message and optional link. Changes go live after Save."
-        isDirty={isDirty}
+        description="The moving message along the top of the website."
+        isDirty={false}
         saving={saving}
-        status={status}
+        status={done ? status : { type: "idle", message: "" }}
         onBack={onBack}
         onHome={onHome}
-        onSave={onSave}
+        onSave={() => {}}
         onLogout={onLogout}
+        showSave={false}
       />
-
-      <div className="space-y-4 rounded-2xl bg-white/70 p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-(--ink)">Announcement bar</h2>
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-(--ink)">
-            <input
-              type="checkbox"
-              checked={data.announcement.enabled}
-              onChange={(event) =>
-                setData((prev) => ({
-                  ...prev,
-                  announcement: { ...prev.announcement, enabled: event.target.checked },
-                }))
-              }
-              className="h-4 w-4 accent-(--orange)"
-            />
-            Enabled
-          </label>
-        </div>
-        <label className="block text-sm font-medium text-(--ink)">
-          Message
-          <input
-            value={data.announcement.text}
-            placeholder="Free Shipping Canada-Wide $75+"
-            onChange={(event) =>
-              setData((prev) => ({
-                ...prev,
-                announcement: { ...prev.announcement, text: event.target.value },
-              }))
-            }
-            className="mt-2 w-full rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 text-base outline-none focus:border-(--orange)"
-          />
-        </label>
-        <label className="block text-sm font-medium text-(--ink)">
-          Link (optional)
-          <input
-            type="text"
-            inputMode="url"
-            autoComplete="url"
-            value={data.announcement.href}
-            placeholder="https://example.com/event or /join"
-            onChange={(event) =>
-              setData((prev) => ({
-                ...prev,
-                announcement: { ...prev.announcement, href: event.target.value },
-              }))
-            }
-            className="mt-2 w-full rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 text-base outline-none focus:border-(--orange)"
-          />
-          <span className="mt-1.5 block text-xs font-normal text-(--ink)/55">
-            Any web address works — an external site, or a path on this site like /about.
-          </span>
-        </label>
-
-        <label className="block text-sm font-medium text-(--ink)">
-          Speed
-          <span className="ml-2 font-normal text-(--ink)/55">
-            {data.announcement.speedSeconds}s per loop (lower = faster)
-          </span>
-          <input
-            type="range"
-            min={ANNOUNCEMENT_SPEED_MIN}
-            max={ANNOUNCEMENT_SPEED_MAX}
-            step={1}
-            value={data.announcement.speedSeconds}
-            onChange={(event) =>
-              setData((prev) => ({
-                ...prev,
-                announcement: {
-                  ...prev.announcement,
-                  speedSeconds: Number(event.target.value),
-                },
-              }))
-            }
-            className="mt-2 w-full accent-(--orange)"
-          />
-        </label>
-
-        <div className="flex flex-wrap items-center gap-6">
-          <label className="block text-sm font-medium text-(--ink)">
-            Direction
-            <select
-              value={data.announcement.direction}
-              onChange={(event) =>
-                setData((prev) => ({
-                  ...prev,
-                  announcement: {
-                    ...prev.announcement,
-                    direction: event.target.value === "rtl" ? "rtl" : "ltr",
-                  },
-                }))
-              }
-              className="mt-2 block rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 text-base outline-none focus:border-(--orange)"
-            >
-              <option value="ltr">Left to right</option>
-              <option value="rtl">Right to left</option>
-            </select>
-          </label>
-
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-(--ink)">
-            <input
-              type="checkbox"
-              checked={data.announcement.pauseOnHover}
-              onChange={(event) =>
-                setData((prev) => ({
-                  ...prev,
-                  announcement: {
-                    ...prev.announcement,
-                    pauseOnHover: event.target.checked,
-                  },
-                }))
-              }
-              className="h-4 w-4 accent-(--orange)"
-            />
-            Pause on hover / touch
-          </label>
-        </div>
-      </div>
+      {done ? (
+        <WizardDone
+          title={draft.enabled ? "The announcement is live" : "The announcement is hidden"}
+          onAgain={() => {
+            setDone(false);
+            setRound((r) => r + 1);
+          }}
+        >
+          {draft.enabled && <p>&ldquo;{draft.text}&rdquo;</p>}
+        </WizardDone>
+      ) : (
+        <StepWizard key={round} steps={steps} onFinish={finish} finishLabel="Save" finishing={saving} status={status.type === "error" ? status : undefined} />
+      )}
     </div>
   );
 }

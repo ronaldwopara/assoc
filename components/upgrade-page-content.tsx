@@ -152,19 +152,19 @@ function UpgradePageContentInner({
     window.location.assign("/upgrade");
   };
 
-  const saveGallery = async () => {
+  const saveGallery = async (next: GalleryCmsData = galleryData): Promise<boolean> => {
     // Save permanently destroys any Cloudinary asset whose URL isn't present
     // anywhere in the submitted data — no server-side undo. Surface exactly
     // what that means before it happens instead of only announcing it after
     // the fact, since a slip here (e.g. a stray year edit) is unrecoverable.
     const removedCount = collectGalleryImageUrls(savedGalleryData).filter(
-      (url) => !collectGalleryImageUrls(galleryData).includes(url),
+      (url) => !collectGalleryImageUrls(next).includes(url),
     ).length;
     if (removedCount > 0) {
       const ok = window.confirm(
         `${removedCount} photo${removedCount === 1 ? " you removed or replaced" : "s you removed or replaced"} will be permanently deleted. This can't be undone. Continue?`,
       );
-      if (!ok) return;
+      if (!ok) return false;
     }
     setGallerySaving(true);
     setGalleryStatus({ type: "idle", message: "" });
@@ -172,83 +172,85 @@ function UpgradePageContentInner({
       const res = await fetch("/api/upgrade/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(galleryData),
+        body: JSON.stringify(next),
       });
       const body = (await res.json()) as GalleryCmsData & { error?: string };
       if (!res.ok) {
         setGalleryStatus({ type: "error", message: body.error ?? "Save failed" });
-        return;
+        return false;
       }
       setGalleryData(body);
       setSavedGalleryData(body);
       setGalleryStatus({
         type: "ok",
         message:
-          activeTool === "announcement"
-            ? "Saved. Your changes are now live on the website."
-            : "Saved. Your changes are now live on the gallery page.",
+          "Saved. It's live now.",
       });
       router.refresh();
+      return true;
     } catch {
       setGalleryStatus({ type: "error", message: "Save failed" });
+      return false;
     } finally {
       setGallerySaving(false);
     }
   };
 
-  const saveDocuments = async () => {
+  const saveDocuments = async (next: DocumentsCmsData = documentsData): Promise<boolean> => {
     setDocumentsSaving(true);
     setDocumentsStatus({ type: "idle", message: "" });
     try {
       const res = await fetch("/api/upgrade/documents", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(documentsData),
+        body: JSON.stringify(next),
       });
       const body = (await res.json()) as DocumentsCmsData & { error?: string };
       if (!res.ok) {
         setDocumentsStatus({ type: "error", message: body.error ?? "Save failed" });
-        return;
+        return false;
       }
       setDocumentsData(body);
       setSavedDocumentsData(body);
       setDocumentsStatus({
         type: "ok",
-        message:
-          "Saved. Your changes are now live on the About Us page.",
+        message: "Saved. It's live now.",
       });
       router.refresh();
+      return true;
     } catch {
       setDocumentsStatus({ type: "error", message: "Save failed" });
+      return false;
     } finally {
       setDocumentsSaving(false);
     }
   };
 
-  const savePopup = async () => {
+  const savePopup = async (next: PopupCmsData = popupData): Promise<boolean> => {
     setPopupSaving(true);
     setPopupStatus({ type: "idle", message: "" });
     try {
       const res = await fetch("/api/upgrade/popup", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(popupData),
+        body: JSON.stringify(next),
       });
       const body = (await res.json()) as PopupCmsData & { error?: string };
       if (!res.ok) {
         setPopupStatus({ type: "error", message: body.error ?? "Save failed" });
-        return;
+        return false;
       }
       setPopupData(body);
       setSavedPopupData(body);
       setPopupStatus({
         type: "ok",
-        message:
-          "Saved. The homepage flyer popup will use this content now.",
+        message: "Saved. It's live now.",
       });
       router.refresh();
+      return true;
     } catch {
       setPopupStatus({ type: "error", message: "Save failed" });
+      return false;
     } finally {
       setPopupSaving(false);
     }

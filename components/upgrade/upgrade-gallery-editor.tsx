@@ -1,59 +1,49 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { ArrowDown, ArrowUp, ImagePlus, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   PREVIEW_SLOT_COUNT,
   type GalleryCmsData,
+  type GalleryCmsImage,
   type GalleryCmsProgram,
   type GalleryCmsYearEntry,
 } from "@/lib/gallery-cms/types";
 import { collectGalleryImageUrls } from "@/lib/gallery-cms/helpers";
 import { slugifyProgramTitle } from "@/lib/gallery-cms/slug";
-import {
-  UpgradeToolHeader,
-  useUpgradeDirtyGuard,
-  type UpgradeStatus,
-} from "@/components/upgrade/upgrade-tool-header";
+import { UpgradeToolHeader, type UpgradeStatus } from "@/components/upgrade/upgrade-tool-header";
+import { StepWizard, WizardChoices, WizardOption, WIZARD_INPUT, type WizardStep } from "@/components/ui/step-wizard";
+import { cn } from "@/lib/utils";
 
-function emptyYear(year: string): GalleryCmsYearEntry {
-  return {
-    year,
-    albumUrl: "",
-    images: Array.from({ length: PREVIEW_SLOT_COUNT }, () => ({
-      src: "",
-      ratio: 16 / 9,
-    })),
-  };
+const ICON_BTN =
+  "inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-(--ink)/15 bg-white text-(--ink) transition hover:bg-(--cream-light) disabled:cursor-not-allowed disabled:opacity-30";
+
+const emptyImages = (): GalleryCmsImage[] => Array.from({ length: PREVIEW_SLOT_COUNT }, () => ({ src: "", ratio: 16 / 9 }));
+
+function move<T>(list: T[], from: number, to: number): T[] {
+  if (to < 0 || to >= list.length) return list;
+  const next = [...list];
+  const [it] = next.splice(from, 1);
+  next.splice(to, 0, it);
+  return next;
 }
 
-function emptyProgram(): GalleryCmsProgram {
-  const title = "New Program";
-  return {
-    slug: slugifyProgramTitle(title),
-    title,
-    years: [emptyYear(String(new Date().getFullYear()))],
-  };
-}
-
-function collectDraftPreviewUrls(urls: string[], saved: GalleryCmsData): string[] {
+/** Uploads that were never saved are removed when abandoned or replaced. */
+async function deleteDraftUrls(urls: string[], saved: GalleryCmsData) {
   const savedUrls = new Set(collectGalleryImageUrls(saved));
-  return [...new Set(urls.filter((url) => url && !savedUrls.has(url)))];
+  const draft = [...new Set(urls.filter((u) => u && !savedUrls.has(u)))];
+  if (!draft.length) return;
+  await fetch("/api/upgrade/media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ urls: draft }),
+  }).catch(() => undefined);
 }
 
-async function deleteDraftCloudinaryUrls(urls: string[], saved: GalleryCmsData) {
-  const draftUrls = collectDraftPreviewUrls(urls, saved);
-  if (draftUrls.length === 0) return;
-  try {
-    await fetch("/api/upgrade/media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls: draftUrls }),
-    });
-  } catch {
-    // Save-time cleanup is the safety net for published assets.
-  }
-}
+type Editing =
+  /** programIndex null = a new program. yearIndex null = a new year. */
+  | { kind: "year"; programIndex: number | null; yearIndex: number | null }
+  | { kind: "rename"; programIndex: number };
 
 interface UpgradeGalleryEditorProps {
   data: GalleryCmsData;
@@ -62,416 +52,406 @@ interface UpgradeGalleryEditorProps {
   saving: boolean;
   status: UpgradeStatus;
   setStatus: React.Dispatch<React.SetStateAction<UpgradeStatus>>;
-  onSave: () => void;
+  onSave: (next?: GalleryCmsData) => Promise<boolean>;
   onBack: () => void;
   onHome: () => void;
   onLogout: () => void;
 }
 
-export function UpgradeGalleryEditor({
-  data,
-  savedData,
-  setData,
-  saving,
-  status,
-  setStatus,
-  onSave,
-  onBack,
-  onHome,
-  onLogout,
-}: UpgradeGalleryEditorProps) {
-  const [programIndex, setProgramIndex] = useState(0);
-  const [yearIndex, setYearIndex] = useState(0);
-  const [yearPickerOpen, setYearPickerOpen] = useState(false);
-  const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
-
-  const program = data.programs[programIndex] ?? null;
-  const year = program?.years[yearIndex] ?? null;
-
-  const isDirty = useMemo(
-    () => JSON.stringify(data) !== JSON.stringify(savedData),
-    [data, savedData],
-  );
-  useUpgradeDirtyGuard(isDirty);
-
-  useEffect(() => {
-    setYearPickerOpen(false);
-  }, [program?.slug]);
-
-  useEffect(() => {
-    if (!program) return;
-    if (yearIndex >= program.years.length) setYearIndex(0);
-  }, [program, yearIndex]);
-
-  const yearOptions = useMemo(() => program?.years ?? [], [program]);
-
-  const updateProgram = useCallback(
-    (updater: (program: GalleryCmsProgram) => GalleryCmsProgram) => {
-      setData((prev) => {
-        const programs = prev.programs.map((item, index) =>
-          index === programIndex ? updater(item) : item,
-        );
-        return { ...prev, programs };
-      });
-    },
-    [programIndex, setData],
-  );
-
-  const updateYear = useCallback(
-    (updater: (entry: GalleryCmsYearEntry) => GalleryCmsYearEntry) => {
-      updateProgram((prog) => ({
-        ...prog,
-        years: prog.years.map((item, index) =>
-          index === yearIndex ? updater(item) : item,
-        ),
-      }));
-    },
-    [updateProgram, yearIndex],
-  );
-
-  const uploadSlot = async (slot: number, file: File) => {
-    if (!program || !year) return;
-    const previousSrc = year.images[slot]?.src ?? "";
-    setUploadingSlot(slot);
+export function UpgradeGalleryEditor({ savedData, saving, status, setStatus, onSave, onBack, onHome, onLogout }: UpgradeGalleryEditorProps) {
+  const [editing, setEditing] = useState<Editing | null>(null);
+  const programs = savedData.programs;
+  const save = (next: GalleryCmsProgram[]) => onSave({ ...savedData, programs: next });
+  const open = (e: Editing) => {
     setStatus({ type: "idle", message: "" });
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("programSlug", program.slug);
-      form.append("year", year.year);
-      form.append("slot", String(slot));
-      const res = await fetch("/api/upgrade/upload", {
-        method: "POST",
-        body: form,
-      });
-      const body = (await res.json()) as {
-        src?: string;
-        ratio?: number;
-        error?: string;
-      };
-      if (!res.ok || !body.src) {
-        setStatus({ type: "error", message: body.error ?? "Upload failed" });
-        return;
-      }
-      updateYear((entry) => {
-        const images = [...entry.images];
-        images[slot] = { src: body.src!, ratio: body.ratio ?? 16 / 9 };
-        return { ...entry, images };
-      });
-      if (previousSrc) {
-        void deleteDraftCloudinaryUrls([previousSrc], savedData);
-      }
-      setStatus({
-        type: "ok",
-        message: `Uploaded image ${slot + 1}. Click Save to publish.`,
-      });
-    } catch {
-      setStatus({ type: "error", message: "Upload failed" });
-    } finally {
-      setUploadingSlot(null);
-    }
+    setEditing(e);
   };
+
+  if (editing?.kind === "year") {
+    return (
+      <div className="mt-8">
+        <YearWizard
+          programs={programs}
+          programIndex={editing.programIndex}
+          yearIndex={editing.yearIndex}
+          saved={savedData}
+          saving={saving}
+          status={status}
+          setStatus={setStatus}
+          onCancel={() => setEditing(null)}
+          onFinish={async (next) => {
+            if (await save(next)) setEditing(null);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (editing?.kind === "rename") {
+    const p = programs[editing.programIndex];
+    return (
+      <div className="mt-8">
+        <RenameProgram
+          title={p.title}
+          saving={saving}
+          status={status}
+          onCancel={() => setEditing(null)}
+          onFinish={async (title) => {
+            const next = programs.map((x, i) =>
+              i === editing.programIndex ? { ...x, title, slug: slugifyProgramTitle(title) || x.slug } : x,
+            );
+            if (await save(next)) setEditing(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 space-y-6">
       <UpgradeToolHeader
         title="Gallery"
-        description="Edit program titles, years, the six preview images, and Google Photos album links. Changes go live after Save."
-        isDirty={isDirty}
+        description="Programs, their years, preview photos and album links."
+        isDirty={false}
         saving={saving}
         status={status}
         onBack={onBack}
         onHome={onHome}
-        onSave={onSave}
+        onSave={() => {}}
         onLogout={onLogout}
+        showSave={false}
       />
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          className="rounded-lg border border-(--ink)/20 bg-white px-3 py-2 text-sm font-medium text-(--ink)"
-          onClick={() => {
-            setData((prev) => ({
-              ...prev,
-              programs: [...prev.programs, emptyProgram()],
-            }));
-            setProgramIndex(data.programs.length);
-            setYearIndex(0);
-          }}
-        >
-          Add program
-        </button>
-        {program && (
-          <button
-            type="button"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800"
-            onClick={() => {
-              if (!confirm(`Delete program “${program.title}”?`)) return;
-              const removedUrls = program.years.flatMap((entry) =>
-                entry.images.map((image) => image.src),
-              );
-              setData((prev) => ({
-                ...prev,
-                programs: prev.programs.filter((_, index) => index !== programIndex),
-              }));
-              setProgramIndex(0);
-              setYearIndex(0);
-              void deleteDraftCloudinaryUrls(removedUrls, savedData);
-            }}
-          >
-            Delete program
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => open({ kind: "year", programIndex: null, yearIndex: null })}
+        className="flex min-h-16 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-(--ink)/20 text-base font-semibold text-(--ink)/75 transition hover:border-(--orange) hover:text-(--ink)"
+      >
+        <Plus className="size-5" aria-hidden /> Add a program
+      </button>
 
-      {data.programs.length === 0 ? (
-        <p className="text-(--ink)/70">No programs yet. Add one to get started.</p>
-      ) : (
-        <>
-          <div className="flex flex-wrap gap-2">
-            {data.programs.map((item, index) => (
+      {programs.map((p, pi) => (
+        <section key={`${p.slug}-${pi}`} className="rounded-2xl bg-white/70 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-(--ink)">{p.title}</h2>
+            <div className="flex items-center gap-2">
+              <button type="button" className={ICON_BTN} aria-label={`Rename ${p.title}`} onClick={() => open({ kind: "rename", programIndex: pi })}>
+                <Pencil className="size-4" aria-hidden />
+              </button>
+              <button type="button" className={ICON_BTN} aria-label="Move up" disabled={saving || pi === 0} onClick={() => void save(move(programs, pi, pi - 1))}>
+                <ArrowUp className="size-4" aria-hidden />
+              </button>
               <button
-                key={`${item.slug}-${index}`}
                 type="button"
+                className={ICON_BTN}
+                aria-label="Move down"
+                disabled={saving || pi === programs.length - 1}
+                onClick={() => void save(move(programs, pi, pi + 1))}
+              >
+                <ArrowDown className="size-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={cn(ICON_BTN, "text-red-700")}
+                aria-label={`Delete ${p.title}`}
+                disabled={saving}
                 onClick={() => {
-                  setProgramIndex(index);
-                  setYearIndex(0);
-                }}
-                className="rounded-full px-3 py-1.5 text-sm font-medium"
-                style={{
-                  background:
-                    index === programIndex ? "var(--orange)" : "rgba(47,43,40,0.08)",
-                  color: index === programIndex ? "#111" : "var(--ink)",
+                  if (!confirm(`Delete "${p.title}" and all its photos? This can't be undone.`)) return;
+                  void save(programs.filter((_, i) => i !== pi));
                 }}
               >
-                {item.title}
+                <Trash2 className="size-4" aria-hidden />
               </button>
-            ))}
+            </div>
           </div>
 
-          {program && (
-            <div className="space-y-6 rounded-2xl bg-white/70 p-5 sm:p-6">
-              <label className="block text-sm font-medium text-(--ink)">
-                Program title
-                <input
-                  value={program.title}
-                  onChange={(event) => {
-                    const title = event.target.value;
-                    updateProgram((prog) => ({
-                      ...prog,
-                      title,
-                      slug: slugifyProgramTitle(title) || prog.slug,
-                    }));
-                  }}
-                  className="mt-2 w-full rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 text-base outline-none focus:border-(--orange)"
-                />
-              </label>
-              <p className="text-xs text-(--ink)/55">URL slug: {program.slug}</p>
-
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="block text-sm font-medium text-(--ink)">
-                  Year
-                  <div
-                    className="gallery-controls__years upgrade-year-picker mt-2"
-                    data-open={yearPickerOpen ? "true" : undefined}
-                    style={{ background: "rgba(42, 42, 42, 0.96)" }}
-                  >
-                    <div className="gallery-controls__years-list">
-                      {(yearPickerOpen
-                        ? yearOptions
-                        : yearOptions.slice(yearIndex, yearIndex + 1)
-                      ).map((entry) => {
-                        const realIndex = yearOptions.indexOf(entry);
-                        const isActive = realIndex === yearIndex;
-                        return (
-                          <button
-                            key={`${entry.year}-${realIndex}`}
-                            type="button"
-                            className="gallery-year-pill gallery-controls__year-pill focus-ring-light cursor-pointer"
-                            data-active={isActive ? "true" : undefined}
-                            aria-pressed={isActive}
-                            onClick={() => {
-                              setYearIndex(realIndex);
-                              setYearPickerOpen(false);
-                            }}
-                          >
-                            {entry.year}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {yearOptions.length > 1 && (
-                      <button
-                        type="button"
-                        aria-label={yearPickerOpen ? "Hide other years" : "Show other years"}
-                        aria-expanded={yearPickerOpen}
-                        className="gallery-controls__years-toggle focus-ring-light"
-                        onClick={() => setYearPickerOpen((open) => !open)}
-                      >
-                        <ChevronDown
-                          className={`gallery-controls__years-toggle-icon transition-transform duration-150 ${yearPickerOpen ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                    )}
+          <ul className="mt-3 space-y-2">
+            {p.years.map((y, yi) => {
+              const photos = y.images.filter((im) => im.src);
+              return (
+                <li key={`${y.year}-${yi}`} className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5">
+                  <div className="flex shrink-0 -space-x-2">
+                    {photos.slice(0, 3).map((im) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={im.src} src={im.src} alt="" className="size-9 rounded-md border-2 border-white object-cover" />
+                    ))}
+                    {photos.length === 0 && <span className="size-9 rounded-md bg-(--cream-light)" />}
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-lg border border-(--ink)/20 bg-white px-3 py-2.5 text-sm font-medium"
-                  onClick={() => {
-                    if (!program) return;
-                    const existing = new Set(program.years.map((entry) => entry.year));
-                    const currentYear = String(new Date().getFullYear());
-                    const suggestion = existing.has(currentYear) ? "" : currentYear;
-                    // A blind "just use the current calendar year" default silently
-                    // created a second same-labeled entry once a year already
-                    // existed — two identical pills in the picker below, easy to
-                    // mix up, and Save destroys Cloudinary assets for anything
-                    // that falls out of the submitted data. Always ask instead.
-                    const input = window.prompt(
-                      "Year label for the new entry (e.g. 2027):",
-                      suggestion,
-                    );
-                    if (input === null) return;
-                    const trimmed = input.trim();
-                    if (!trimmed) {
-                      window.alert("Year label can't be empty.");
-                      return;
-                    }
-                    if (existing.has(trimmed)) {
-                      window.alert(
-                        `"${trimmed}" already exists for this program. Choose a different label, or select it from the picker to edit it directly.`,
-                      );
-                      return;
-                    }
-                    updateProgram((prog) => ({
-                      ...prog,
-                      years: [emptyYear(trimmed), ...prog.years],
-                    }));
-                    setYearIndex(0);
-                  }}
-                >
-                  Add year
-                </button>
-                {year && program.years.length > 1 && (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-(--ink)">{y.year}</p>
+                    <p className="text-xs text-(--ink)/55">
+                      {photos.length} photo{photos.length === 1 ? "" : "s"}
+                      {y.albumUrl ? " · album linked" : ""}
+                    </p>
+                  </div>
+                  <button type="button" className={ICON_BTN} aria-label={`Edit ${y.year}`} onClick={() => open({ kind: "year", programIndex: pi, yearIndex: yi })}>
+                    <Pencil className="size-4" aria-hidden />
+                  </button>
                   <button
                     type="button"
-                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-800"
+                    className={cn(ICON_BTN, "text-red-700")}
+                    aria-label={`Delete ${y.year}`}
+                    disabled={saving || p.years.length === 1}
                     onClick={() => {
-                      if (!confirm(`Delete year ${year.year}?`)) return;
-                      const removedUrls = year.images.map((image) => image.src);
-                      updateProgram((prog) => ({
-                        ...prog,
-                        years: prog.years.filter((_, index) => index !== yearIndex),
-                      }));
-                      setYearIndex(0);
-                      void deleteDraftCloudinaryUrls(removedUrls, savedData);
+                      if (!confirm(`Delete ${y.year} and its photos? This can't be undone.`)) return;
+                      void save(programs.map((x, i) => (i === pi ? { ...x, years: x.years.filter((_, j) => j !== yi) } : x)));
                     }}
                   >
-                    Delete year
+                    <Trash2 className="size-4" aria-hidden />
                   </button>
+                </li>
+              );
+            })}
+          </ul>
+          <button
+            type="button"
+            onClick={() => open({ kind: "year", programIndex: pi, yearIndex: null })}
+            className="mt-2 inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-(--ink)/70 hover:bg-(--ink)/5 hover:text-(--ink)"
+          >
+            <Plus className="size-4" aria-hidden /> Add a year
+          </button>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- add a program / add or edit a year
+
+function YearWizard({
+  programs,
+  programIndex,
+  yearIndex,
+  saved,
+  saving,
+  status,
+  setStatus,
+  onCancel,
+  onFinish,
+}: {
+  programs: GalleryCmsProgram[];
+  programIndex: number | null;
+  yearIndex: number | null;
+  saved: GalleryCmsData;
+  saving: boolean;
+  status: UpgradeStatus;
+  setStatus: (s: UpgradeStatus) => void;
+  onCancel: () => void;
+  onFinish: (programs: GalleryCmsProgram[]) => void;
+}) {
+  const program = programIndex === null ? null : programs[programIndex];
+  const existing: GalleryCmsYearEntry | null = program && yearIndex !== null ? program.years[yearIndex] : null;
+  const takenYears = new Set((program?.years ?? []).filter((_, i) => i !== yearIndex).map((y) => y.year));
+
+  const [title, setTitle] = useState(program?.title ?? "");
+  const thisYear = new Date().getFullYear();
+  const yearChoices = [thisYear, thisYear - 1, thisYear - 2].map(String).filter((y) => !takenYears.has(y));
+  const [year, setYear] = useState(existing?.year ?? yearChoices[0] ?? "");
+  const [otherYear, setOtherYear] = useState(existing && !yearChoices.includes(existing.year) ? existing.year : "");
+  const usingOther = !yearChoices.includes(year);
+  const [images, setImages] = useState<GalleryCmsImage[]>(existing?.images ?? emptyImages());
+  const [albumUrl, setAlbumUrl] = useState(existing?.albumUrl ?? "");
+  const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+
+  const slug = program?.slug ?? slugifyProgramTitle(title);
+  const yearLabel = usingOther ? otherYear.trim() : year;
+  const yearClash = takenYears.has(yearLabel);
+
+  async function upload(slot: number, file: File) {
+    const previous = images[slot]?.src;
+    setUploadingSlot(slot);
+    setStatus({ type: "idle", message: "" });
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("programSlug", slug || "program");
+      form.append("year", yearLabel);
+      form.append("slot", String(slot));
+      const res = await fetch("/api/upgrade/upload", { method: "POST", body: form });
+      const body = (await res.json()) as { src?: string; ratio?: number; error?: string };
+      if (!res.ok || !body.src) {
+        setStatus({ type: "error", message: body.error ?? "Upload failed" });
+        return;
+      }
+      setImages((list) => list.map((im, i) => (i === slot ? { src: body.src!, ratio: body.ratio ?? 16 / 9 } : im)));
+      if (previous) void deleteDraftUrls([previous], saved);
+    } catch {
+      setStatus({ type: "error", message: "Upload failed" });
+    } finally {
+      setUploadingSlot(null);
+    }
+  }
+
+  const steps: WizardStep[] = [];
+  if (!program) {
+    steps.push({
+      key: "title",
+      title: "What's the program called?",
+      ready: title.trim().length > 0,
+      content: <input autoFocus className={WIZARD_INPUT} value={title} onChange={(e) => setTitle(e.target.value)} />,
+    });
+  }
+  steps.push(
+    {
+      key: "year",
+      title: "Which year?",
+      ready: Boolean(yearLabel) && !yearClash,
+      content: (
+        <WizardChoices>
+          {yearChoices.map((y) => (
+            <WizardOption key={y} title={y} selected={year === y} onSelect={() => setYear(y)} />
+          ))}
+          <WizardOption title="Another year" selected={usingOther} onSelect={() => setYear("")} />
+          {usingOther && (
+            <input
+              autoFocus
+              inputMode="numeric"
+              className={WIZARD_INPUT}
+              value={otherYear}
+              placeholder="2019"
+              onChange={(e) => setOtherYear(e.target.value)}
+            />
+          )}
+          {yearClash && <p className="text-sm text-red-700">That year is already there.</p>}
+        </WizardChoices>
+      ),
+    },
+    {
+      key: "photos",
+      title: "Add up to 6 photos",
+      hint: "These show as the preview on the gallery page.",
+      content: (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((im, slot) => (
+            <div key={slot} className="relative">
+              <label className="relative block aspect-video cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-(--ink)/20 bg-white transition hover:border-(--orange)">
+                {im.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={im.src} alt="" className="size-full object-cover" />
+                ) : (
+                  <span className="flex size-full items-center justify-center text-(--ink)/45">
+                    <ImagePlus className="size-6" aria-hidden />
+                    <span className="sr-only">Add photo {slot + 1}</span>
+                  </span>
                 )}
-              </div>
-
-              {year && (
-                <>
-                  <label className="block text-sm font-medium text-(--ink)">
-                    Year label
-                    <input
-                      value={year.year}
-                      onChange={(event) =>
-                        updateYear((entry) => ({
-                          ...entry,
-                          year: event.target.value,
-                        }))
-                      }
-                      className="mt-2 w-full max-w-xs rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 outline-none focus:border-(--orange)"
-                    />
-                  </label>
-
-                  <label className="block text-sm font-medium text-(--ink)">
-                    Google Photos album link
-                    <input
-                      type="url"
-                      value={year.albumUrl}
-                      placeholder="https://photos.google.com/share/..."
-                      onChange={(event) =>
-                        updateYear((entry) => ({
-                          ...entry,
-                          albumUrl: event.target.value,
-                        }))
-                      }
-                      className="mt-2 w-full rounded-lg border border-(--ink)/15 bg-white px-3 py-2.5 outline-none focus:border-(--orange)"
-                    />
-                  </label>
-
-                  <div>
-                    <h2 className="text-sm font-medium text-(--ink)">
-                      Preview images (6)
-                    </h2>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {year.images.map((image, slot) => (
-                        <div
-                          key={slot}
-                          className="overflow-hidden rounded-xl border border-(--ink)/10 bg-(--cream-light)"
-                        >
-                          <div className="relative aspect-video bg-(--cream)">
-                            {image.src ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={image.src}
-                                alt={`${program.title} ${year.year} — ${slot + 1}`}
-                                className="absolute inset-0 h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center text-sm text-(--ink)/45">
-                                Empty slot {slot + 1}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2 p-3">
-                            <label className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-lg bg-(--orange) px-3 py-2 text-center text-sm font-semibold text-black">
-                              {uploadingSlot === slot ? "Uploading…" : "Upload"}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="sr-only"
-                                disabled={uploadingSlot !== null}
-                                onChange={(event) => {
-                                  const file = event.target.files?.[0];
-                                  event.target.value = "";
-                                  if (file) void uploadSlot(slot, file);
-                                }}
-                              />
-                            </label>
-                            {image.src && (
-                              <button
-                                type="button"
-                                className="rounded-lg border border-(--ink)/20 px-3 py-2 text-sm"
-                                onClick={() => {
-                                  const clearedSrc = image.src;
-                                  updateYear((entry) => {
-                                    const images = [...entry.images];
-                                    images[slot] = { src: "", ratio: 16 / 9 };
-                                    return { ...entry, images };
-                                  });
-                                  void deleteDraftCloudinaryUrls([clearedSrc], savedData);
-                                }}
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
+                {uploadingSlot === slot && (
+                  <span className="absolute inset-0 grid place-items-center bg-white/70">
+                    <Loader2 className="size-6 animate-spin" aria-label="Uploading" />
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploadingSlot !== null}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void upload(slot, f);
+                  }}
+                />
+              </label>
+              {im.src && uploadingSlot !== slot && (
+                <button
+                  type="button"
+                  aria-label={`Remove photo ${slot + 1}`}
+                  onClick={() => {
+                    void deleteDraftUrls([im.src], saved);
+                    setImages((list) => list.map((x, i) => (i === slot ? { src: "", ratio: 16 / 9 } : x)));
+                  }}
+                  className="absolute right-1.5 top-1.5 grid size-7 cursor-pointer place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
               )}
             </div>
-          )}
-        </>
-      )}
-    </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "album",
+      title: "Link the full Google Photos album?",
+      hint: "Optional. Paste the album's share link.",
+      skippable: !albumUrl.trim(),
+      content: (
+        <input
+          autoFocus
+          inputMode="url"
+          className={WIZARD_INPUT}
+          value={albumUrl}
+          placeholder="https://photos.google.com/share/…"
+          onChange={(e) => setAlbumUrl(e.target.value)}
+        />
+      ),
+    },
+  );
+
+  function finish() {
+    const entry: GalleryCmsYearEntry = { year: yearLabel, albumUrl: albumUrl.trim(), images };
+    if (!program) {
+      onFinish([...programs, { slug, title: title.trim(), years: [entry] }]);
+      return;
+    }
+    onFinish(
+      programs.map((p, i) =>
+        i !== programIndex
+          ? p
+          : { ...p, years: yearIndex === null ? [entry, ...p.years] : p.years.map((y, j) => (j === yearIndex ? entry : y)) },
+      ),
+    );
+  }
+
+  return (
+    <StepWizard
+      steps={steps}
+      label={program ? `${program.title}${existing ? ` ${existing.year}` : ""}` : "New program"}
+      busy={uploadingSlot !== null}
+      onCancel={() => {
+        const kept = new Set(existing?.images.map((im) => im.src));
+        void deleteDraftUrls(
+          images.map((im) => im.src).filter((src) => !kept.has(src)),
+          saved,
+        );
+        onCancel();
+      }}
+      onFinish={finish}
+      finishLabel="Save"
+      finishing={saving}
+      status={status.type === "error" ? status : undefined}
+    />
+  );
+}
+
+function RenameProgram({
+  title: initial,
+  saving,
+  status,
+  onCancel,
+  onFinish,
+}: {
+  title: string;
+  saving: boolean;
+  status: UpgradeStatus;
+  onCancel: () => void;
+  onFinish: (title: string) => void;
+}) {
+  const [title, setTitle] = useState(initial);
+  return (
+    <StepWizard
+      steps={[
+        {
+          key: "title",
+          title: "Rename this program",
+          ready: title.trim().length > 0,
+          content: <input autoFocus className={WIZARD_INPUT} value={title} onChange={(e) => setTitle(e.target.value)} />,
+        },
+      ]}
+      onCancel={onCancel}
+      onFinish={() => onFinish(title.trim())}
+      finishLabel="Save"
+      finishing={saving}
+      status={status.type === "error" ? status : undefined}
+    />
   );
 }
