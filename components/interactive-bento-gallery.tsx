@@ -233,7 +233,7 @@ function GalleryModal({
                     e.stopPropagation();
                     setDrawerOpen((v) => !v);
                   }}
-                  className="hero-cta-btn focus-ring-light pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide whitespace-nowrap text-black transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
+                  className="hero-cta-btn focus-ring-light pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-5 py-3 text-center text-sm leading-tight font-semibold tracking-normal sm:tracking-wide sm:whitespace-nowrap text-black transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
                 >
                   Learn More
                 </button>
@@ -241,7 +241,7 @@ function GalleryModal({
                   <Link
                     href="/stories"
                     onClick={(e) => e.stopPropagation()}
-                    className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-4 py-3 text-sm font-semibold tracking-wide whitespace-nowrap transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
+                    className="hero-cta-btn--ghost focus-ring pointer-events-auto relative z-50 inline-flex min-h-12 cursor-pointer items-center justify-center px-5 py-3 text-center text-sm leading-tight font-semibold tracking-normal sm:tracking-wide sm:whitespace-nowrap transition duration-200 ease-out sm:min-h-14 sm:px-10 sm:py-4 sm:text-base"
                   >
                     Access the Stories
                   </Link>
